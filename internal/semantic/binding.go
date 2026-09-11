@@ -155,36 +155,67 @@ func allowed(tool string, parts []string) (native bool, err error) {
 			return false, nil
 		}
 	case "query_search":
-		if parts[0] == "body" && len(parts) > 3 && parts[1] == "query" {
-			for i, op := range parts[2:] {
-				i += 2
-				tail := parts[i+1:]
-				switch op {
-				case "term", "match", "match_phrase":
-					if len(tail) == 1 || len(tail) == 2 && (tail[1] == "value" || tail[1] == "query") {
-						return false, nil
-					}
-				case "range":
-					if len(tail) == 2 && slices.Contains([]string{"gt", "gte", "lt", "lte"}, tail[1]) {
-						return false, nil
-					}
-				case "terms":
-					if len(tail) == 2 {
-						if n, err := strconv.Atoi(tail[1]); err == nil && n >= 0 {
-							return false, nil
-						}
-					}
-				case "ids":
-					if len(tail) == 2 && tail[0] == "values" {
-						if n, err := strconv.Atoi(tail[1]); err == nil && n >= 0 {
-							return false, nil
-						}
-					}
-				}
-			}
+		if parts[0] == "body" && len(parts) > 3 && parts[1] == "query" && searchValueSlot(parts[2:]) {
+			return false, nil
 		}
 	}
 	return false, invalid("Binding destination is not a supported native parameter or document value position")
+}
+
+// Traverse query clauses explicitly: field names can themselves be named term,
+// range or match, and must never be mistaken for an operator in a lookup object.
+func searchValueSlot(parts []string) bool {
+	arrayIndex := func(s string) bool {
+		n, err := strconv.Atoi(s)
+		return err == nil && n >= 0 && strconv.Itoa(n) == s
+	}
+	for len(parts) >= 2 {
+		switch parts[0] {
+		case "term", "match", "match_phrase":
+			option := "query"
+			if parts[0] == "term" {
+				option = "value"
+			}
+			return len(parts) == 2 || len(parts) == 3 && parts[2] == option
+		case "range":
+			return len(parts) == 3 && slices.Contains([]string{"gt", "gte", "lt", "lte"}, parts[2])
+		case "terms":
+			return len(parts) == 3 && arrayIndex(parts[2])
+		case "ids":
+			return len(parts) == 3 && parts[1] == "values" && arrayIndex(parts[2])
+		case "bool":
+			if !slices.Contains([]string{"must", "filter", "should", "must_not"}, parts[1]) {
+				return false
+			}
+			parts = parts[2:]
+			if len(parts) > 0 && arrayIndex(parts[0]) {
+				parts = parts[1:]
+			}
+		case "nested", "has_child", "has_parent", "function_score":
+			if parts[1] != "query" {
+				return false
+			}
+			parts = parts[2:]
+		case "constant_score":
+			if parts[1] != "filter" {
+				return false
+			}
+			parts = parts[2:]
+		case "dis_max":
+			if len(parts) < 3 || parts[1] != "queries" || !arrayIndex(parts[2]) {
+				return false
+			}
+			parts = parts[3:]
+		case "boosting":
+			if parts[1] != "positive" && parts[1] != "negative" {
+				return false
+			}
+			parts = parts[2:]
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 func number(v any) (*big.Rat, bool) {

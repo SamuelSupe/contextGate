@@ -34,12 +34,12 @@
       "transaction_read_only=on for every query; account grants are not inferred"
     ],
     "server_version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
-    "checked_at": "2026-09-11T15:41:39.258115333Z"
+    "checked_at": "2026-09-11T15:49:02.800943925Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T15:41:39.281114574Z",
+  "verified_at": "2026-09-11T15:49:02.822371426Z",
   "version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
   "image_id": "sha256:ec9366355ee5a42282006095a8677a042f7d3b0567a31777d77a6e7c9d6e0fdf",
-  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
+  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
   "environment": "OrbStack Linux arm64"
 }

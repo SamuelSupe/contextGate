@@ -1,0 +1,40 @@
+{
+  "result": "backend_passed_ui_partial",
+  "matrix": "matrix.json",
+  "go_race": "passed",
+  "frontend_build": "passed",
+  "lossless_request_tests": "2 passed",
+  "api_followup": {
+    "result": "passed",
+    "transport": "real HTTP MCP and administrator API on isolated QA instance",
+    "checks": [
+      "Chrome-created Agent token executes published template after restart",
+      "lossless integer result",
+      "templates-only native denial",
+      "semantic discovery and detail",
+      "JSON export/import preserves configuration and publication",
+      "discard draft"
+    ],
+    "not_chrome_checks": true
+  },
+  "chrome": {
+    "completed": [
+      "administrator setup",
+      "SQLite templates-only source configuration",
+      "multilingual overview and field editing",
+      "metadata import",
+      "template parameter editor",
+      "trial required before publication",
+      "successful trial and publication",
+      "lossless administrator template preview",
+      "desktop screenshot"
+    ],
+    "pending": [
+      "Agent identity preview",
+      "JSON round-trip through UI",
+      "keyboard and narrow layout",
+      "final console inspection"
+    ],
+    "blocker": "Mac locked; computer tool requires manual unlock"
+  }
+}

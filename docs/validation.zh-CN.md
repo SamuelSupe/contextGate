@@ -10,6 +10,7 @@
 - OrbStack `go test -race ./...` 通过，覆盖加密持久化与删除、编辑冲突、草稿隔离、试跑/发布门槛、连接/凭证/版本失效、说明性发布、任务取消、游标隔离、参数注入及禁止位置、OAuth 仅模板限制。
 - TypeScript/Vite 构建与两项 Node 无损请求测试通过。发行输入包含七类查询家族示例和中英文语义文档。
 - 本机 Chrome 已完成初始化、创建仅模板 SQLite 数据源、多语言概述和字段编辑、结构导入、参数化模板编辑、未试跑拒绝发布、试跑/发布及保留 `9007199254740993` 的预览。[桌面截图](screenshots/semantics.png) 来自该隔离实例。
+- 使用 Chrome 创建的 Agent Token 通过真实 HTTP/API 验证了语义发现、服务重启后模板执行、原生查询拒绝、JSON 导入导出往返及丢弃草稿。这些是 API 验证，未替代剩余浏览器操作。[语义验证记录](verification/semantics.json)。
 - Mac 在验证中锁屏，Agent 预览、JSON 往返、键盘/窄屏及最终控制台检查仍待完成，没有记为通过。正式发行等待这一 UI 验收门槛；CI 与发行包记录单独记录。
 
 以下历史章节对应原版本；当前矩阵文件已更新为 0.2.0，0.1.0 证据保留在[原始标签](https://github.com/SamuelSupe/mcpdbhub/blob/v0.1.0/docs/verification/matrix.json)。

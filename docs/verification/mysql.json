@@ -34,12 +34,12 @@
       "START TRANSACTION READ ONLY accepted; every query uses a new read-only transaction"
     ],
     "server_version": "8.4.11",
-    "checked_at": "2026-09-11T15:41:21.962765663Z"
+    "checked_at": "2026-09-11T15:48:45.354425365Z"
   },
   "query_cases": 6,
-  "verified_at": "2026-09-11T15:41:21.977269143Z",
+  "verified_at": "2026-09-11T15:48:45.368602285Z",
   "version": "8.4.11",
   "image_id": "sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
-  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
+  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
   "environment": "OrbStack Linux arm64"
 }

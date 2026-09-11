@@ -34,12 +34,12 @@
       "Only find, aggregate without writes, count and distinct are exposed"
     ],
     "server_version": "7.0.39",
-    "checked_at": "2026-09-11T15:41:42.594959192Z"
+    "checked_at": "2026-09-11T15:49:06.251041Z"
   },
   "query_cases": 8,
-  "verified_at": "2026-09-11T15:41:42.596608827Z",
+  "verified_at": "2026-09-11T15:49:06.255796473Z",
   "version": "7.0.39",
   "image_id": "sha256:04582c3a144d088f841c446abfc19f79adcefa8bd00ad4a7fb18e27b9585c5d6",
-  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
+  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
   "environment": "OrbStack Linux arm64"
 }
