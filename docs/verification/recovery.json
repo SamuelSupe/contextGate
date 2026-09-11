@@ -1,0 +1,12 @@
+{
+  "checks": [
+    "postgres_statement_timeout",
+    "connection_reused_after_cancellation",
+    "postgres_restart_connection_recovery",
+    "source_disable_denies_queries",
+    "source_reenable_and_data_unchanged"
+  ],
+  "result": "passed",
+  "database": "PostgreSQL 17.11",
+  "environment": "OrbStack Linux arm64"
+}

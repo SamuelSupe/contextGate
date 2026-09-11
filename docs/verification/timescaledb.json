@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 6,
+  "kind": "timescaledb",
+  "name": "timescaledb",
+  "probe": {
+    "connected": true,
+    "protection": "read_only_transaction",
+    "permission_status": "engine_enforced",
+    "evidence": [
+      "transaction_read_only=on for every query; account grants are not inferred"
+    ],
+    "server_version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+    "checked_at": "2026-09-11T09:39:47.991599734Z"
+  },
+  "query_cases": 7,
+  "verified_at": "2026-09-11T09:39:48.015830476Z",
+  "version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+  "image_id": "sha256:ec9366355ee5a42282006095a8677a042f7d3b0567a31777d77a6e7c9d6e0fdf",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

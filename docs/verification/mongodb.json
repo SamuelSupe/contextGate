@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 3,
+  "kind": "mongodb",
+  "name": "mongodb",
+  "probe": {
+    "connected": true,
+    "protection": "read_role_and_operation_allowlist",
+    "permission_status": "unverified",
+    "evidence": [
+      "Only find, aggregate without writes, count and distinct are exposed"
+    ],
+    "server_version": "7.0.39",
+    "checked_at": "2026-09-11T09:34:36.957305613Z"
+  },
+  "query_cases": 8,
+  "verified_at": "2026-09-11T09:34:36.960740262Z",
+  "version": "7.0.39",
+  "image_id": "sha256:04582c3a144d088f841c446abfc19f79adcefa8bd00ad4a7fb18e27b9585c5d6",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

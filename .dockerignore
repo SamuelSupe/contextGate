@@ -1,0 +1,13 @@
+.git
+artifacts
+bin
+data
+dist
+.github
+web/node_modules
+web/dist
+docs/design
+docs/screenshots
+internal/ui/dist
+**/__pycache__
+**/*.tsbuildinfo

@@ -1,0 +1,14 @@
+/data/
+/bin/
+/artifacts/
+/dist/
+/internal/ui/dist/
+/web/node_modules/
+/web/dist/
+*.tsbuildinfo
+__pycache__/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store

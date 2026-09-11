@@ -1,0 +1,45 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation",
+    "product_tls_verified",
+    "untrusted_certificate_denied",
+    "database_read_account_write_denied"
+  ],
+  "denied_cases": 3,
+  "kind": "opensearch",
+  "name": "opensearch",
+  "probe": {
+    "connected": true,
+    "protection": "query_api",
+    "permission_status": "unverified",
+    "evidence": [
+      "Only fixed read endpoints are exposed; database account grants are not inferred"
+    ],
+    "server_version": "3.2.0",
+    "checked_at": "2026-09-11T09:35:15.140919681Z"
+  },
+  "query_cases": 10,
+  "verified_at": "2026-09-11T09:35:15.462032931Z",
+  "version": "3.2.0",
+  "image_id": "sha256:23297b8d8545e129dd58c254ed08d786dc552410ba772983ad2af31048d2f04b",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

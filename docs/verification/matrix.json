@@ -1,0 +1,33 @@
+{
+  "result": "passed",
+  "environment": "OrbStack Linux arm64",
+  "verified_at": "2026-09-11T09:52:03.348796+00:00",
+  "products": 18,
+  "version_cases": 20,
+  "query_cases": 132,
+  "denied_cases": 89,
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "reports": [
+    "postgres.json",
+    "mysql.json",
+    "mariadb.json",
+    "tidb.json",
+    "cockroachdb.json",
+    "timescaledb.json",
+    "sqlite.json",
+    "duckdb.json",
+    "clickhouse.json",
+    "mongodb.json",
+    "redis.json",
+    "valkey.json",
+    "elasticsearch.json",
+    "opensearch.json",
+    "neo4j.json",
+    "cassandra.json",
+    "scylladb.json",
+    "influxdb1.json",
+    "influxdb2.json",
+    "influxdb3.json"
+  ],
+  "scope": "Independent single-node fixtures; native adapters and HTTP MCP; real SQLite/DuckDB file engines. Elasticsearch/OpenSearch verified TLS and read-account write denial."
+}

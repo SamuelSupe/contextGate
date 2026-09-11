@@ -1,0 +1,21 @@
+{
+  "result": "passed",
+  "image_id": "sha256:2a6a456a6096a4cc47e5c6a72c2f5217f853c3420f121b9a81995ac446e002bd",
+  "architecture": "arm64",
+  "source_sha256": "27ad8ae60622b1b278aa9fc8a3a50adad0e06fede71b1a0318c9c9d6d03c3fe3",
+  "verified_at": "2026-09-11T09:54:45Z",
+  "checks": [
+    "nonroot_uid_10001",
+    "readonly_root_filesystem",
+    "no_node_runtime",
+    "bootstrap",
+    "source_persistence",
+    "HTTP_MCP_query",
+    "stdio_initialize_discovery_and_query",
+    "restart_session_agent_and_source_recovery",
+    "revoked_agent_denied",
+    "password_recovery_cli",
+    "old_password_and_admin_sessions_rejected",
+    "recovery_preserves_database_credentials_and_agent_token"
+  ]
+}

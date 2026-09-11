@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 6,
+  "kind": "postgres",
+  "name": "postgres",
+  "probe": {
+    "connected": true,
+    "protection": "read_only_transaction",
+    "permission_status": "engine_enforced",
+    "evidence": [
+      "transaction_read_only=on for every query; account grants are not inferred"
+    ],
+    "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+    "checked_at": "2026-09-11T09:34:11.049135Z"
+  },
+  "query_cases": 6,
+  "verified_at": "2026-09-11T09:34:11.063938692Z",
+  "version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+  "image_id": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

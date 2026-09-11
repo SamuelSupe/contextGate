@@ -1,0 +1,47 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Go and embedded UI (${{ matrix.runner }})
+    strategy:
+      fail-fast: false
+      matrix:
+        runner: [ubuntu-24.04, ubuntu-24.04-arm]
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+      - name: Build embedded UI
+        run: make ui
+      - name: Verify lossless query parameters
+        run: node --test web/test/query.test.mjs
+      - name: Test Go, SQLite, DuckDB, OAuth, HTTP and stdio
+        run: go test ./...
+      - name: Race checks
+        run: go test -race ./...
+      - name: Build CLI
+        run: |
+          CGO_ENABLED=1 go build -trimpath -o bin/mcpdbhub ./cmd/mcpdbhub
+          ./bin/mcpdbhub version

@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 3,
+  "kind": "valkey",
+  "name": "valkey",
+  "probe": {
+    "connected": true,
+    "protection": "command_allowlist",
+    "permission_status": "unverified",
+    "evidence": [
+      "Explicit read command allowlist; database account permissions have not been inferred"
+    ],
+    "server_version": "8.1.9",
+    "checked_at": "2026-09-11T09:34:38.912879459Z"
+  },
+  "query_cases": 7,
+  "verified_at": "2026-09-11T09:34:38.923063414Z",
+  "version": "8.1.9",
+  "image_id": "sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

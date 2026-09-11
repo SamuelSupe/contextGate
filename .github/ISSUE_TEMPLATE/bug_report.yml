@@ -1,0 +1,33 @@
+name: Bug report / 缺陷反馈
+description: Report a reproducible problem with a query, connection, authorization or UI.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Please remove tokens, passwords, connection strings and private query data. Use private security reporting for authorization bypasses or credential exposure.
+  - type: input
+    id: version
+    attributes:
+      label: Hub version and platform / 版本与平台
+      placeholder: v0.1.0, Linux arm64, Docker
+    validations:
+      required: true
+  - type: input
+    id: database
+    attributes:
+      label: Database product and version / 数据库产品与版本
+      placeholder: PostgreSQL 17.11
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce / 复现步骤
+      description: Include a minimal redacted query or UI workflow and the expected result.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual result / 实际结果
+      description: Include the safe error code, request ID and logs with credentials removed.
+    validations:
+      required: true

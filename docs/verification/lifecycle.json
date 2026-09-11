@@ -1,0 +1,253 @@
+{
+  "result": "passed",
+  "scope": "Incremental lifecycle fixes; six version combinations, not the complete compatibility matrix",
+  "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+  "query_cases": 28,
+  "denied_cases": 27,
+  "reports": [
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "postgres",
+      "name": "postgres",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_transaction",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "transaction_read_only=on for every query; account grants are not inferred"
+        ],
+        "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+        "checked_at": "2026-09-11T08:14:20.289338288Z"
+      },
+      "query_cases": 4,
+      "verified_at": "2026-09-11T08:14:20.294998339Z",
+      "version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+      "image_id": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+      "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 2,
+      "kind": "influxdb",
+      "name": "influxdb1",
+      "probe": {
+        "connected": true,
+        "protection": "query_api",
+        "permission_status": "unverified",
+        "evidence": [
+          "Only fixed read endpoints are exposed; database account grants are not inferred"
+        ],
+        "server_version": "1.8.10",
+        "checked_at": "2026-09-11T08:15:19.407034625Z"
+      },
+      "query_cases": 4,
+      "verified_at": "2026-09-11T08:15:19.468969933Z",
+      "version": "1.8.10",
+      "image_id": "sha256:299ebda2c7e308dbef42e26ac9b8fd1d9b3bcb8a0aee80c6509aa0219c1d0290",
+      "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 2,
+      "kind": "influxdb",
+      "name": "influxdb2",
+      "probe": {
+        "connected": true,
+        "protection": "query_api",
+        "permission_status": "unverified",
+        "evidence": [
+          "Only fixed read endpoints are exposed; database account grants are not inferred"
+        ],
+        "server_version": "v2.7.12",
+        "checked_at": "2026-09-11T08:14:23.578460746Z"
+      },
+      "query_cases": 5,
+      "verified_at": "2026-09-11T08:14:23.59961549Z",
+      "version": "v2.7.12",
+      "image_id": "sha256:b8d940ca9376f85118260f5b6bd236b8a00b1749c3350c5578d4cde8e27f31f2",
+      "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 3,
+      "kind": "influxdb",
+      "name": "influxdb3",
+      "probe": {
+        "connected": true,
+        "protection": "query_api",
+        "permission_status": "api_isolated",
+        "evidence": [
+          "InfluxDB 3 Core admin token is restricted by this adapter to query_sql/query_influxql; this is not a read-only database account"
+        ],
+        "server_version": "3.11.2",
+        "checked_at": "2026-09-11T08:15:23.300739377Z"
+      },
+      "query_cases": 5,
+      "verified_at": "2026-09-11T08:15:23.338991898Z",
+      "version": "3.11.2",
+      "image_id": "sha256:f4a6d4a76f0ed0a196cc997da472cd0b7ae52a766430493a1bead807ab8c1217",
+      "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination"
+      ],
+      "denied_cases": 7,
+      "kind": "sqlite",
+      "name": "sqlite",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_file",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "Database opened READ_ONLY; external file access and extensions disabled"
+        ],
+        "server_version": "3.53.4",
+        "checked_at": "2026-09-11T08:15:23.737671447Z"
+      },
+      "query_cases": 5,
+      "verified_at": "2026-09-11T08:15:23.738916464Z",
+      "version": "3.53.4",
+      "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination"
+      ],
+      "denied_cases": 7,
+      "kind": "duckdb",
+      "name": "duckdb",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_file",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "Database opened READ_ONLY; external file access and extensions disabled"
+        ],
+        "server_version": "v1.5.5",
+        "checked_at": "2026-09-11T08:15:23.97555889Z"
+      },
+      "query_cases": 5,
+      "verified_at": "2026-09-11T08:15:23.991831166Z",
+      "version": "v1.5.5",
+      "implementation_sha256": "8f537bcdf59d3b2424b3717ab98fe9148eee5ac69d644e6dba2a3d773ab560f4",
+      "environment": "OrbStack Linux arm64"
+    }
+  ]
+}

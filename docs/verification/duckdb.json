@@ -1,0 +1,38 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination"
+  ],
+  "denied_cases": 7,
+  "kind": "duckdb",
+  "name": "duckdb",
+  "probe": {
+    "connected": true,
+    "protection": "read_only_file",
+    "permission_status": "engine_enforced",
+    "evidence": [
+      "Database opened READ_ONLY; external file access and extensions disabled"
+    ],
+    "server_version": "v1.5.5",
+    "checked_at": "2026-09-11T09:36:56.362303826Z"
+  },
+  "query_cases": 7,
+  "verified_at": "2026-09-11T09:36:56.384413574Z",
+  "version": "v1.5.5",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

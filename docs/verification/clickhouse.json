@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 6,
+  "kind": "clickhouse",
+  "name": "clickhouse",
+  "probe": {
+    "connected": true,
+    "protection": "readonly_setting",
+    "permission_status": "engine_enforced",
+    "evidence": [
+      "readonly=1 and allow_ddl=0 enforced in connection settings"
+    ],
+    "server_version": "24.8.14.39",
+    "checked_at": "2026-09-11T09:34:41.769755063Z"
+  },
+  "query_cases": 4,
+  "verified_at": "2026-09-11T09:34:41.789570772Z",
+  "version": "24.8.14.39",
+  "image_id": "sha256:b002e56ed5c16e224c312527f6fcba7e77216fec5d7a88a7828f59efc614feb5",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

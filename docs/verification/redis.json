@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 3,
+  "kind": "redis",
+  "name": "redis",
+  "probe": {
+    "connected": true,
+    "protection": "command_allowlist",
+    "permission_status": "unverified",
+    "evidence": [
+      "Explicit read command allowlist; database account permissions have not been inferred"
+    ],
+    "server_version": "7.4.6",
+    "checked_at": "2026-09-11T09:34:37.902292573Z"
+  },
+  "query_cases": 7,
+  "verified_at": "2026-09-11T09:34:37.91997663Z",
+  "version": "7.4.6",
+  "image_id": "sha256:3b73847e72874be07e6657b129a94761662b79bc0f679273757d4218573b2a98",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

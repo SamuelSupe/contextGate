@@ -1,0 +1,3 @@
+third_party/licenses/** -text -whitespace linguist-vendored
+third_party/go-licenses.csv linguist-generated
+docs/verification/*.json linguist-generated

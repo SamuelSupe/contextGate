@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 2,
+  "kind": "influxdb",
+  "name": "influxdb2",
+  "probe": {
+    "connected": true,
+    "protection": "query_api",
+    "permission_status": "unverified",
+    "evidence": [
+      "Only fixed read endpoints are exposed; database account grants are not inferred"
+    ],
+    "server_version": "v2.7.12",
+    "checked_at": "2026-09-11T09:36:51.976753103Z"
+  },
+  "query_cases": 5,
+  "verified_at": "2026-09-11T09:36:51.998169164Z",
+  "version": "v2.7.12",
+  "image_id": "sha256:b8d940ca9376f85118260f5b6bd236b8a00b1749c3350c5578d4cde8e27f31f2",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

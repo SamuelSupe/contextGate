@@ -1,0 +1,479 @@
+{
+  "result": "passed",
+  "scope": "Five product fixes; 10 affected products and version combinations, not the complete 20-version matrix",
+  "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+  "verified_at": "2026-09-11T09:06:55.673808+00:00",
+  "query_cases": 60,
+  "denied_cases": 59,
+  "service_regressions": {
+    "result": "passed",
+    "image_id": "sha256:0fbbd17591d4a6178eb744cc1b26ae49ecc1bdd28d3337a7f3cbc6faa3ce5de7",
+    "checked_at": "2026-09-11T09:01:03.523394+00:00",
+    "normal_functions": {
+      "replace": "xbc",
+      "format": "ok"
+    },
+    "metadata_pages": [
+      1000,
+      1
+    ],
+    "metadata_last_object": "t_1000",
+    "table_count_after_write_denial": 1001,
+    "queue_isolation": {
+      "controlled_agent_a_requests": 32,
+      "agent_b_query_seconds": 0.002,
+      "agent_b_result": "1",
+      "pause_cancels_agent_a": true
+    },
+    "empty_grants": [
+      "omitted -> []",
+      "null -> []",
+      "no database access"
+    ]
+  },
+  "chrome": {
+    "expiry": {
+      "initial": "2026-09-12T09:15:00.123456Z",
+      "after_unchanged_UI_save": "2026-09-12T09:15:00.123456Z",
+      "after_keyboard_time_change": "2026-09-12T09:16:28Z"
+    },
+    "checks": [
+      "omitted and null grant Agents render and remain editable",
+      "1001 SQL tables discovered as 1000 + 1 with UI Next page",
+      "last table column discovery",
+      "replace and format preview return xbc and ok",
+      "DROP TABLE denied and 1001 tables unchanged",
+      "390-pixel editor layout",
+      "Escape closes editor and restores Edit grants focus"
+    ],
+    "application_console_errors": 0
+  },
+  "reports": [
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "postgres",
+      "name": "postgres",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_transaction",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "transaction_read_only=on for every query; account grants are not inferred"
+        ],
+        "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+        "checked_at": "2026-09-11T09:00:12.829018211Z"
+      },
+      "query_cases": 6,
+      "verified_at": "2026-09-11T09:00:12.839636899Z",
+      "version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+      "image_id": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "mysql",
+      "name": "mysql",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_transaction",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "START TRANSACTION READ ONLY accepted; every query uses a new read-only transaction"
+        ],
+        "server_version": "8.4.11",
+        "checked_at": "2026-09-11T09:09:30.543673409Z"
+      },
+      "query_cases": 6,
+      "verified_at": "2026-09-11T09:09:30.559312528Z",
+      "version": "8.4.11",
+      "image_id": "sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "mariadb",
+      "name": "mariadb",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_transaction",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "START TRANSACTION READ ONLY accepted; every query uses a new read-only transaction"
+        ],
+        "server_version": "10.11.18-MariaDB-ubu2204",
+        "checked_at": "2026-09-11T09:01:28.164779147Z"
+      },
+      "query_cases": 6,
+      "verified_at": "2026-09-11T09:01:28.180473117Z",
+      "version": "10.11.18-MariaDB-ubu2204",
+      "image_id": "sha256:be981e4113326ada8d6004174dd09eeaefc03094037f811182a52d4f2e737350",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "tidb",
+      "name": "tidb",
+      "probe": {
+        "connected": true,
+        "protection": "select_privileges",
+        "permission_status": "verified",
+        "evidence": [
+          "SHOW GRANTS contains only SELECT / SHOW VIEW / USAGE"
+        ],
+        "server_version": "8.0.11-TiDB-v8.5.1",
+        "checked_at": "2026-09-11T09:00:29.521860399Z"
+      },
+      "query_cases": 6,
+      "verified_at": "2026-09-11T09:00:29.536571533Z",
+      "version": "8.0.11-TiDB-v8.5.1",
+      "image_id": "sha256:a40b5b4fe4c08ed9dae0ccf7c7d15f50aae9aa5613189e8991ec55e22b55717c",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "cockroachdb",
+      "name": "cockroachdb",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_transaction",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "transaction_read_only=on for every query; account grants are not inferred"
+        ],
+        "server_version": "CockroachDB CCL v24.3.15 (aarch64-unknown-linux-gnu, built 2025/06/23 13:44:54, go1.22.8 X:nocoverageredesign)",
+        "checked_at": "2026-09-11T09:00:32.977412333Z"
+      },
+      "query_cases": 6,
+      "verified_at": "2026-09-11T09:00:33.02490658Z",
+      "version": "CockroachDB CCL v24.3.15 (aarch64-unknown-linux-gnu, built 2025/06/23 13:44:54, go1.22.8 X:nocoverageredesign)",
+      "image_id": "sha256:7585fa776220f9de4736134a3de8f76e43ed24879c429e07e7b4ea94df8e8d91",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "timescaledb",
+      "name": "timescaledb",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_transaction",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "transaction_read_only=on for every query; account grants are not inferred"
+        ],
+        "server_version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+        "checked_at": "2026-09-11T09:00:37.989395583Z"
+      },
+      "query_cases": 7,
+      "verified_at": "2026-09-11T09:00:38.007798688Z",
+      "version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
+      "image_id": "sha256:ec9366355ee5a42282006095a8677a042f7d3b0567a31777d77a6e7c9d6e0fdf",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 6,
+      "kind": "clickhouse",
+      "name": "clickhouse",
+      "probe": {
+        "connected": true,
+        "protection": "readonly_setting",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "readonly=1 and allow_ddl=0 enforced in connection settings"
+        ],
+        "server_version": "24.8.14.39",
+        "checked_at": "2026-09-11T09:00:41.4203146Z"
+      },
+      "query_cases": 4,
+      "verified_at": "2026-09-11T09:00:41.472180903Z",
+      "version": "24.8.14.39",
+      "image_id": "sha256:b002e56ed5c16e224c312527f6fcba7e77216fec5d7a88a7828f59efc614feb5",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination"
+      ],
+      "denied_cases": 7,
+      "kind": "sqlite",
+      "name": "sqlite",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_file",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "Database opened READ_ONLY; external file access and extensions disabled"
+        ],
+        "server_version": "3.53.4",
+        "checked_at": "2026-09-11T09:00:41.897114699Z"
+      },
+      "query_cases": 7,
+      "verified_at": "2026-09-11T09:00:41.898956955Z",
+      "version": "3.53.4",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination"
+      ],
+      "denied_cases": 7,
+      "kind": "duckdb",
+      "name": "duckdb",
+      "probe": {
+        "connected": true,
+        "protection": "read_only_file",
+        "permission_status": "engine_enforced",
+        "evidence": [
+          "Database opened READ_ONLY; external file access and extensions disabled"
+        ],
+        "server_version": "v1.5.5",
+        "checked_at": "2026-09-11T09:00:42.161527442Z"
+      },
+      "query_cases": 7,
+      "verified_at": "2026-09-11T09:00:42.183272267Z",
+      "version": "v1.5.5",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    },
+    {
+      "checks": [
+        "connection",
+        "namespaces",
+        "objects",
+        "describe",
+        "queries",
+        "parameters",
+        "types",
+        "empty",
+        "error",
+        "denied_operations",
+        "unchanged_data",
+        "row_limit",
+        "cancel",
+        "mcp_http_queries",
+        "mcp_discovery",
+        "mcp_limits_and_pagination",
+        "agent_isolation",
+        "mcp_audit",
+        "token_revocation"
+      ],
+      "denied_cases": 3,
+      "kind": "influxdb",
+      "name": "influxdb3",
+      "probe": {
+        "connected": true,
+        "protection": "query_api",
+        "permission_status": "api_isolated",
+        "evidence": [
+          "InfluxDB 3 Core admin token is restricted by this adapter to query_sql/query_influxql; this is not a read-only database account"
+        ],
+        "server_version": "3.11.2",
+        "checked_at": "2026-09-11T09:00:45.669442599Z"
+      },
+      "query_cases": 5,
+      "verified_at": "2026-09-11T09:00:45.697324112Z",
+      "version": "3.11.2",
+      "image_id": "sha256:f4a6d4a76f0ed0a196cc997da472cd0b7ae52a766430493a1bead807ab8c1217",
+      "implementation_sha256": "cc221fe177abd96df74f872d6ea45fe3790f5a00f1c539bc394755c6cd6b64ac",
+      "environment": "OrbStack Linux arm64"
+    }
+  ],
+  "running_service": {
+    "result": "passed",
+    "url": "http://127.0.0.1:19840",
+    "image_id": "sha256:0fbbd17591d4a6178eb744cc1b26ae49ecc1bdd28d3337a7f3cbc6faa3ce5de7",
+    "binary_sha256": "298ffdf73370c19a630e4e050b16fa17dd438edd4453b794be0c47c39f964a33",
+    "checked_at": "2026-09-11T09:06:57.161130+00:00"
+  },
+  "cleanup": {
+    "isolated_hub_and_slow_fixture_removed": true,
+    "isolated_configuration_volume_removed": true,
+    "retained_postgres_fixture_removed": true,
+    "temporary_agent_token_file_removed": true,
+    "original_configuration_preserved": true
+  }
+}

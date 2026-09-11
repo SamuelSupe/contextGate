@@ -1,0 +1,38 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination"
+  ],
+  "denied_cases": 7,
+  "kind": "sqlite",
+  "name": "sqlite",
+  "probe": {
+    "connected": true,
+    "protection": "read_only_file",
+    "permission_status": "engine_enforced",
+    "evidence": [
+      "Database opened READ_ONLY; external file access and extensions disabled"
+    ],
+    "server_version": "3.53.4",
+    "checked_at": "2026-09-11T09:36:56.115121584Z"
+  },
+  "query_cases": 7,
+  "verified_at": "2026-09-11T09:36:56.116160218Z",
+  "version": "3.53.4",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}

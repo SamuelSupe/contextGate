@@ -1,0 +1,42 @@
+{
+  "checks": [
+    "connection",
+    "namespaces",
+    "objects",
+    "describe",
+    "queries",
+    "parameters",
+    "types",
+    "empty",
+    "error",
+    "denied_operations",
+    "unchanged_data",
+    "row_limit",
+    "cancel",
+    "mcp_http_queries",
+    "mcp_discovery",
+    "mcp_limits_and_pagination",
+    "agent_isolation",
+    "mcp_audit",
+    "token_revocation"
+  ],
+  "denied_cases": 4,
+  "kind": "scylladb",
+  "name": "scylladb",
+  "probe": {
+    "connected": true,
+    "protection": "select_grammar_and_database_permissions",
+    "permission_status": "unverified",
+    "evidence": [
+      "Only a single CQL SELECT is exposed; provision a SELECT-only account externally"
+    ],
+    "server_version": "2026.2.5-0.20260815.d50c7da866e2",
+    "checked_at": "2026-09-11T09:36:45.57038573Z"
+  },
+  "query_cases": 7,
+  "verified_at": "2026-09-11T09:36:45.647217944Z",
+  "version": "2026.2.5-0.20260815.d50c7da866e2",
+  "image_id": "sha256:62dcb58bdc1d1e9aad47c2af02a6a36e8f7a0a61ab5ac13b447898f87d3730c8",
+  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "environment": "OrbStack Linux arm64"
+}
