@@ -1,0 +1,43 @@
+{
+  "format_version": 1,
+  "overview": "Example order analytics catalog. Adapt the fixed query, object references and business definitions to this data source before trial and publication.",
+  "entries": [
+    {
+      "id": "order-amount",
+      "kind": "metric",
+      "name": "Order amount",
+      "aliases": [
+        "订单金额"
+      ],
+      "description": "Amount recorded by the order system. Define currency, refunds and recognition rules for your organization.",
+      "unit": "minor currency units",
+      "grain": "order; time-series examples aggregate by the stated query grain",
+      "caveats": "Do not sum across currencies. This example is not a financial reporting policy.",
+      "template_id": "lookup-orders"
+    },
+    {
+      "id": "lookup-orders",
+      "kind": "template",
+      "name": "Read order amounts",
+      "description": "Read an approved native query using named template parameters.",
+      "template": {
+        "enabled": true,
+        "tool": "query_influxdb",
+        "query_json": "{\"language\": \"sql\", \"query\": \"SELECT region,sum(amount) AS total FROM orders WHERE region=$region GROUP BY region\", \"named_params\": {\"region\": \"\"}}",
+        "parameters": [
+          {
+            "name": "region",
+            "description": "Requested business identifier or region",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/named_params/region"
+            ]
+          }
+        ],
+        "example_json": "{\"region\": \"east\"}",
+        "result_description": "Native result structure. Integers, decimals, timestamps and binary values retain the database adapter encoding."
+      }
+    }
+  ]
+}

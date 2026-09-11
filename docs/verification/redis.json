@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "Explicit read command allowlist; database account permissions have not been inferred"
     ],
     "server_version": "7.4.6",
-    "checked_at": "2026-09-11T09:34:37.902292573Z"
+    "checked_at": "2026-09-11T15:41:43.532565697Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T09:34:37.91997663Z",
+  "verified_at": "2026-09-11T15:41:43.539721926Z",
   "version": "7.4.6",
   "image_id": "sha256:3b73847e72874be07e6657b129a94761662b79bc0f679273757d4218573b2a98",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "transaction_read_only=on for every query; account grants are not inferred"
     ],
     "server_version": "CockroachDB CCL v24.3.15 (aarch64-unknown-linux-gnu, built 2025/06/23 13:44:54, go1.22.8 X:nocoverageredesign)",
-    "checked_at": "2026-09-11T09:34:30.571332244Z"
+    "checked_at": "2026-09-11T15:41:34.198066435Z"
   },
   "query_cases": 6,
-  "verified_at": "2026-09-11T09:34:30.624388751Z",
+  "verified_at": "2026-09-11T15:41:34.247378152Z",
   "version": "CockroachDB CCL v24.3.15 (aarch64-unknown-linux-gnu, built 2025/06/23 13:44:54, go1.22.8 X:nocoverageredesign)",
   "image_id": "sha256:7585fa776220f9de4736134a3de8f76e43ed24879c429e07e7b4ea94df8e8d91",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

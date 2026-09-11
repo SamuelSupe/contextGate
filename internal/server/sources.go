@@ -67,6 +67,19 @@ func (s *Server) saveSource(w http.ResponseWriter, r *http.Request) {
 		src = input.Source
 		src.ID = "src_" + secure.Random(16)
 	}
+	if src.QueryAccessMode == "" {
+		src.QueryAccessMode = old.QueryMode()
+	}
+	if src.QueryAccessMode != "native_and_templates" && src.QueryAccessMode != "templates_only" {
+		fail(w, 400, model.Fail("invalid_input", "Invalid query access mode"))
+		return
+	}
+	src.ObservedVersion = old.ObservedVersion
+	src.ConnectionRevision = old.ConnectionRevision
+	if id == "" || !src.SameConnection(old) {
+		src.ConnectionRevision++
+		src.ObservedVersion = ""
+	}
 	if e := adapter.ValidateSource(&src, s.FileRoot); e != nil {
 		fail(w, 400, model.Fail("invalid_input", e.Error()))
 		return
@@ -157,6 +170,16 @@ func (s *Server) testSource(w http.ResponseWriter, r *http.Request) {
 		if e != nil || fresh.Revision != src.Revision {
 			fail(w, 409, model.Fail("conflict", "data source changed during verification"))
 			return
+		}
+		if probe.Connected && probe.ServerVersion != "" && fresh.ObservedVersion != probe.ServerVersion {
+			known := fresh.ObservedVersion != ""
+			fresh.ObservedVersion = probe.ServerVersion
+			if known {
+				fresh.ConnectionRevision++
+				fresh.Revision++
+				fresh.QueryRevision = fresh.Revision
+				s.Engine.InvalidateSource(id)
+			}
 		}
 		fresh.Probe = &probe
 		if e = s.Store.SaveSource(fresh); e != nil {

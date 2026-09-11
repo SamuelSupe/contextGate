@@ -118,6 +118,7 @@ try:
         assert manifest['arch'] in ('arm64', 'amd64') and manifest['os'] == 'linux'
         assert hashlib.sha256((package/'libexec/mcpdbhub').read_bytes()).hexdigest() == manifest['binary_sha256']
         assert all((package/p).exists() for p in ('README.md', 'README.en.md', 'docs/install.md', 'docs/install.en.md', 'third_party/licenses'))
+        assert all((package/p).exists() for p in ('docs/semantics.md', 'docs/semantics.zh-CN.md', 'examples/semantics/sql-postgres.json'))
         IMAGE = 'debian:bookworm-slim'
         binary = '/opt/mcpdbhub/mcpdbhub'
         runtime = ['--platform', 'linux/'+manifest['arch'], '--user', '10001:10001',
@@ -191,7 +192,7 @@ try:
         assert initialized['result']['serverInfo']['version'] == runtime_version.group(1)
         bridge.stdin.write(json.dumps({'jsonrpc': '2.0', 'method': 'notifications/initialized'})+'\n')
         tools = bridge_call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'})
-        assert len(tools['result']['tools']) == 11
+        assert len(tools['result']['tools']) == 14
         assert bridge_call({**query, 'id': 3})['result']['structuredContent']['data'] == [['3']]
     finally:
         bridge.stdin.close()
@@ -219,6 +220,53 @@ try:
         wire = logs.stdout+logs.stderr
         assert source['id'] in wire and 'event.name: Str(mcpdbhub.audit)' in wire
         assert 'package-test-only' not in wire and 'SELECT count(*)' not in wire and agent['token'] not in wire
+    semantic_path = '/api/sources/'+source['id']+'/semantics'
+    snapshot = {'format_version': 1, 'overview': 'Release package semantics', 'entries': [{
+        'id': 'event-count', 'kind': 'template', 'name': 'Event count', 'template': {
+            'enabled': True, 'tool': 'query_sql',
+            'query_json': json.dumps({'query': 'SELECT count(*) FROM events WHERE id >= $1', 'params': [0]}),
+            'parameters': [{'name': 'minimum_id', 'type': 'integer', 'required': True, 'pointers': ['/params/0'], 'minimum': '1'}],
+            'example_json': '{"minimum_id":1}'}}]}
+    draft = request('PUT', semantic_path, {'revision': '0', 'snapshot': snapshot})
+    request('POST', semantic_path+'/publish', {'revision': draft['revision']}, expected=400)
+    request('POST', semantic_path+'/trial', {'revision': draft['revision'], 'template_id': 'event-count'})
+    published = request('POST', semantic_path+'/publish', {'revision': draft['revision']})
+    source = next(s for s in request('GET', '/api/sources') if s['id'] == source['id'])
+    source['query_access_mode'] = 'templates_only'
+    request('PUT', '/api/sources/'+source['id'], source)
+    native_query = query
+    assert request('POST', '/mcp', native_query, agent['token'])['result']['isError'] is True
+    query = {'jsonrpc': '2.0', 'id': 10, 'method': 'tools/call', 'params': {
+        'name': 'execute_query_template', 'arguments': {'source_id': source['id'], 'template_id': 'event-count',
+        'execution_version': published['published_version'], 'parameters': {'minimum_id': 1}}}}
+    content = request('POST', '/mcp', query, agent['token'])['result']['structuredContent']
+    assert content['data'] == [['3']] and content['template_id'] == 'event-count' and content['template_version'] == '1'
+    bridge = subprocess.Popen(['docker', 'exec', '-i', '-e', 'MCPDBHUB_TOKEN', name, binary,
+                               'stdio', '--url', 'http://127.0.0.1:8080/mcp'],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, env={**os.environ, 'MCPDBHUB_TOKEN': agent['token']})
+    try:
+        bridge_call({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
+            'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'template-dist-verification', 'version': '1'}}})
+        bridge.stdin.write(json.dumps({'jsonrpc': '2.0', 'method': 'notifications/initialized'})+'\n')
+        assert bridge_call({**native_query, 'id': 2})['result']['isError'] is True
+        assert bridge_call({**query, 'id': 3})['result']['structuredContent']['data'] == [['3']]
+    finally:
+        bridge.stdin.close()
+        try:
+            bridge.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            bridge.kill()
+            bridge.wait()
+        bridge.stdout.close()
+        bridge.stderr.close()
+    if args.otlp:
+        await_export(lambda status: status['pending'] == 0 and status['accepted'] >= 10)
+        logs = docker('logs', collector)
+        wire = logs.stdout+logs.stderr
+        assert 'mcpdbhub.audit.template_id: Str(event-count)' in wire
+        assert 'mcpdbhub.audit.template_version: Str(1)' in wire
+        assert 'minimum_id' not in wire and 'SELECT count(*)' not in wire
     docker("stop", name)
     replacement_password = uuid.uuid4().hex
     recovery = subprocess.run(["docker", "run", "--rm", "-i", "--read-only", "--cap-drop", "ALL",
@@ -234,6 +282,7 @@ try:
     csrf = request("POST", "/api/login", {"password": replacement_password})["csrf"]
     assert any(s["id"] == source["id"] for s in request("GET", "/api/sources"))
     assert request("POST", "/mcp", query, agent["token"])["result"]["structuredContent"]["data"] == [["3"]]
+    assert request('POST', '/mcp', native_query, agent['token'])['result']['isError'] is True
     request("DELETE", "/api/agents/"+agent["agent"]["id"])
     request("POST", "/mcp", query, agent["token"], expected=401)
     image = json.loads(docker("image", "inspect", IMAGE).stdout)[0]
@@ -243,15 +292,19 @@ try:
               "checks": ["nonroot_uid_10001", "readonly_root_filesystem", "no_node_runtime", "bootstrap",
                          "source_persistence", "HTTP_MCP_query", "stdio_initialize_discovery_and_query", "restart_session_agent_and_source_recovery", "revoked_agent_denied",
                          "password_recovery_cli", "old_password_and_admin_sessions_rejected", "recovery_preserves_database_credentials_and_agent_token"]}
+    result['checks'].extend(['template_trial_required_for_publication', 'HTTP_and_stdio_template_query',
+                             'HTTP_and_stdio_templates_only_native_denial', 'published_template_and_evidence_restart_recovery'])
     if args.otlp:
         result['collector_version'] = '0.160.0'
         result['checks'].extend(['OTLP_HTTP_protobuf', 'OTLP_gRPC', 'OTLP_header_and_payload_redaction',
                                  'OTLP_receiver_outage_query_isolation', 'OTLP_pending_restart_and_recovery'])
+        result['checks'].append('OTLP_template_correlation_and_redaction')
     if manifest:
         result.update(architecture=manifest['arch'], commit=manifest['commit'], image_id=manifest['image_id'],
                       binary_sha256=manifest['binary_sha256'], archive=args.archive.name,
                       archive_sha256=hashlib.sha256(args.archive.read_bytes()).hexdigest())
         result['checks'].extend(['independent_archive_extraction', 'private_runtime_libraries', 'version_matches_source', 'bilingual_installation_guides'])
+        result['checks'].append('bilingual_semantics_guides_and_examples')
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(result, indent=2)+"\n")
     print(json.dumps(result))

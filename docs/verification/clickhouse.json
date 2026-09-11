@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "readonly=1 and allow_ddl=0 enforced in connection settings"
     ],
     "server_version": "24.8.14.39",
-    "checked_at": "2026-09-11T09:34:41.769755063Z"
+    "checked_at": "2026-09-11T15:41:47.28112726Z"
   },
   "query_cases": 4,
-  "verified_at": "2026-09-11T09:34:41.789570772Z",
+  "verified_at": "2026-09-11T15:41:47.299830396Z",
   "version": "24.8.14.39",
   "image_id": "sha256:b002e56ed5c16e224c312527f6fcba7e77216fec5d7a88a7828f59efc614feb5",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

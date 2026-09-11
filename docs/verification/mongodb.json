@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "Only find, aggregate without writes, count and distinct are exposed"
     ],
     "server_version": "7.0.39",
-    "checked_at": "2026-09-11T09:34:36.957305613Z"
+    "checked_at": "2026-09-11T15:41:42.594959192Z"
   },
   "query_cases": 8,
-  "verified_at": "2026-09-11T09:34:36.960740262Z",
+  "verified_at": "2026-09-11T15:41:42.596608827Z",
   "version": "7.0.39",
   "image_id": "sha256:04582c3a144d088f841c446abfc19f79adcefa8bd00ad4a7fb18e27b9585c5d6",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

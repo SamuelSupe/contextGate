@@ -20,7 +20,7 @@ def run(*args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--version', default='0.1.1')
+    parser.add_argument('--version', default='0.2.0')
     parser.add_argument('--arch', action='append', choices=['arm64', 'amd64'])
     parser.add_argument('--build-ca', help='Optional trusted dependency-download CA')
     args = parser.parse_args()

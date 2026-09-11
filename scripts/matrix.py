@@ -229,6 +229,13 @@ def seed(kind,name):
    auth=["Authorization: Bearer "+token]
    http("POST","/api/v3/write_lp?db=hubtest","events,region=east amount=12.5,big_num=9007199254740993i\nevents,region=west amount=20.25,big_num=4i\nevents,region=north amount=4.0,big_num=5i",auth,port)
    s={"token":token};baseline={"language":"sql","query":"SELECT * FROM events ORDER BY region"};param={"language":"sql","query":"SELECT region,sum(amount) AS total FROM events WHERE region=$region GROUP BY region","named_params":{"region":"east"}};empty={"query":"SELECT * FROM events WHERE region='missing'"};denied=[{"query":"DELETE FROM events"},{"query":"SELECT 1; DELETE FROM events"},{"language":"influxql","query":"SELECT * INTO copy FROM events"}]
+  if v=="2":
+   # Fixed boundaries let native and template results compare exactly, including
+   # Flux's _start/_stop columns, despite independent requests.
+   start=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime(time.time()-3600))
+   stop=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime(time.time()+60))
+   for value in (baseline,param,empty):
+    value['query']=value['query'].replace('range(start:-1h)',f'range(start:{start}, stop:{stop})')
   source={"kind":"influxdb","version":v,"host":name,"port":port,"database":"hubtest","tls_mode":"disable",**s}
   checks=[query(baseline,3),query(param,1,"12.5"),query(empty,0),query({"query":"SELECT FROM"},0,error=True)]
   if v!="2":checks[0]["contains"]="9007199254740993"
@@ -282,7 +289,7 @@ def main():
             if source_digest != implementation_digest():
                 raise RuntimeError("implementation changed during verification; rerun")
             result = json.loads(report.read_text())
-            result["checks"].extend(["mcp_http_queries", "mcp_discovery", "mcp_limits_and_pagination"])
+            result["checks"].extend(["mcp_http_queries", "mcp_discovery", "mcp_limits_and_pagination", "template_native_equivalence", "template_trial_and_publish", "template_write_denial"])
             if not local:
                 result["checks"].extend(["agent_isolation", "mcp_audit", "token_revocation"])
                 result["image_id"] = docker("inspect", "--format", "{{.Image}}", name).stdout.strip()

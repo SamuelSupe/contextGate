@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
 	"github.com/SamuelSupe/mcpdbhub/internal/store"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
@@ -16,10 +17,15 @@ import (
 	"time"
 )
 
-type controlledConnection struct{ started chan struct{} }
+type controlledConnection struct {
+	started chan struct{}
+	version atomic.Int32
+}
 
-func (c *controlledConnection) Close() error                               { return nil }
-func (c *controlledConnection) Probe(context.Context) (model.Probe, error) { return model.Probe{}, nil }
+func (c *controlledConnection) Close() error { return nil }
+func (c *controlledConnection) Probe(context.Context) (model.Probe, error) {
+	return model.Probe{ServerVersion: fmt.Sprintf("fixture-v%d", 1+c.version.Load())}, nil
+}
 func (c *controlledConnection) Discover(context.Context, string, string, string) ([]model.Object, error) {
 	return nil, nil
 }
@@ -44,7 +50,7 @@ func testEngine(t *testing.T) (*Engine, *controlledConnection, model.Source) {
 	}
 	en := New(st)
 	t.Cleanup(func() { en.Close(); st.Close() })
-	src := model.Source{ID: "source", Name: "fixture", Kind: "sqlite", Enabled: true, Revision: 1}
+	src := model.Source{ObservedVersion: "fixture-v1", ID: "source", Name: "fixture", Kind: "sqlite", Enabled: true, Revision: 1}
 	src.Limits.Defaults()
 	src.Limits.Concurrency = 1
 	if e = st.SaveSource(src); e != nil {
@@ -55,7 +61,7 @@ func testEngine(t *testing.T) (*Engine, *controlledConnection, model.Source) {
 			t.Fatal(e)
 		}
 	}
-	c := &controlledConnection{make(chan struct{}, 8)}
+	c := &controlledConnection{started: make(chan struct{}, 8)}
 	ready := make(chan struct{})
 	close(ready)
 	en.connections[src.ID] = &entry{conn: c, ready: ready, revision: src.Revision}
@@ -261,5 +267,117 @@ func TestDiagnosticsDoNotExposeDriverMessages(t *testing.T) {
 		if got.Code != tc.code || got.NativeCode != tc.native || strings.Contains(got.Message, secret) {
 			t.Fatalf("unsafe or incorrect diagnostic: %+v", got)
 		}
+	}
+}
+
+func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
+	en, c, src := testEngine(t)
+	snapshot := semantic.Empty()
+	for _, name := range []string{"block", "page"} {
+		template := semantic.Template{Enabled: true, Tool: "query_sql", QueryJSON: `{"query":"` + name + `"}`, Parameters: []semantic.Parameter{}, ExampleJSON: `{}`}
+		snapshot.Entries = append(snapshot.Entries, semantic.Entry{ID: name, Kind: "template", Name: name, Template: &template})
+		if err := en.Store.SaveSemanticEvidence(src.ID, semantic.Evidence{Definition: semantic.Definition(template), Connection: en.connectionProof(src), CheckedAt: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	st := semantic.State{Draft: snapshot, Published: semantic.Empty()}
+	if err := en.Store.WriteSemantics(src.ID, 0, st); err != nil {
+		t.Fatal(err)
+	}
+	st, err := en.PublishSemantics(src.ID, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	p := model.Principal{AgentID: "a"}
+	page := semantic.Execution{SourceID: src.ID, TemplateID: "page", ExecutionVersion: "1", Parameters: map[string]any{}}
+	result, err := en.ExecuteTemplate(context.Background(), p, page)
+	if err != nil {
+		t.Fatal(err)
+	}
+	page.Cursor = result.NextCursor
+	if _, err = en.ExecuteTemplate(context.Background(), model.Principal{AgentID: "b"}, page); model.ErrorCode(err) != "invalid_cursor" {
+		t.Fatal("cursor crossed Agent identity", err)
+	}
+	if _, err = en.Execute(context.Background(), p, "query_sql", model.Query{SourceID: src.ID, Query: "page", Cursor: page.Cursor}); model.ErrorCode(err) != "invalid_cursor" {
+		t.Fatal("template cursor used by raw query", err)
+	}
+	done := make(chan error, 1)
+	go func() {
+		_, err := en.ExecuteTemplate(context.Background(), p, semantic.Execution{SourceID: src.ID, TemplateID: "block", ExecutionVersion: "1", Parameters: map[string]any{}})
+		done <- err
+	}()
+	select {
+	case <-c.started:
+	case <-time.After(time.Second):
+		t.Fatal("template did not begin")
+	}
+	en.InvalidateTemplates(src.ID, map[string]bool{"block": true}, map[string]string{"block": "1"})
+	st.Draft.Overview = "Documentation-only publication"
+	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
+		t.Fatal(err)
+	}
+	st, err = en.PublishSemantics(src.ID, st.Revision+1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		t.Fatal("description publication cancelled query", err)
+	case <-time.After(40 * time.Millisecond):
+	}
+	for i := range st.Draft.Entries {
+		if st.Draft.Entries[i].ID == "block" {
+			st.Draft.Entries[i].Template.Enabled = false
+		}
+	}
+	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
+		t.Fatal(err)
+	}
+	st, err = en.PublishSemantics(src.ID, st.Revision+1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	select {
+	case err := <-done:
+		if model.ErrorCode(err) != "cancelled" {
+			t.Fatal("disabled template returned data", err)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("template disable did not cancel")
+	}
+	if _, err = en.ExecuteTemplate(context.Background(), p, page); err != nil {
+		t.Fatal("unaffected template cursor invalidated", err)
+	}
+	for i := range st.Draft.Entries {
+		if st.Draft.Entries[i].ID == "page" {
+			st.Draft.Entries[i].Template.QueryJSON = `{"query":"changed"}`
+			en.Store.SaveSemanticEvidence(src.ID, semantic.Evidence{Definition: semantic.Definition(*st.Draft.Entries[i].Template), Connection: en.connectionProof(src), CheckedAt: time.Now()})
+		}
+	}
+	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
+		t.Fatal(err)
+	}
+	st, err = en.PublishSemantics(src.ID, st.Revision+1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err = en.ExecuteTemplate(context.Background(), p, page); model.ErrorCode(err) != "template_changed" {
+		t.Fatal("obsolete template executed", err)
+	}
+	page.Cursor = ""
+	page.ExecutionVersion = fmt.Sprint(st.PublishedVersion)
+	if _, err = en.ExecuteTemplate(context.Background(), p, page); err != nil {
+		t.Fatal("new execution version failed", err)
+	}
+	c.version.Store(1)
+	if _, err = en.ExecuteTemplate(context.Background(), p, page); err == nil {
+		t.Fatal("database upgrade did not pause template")
+	}
+	updated, err := en.Store.Source(src.ID)
+	if err != nil || updated.ObservedVersion != "fixture-v2" || updated.ConnectionRevision <= src.ConnectionRevision {
+		t.Fatal("database version evidence was not invalidated", err)
+	}
+	if _, err = en.PublishSemantics(src.ID, st.Revision); err == nil {
+		t.Fatal("stale database proof republished")
 	}
 }

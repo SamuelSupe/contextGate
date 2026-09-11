@@ -17,12 +17,14 @@ import { Button, Drawer, Empty, ErrorNote, Protection } from "./components";
 import type { Agent, Capability, Probe, Source } from "./types";
 
 export function Sources({
+  navigate,
   sources,
   agents,
   catalog,
   reload,
   notify,
 }: {
+  navigate: (path: string) => void;
   sources: Source[];
   agents: Agent[];
   catalog: Capability[];
@@ -222,6 +224,14 @@ export function Sources({
                             onClick={() => test(s)}
                           >
                             {busy === s.id ? "Checking…" : "Test"}
+                          </button>
+                          <button
+                            className="text-button"
+                            onClick={() =>
+                              navigate(`/sources/${s.id}/semantics`)
+                            }
+                          >
+                            Semantics
                           </button>
                           <div className="menu-wrap">
                             <button

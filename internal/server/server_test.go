@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
 	"github.com/SamuelSupe/mcpdbhub/internal/store"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	collectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
@@ -34,6 +35,10 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 	id := h.source()
 	agent := h.json("POST", "/api/agents", map[string]any{"name": "Audit reader", "sources": []string{id}, "enabled": true}, 200)
 	token := agent["token"].(string)
+	semanticPath := "/api/sources/" + id + "/semantics"
+	savedDraft := h.json("PUT", semanticPath, semanticInput{Snapshot: semantic.Snapshot{FormatVersion: 1, Entries: []semantic.Entry{semanticFixture()}}}, 200)
+	h.json("POST", semanticPath+"/trial", map[string]any{"revision": savedDraft["revision"], "template_id": "amount"}, 200)
+	h.json("POST", semanticPath+"/publish", map[string]any{"revision": savedDraft["revision"]}, 200)
 	path := "/api/settings/audit-export"
 	view := h.json("GET", path, nil, 200)
 	config := view["config"].(map[string]any)
@@ -73,6 +78,7 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 	}
 	received := make(chan *collectorpb.ExportLogsServiceRequest, 16)
 	auth := make(chan string, 16)
+	testAuth := make(chan string, 16)
 	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
 		for _, secret := range []string{"secret-query-text", "db-secret-never-echo", "export-secret", token, "SELECT note", "DELETE FROM"} {
@@ -84,8 +90,24 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 		if err := proto.Unmarshal(body, request); err != nil {
 			t.Error(err)
 		}
-		received <- request
-		auth <- r.Header.Get("Authorization")
+		synthetic := false
+		for _, resource := range request.ResourceLogs {
+			for _, scope := range resource.ScopeLogs {
+				for _, record := range scope.LogRecords {
+					for _, attr := range record.Attributes {
+						if attr.Key == "event.name" && attr.Value.GetStringValue() == "mcpdbhub.audit_export.test" {
+							synthetic = true
+						}
+					}
+				}
+			}
+		}
+		if synthetic {
+			testAuth <- r.Header.Get("Authorization")
+		} else {
+			received <- request
+			auth <- r.Header.Get("Authorization")
+		}
 		w.Header().Set("Content-Type", "application/x-protobuf")
 	}))
 	defer receiver.Close()
@@ -102,9 +124,11 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 	session := h.mcp(token)
 	call(t, session, "query_sql", map[string]any{"source_id": id, "query": "SELECT note FROM events WHERE note = ?", "params": []string{"secret-query-text"}}, false)
 	call(t, session, "query_sql", map[string]any{"source_id": id, "query": "DELETE FROM events"}, true)
+	call(t, session, "execute_query_template", semantic.Execution{SourceID: id, TemplateID: "amount", ExecutionVersion: "1", Parameters: map[string]any{"id": 1}}, false)
+	templateSeen := false
 	seen := map[logspb.SeverityNumber]bool{}
 	deadline := time.After(8 * time.Second)
-	for len(seen) < 2 {
+	for len(seen) < 2 || !templateSeen {
 		select {
 		case request := <-received:
 			if <-auth != "Bearer export-secret" {
@@ -115,6 +139,12 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 				attrs := map[string]string{}
 				for _, a := range record.Attributes {
 					attrs[a.Key] = a.Value.GetStringValue()
+				}
+				if attrs["mcpdbhub.audit.operation"] == "execute_query_template" {
+					if attrs["mcpdbhub.audit.template_id"] != "amount" || attrs["mcpdbhub.audit.template_version"] != "1" {
+						t.Fatal("OTLP template correlation missing")
+					}
+					templateSeen = true
 				}
 				if attrs["mcpdbhub.audit.source_id"] != id || attrs["mcpdbhub.audit.request_id"] == "" || attrs["mcpdbhub.audit.query_fingerprint"] == "" {
 					t.Fatal("audit correlation fields missing")
@@ -130,7 +160,7 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 	// Empty credentials preserve the stored headers until the administrator explicitly clears them.
 	view = h.json("PUT", path, config, 200)
 	config = view["config"].(map[string]any)
-	if h.json("POST", path+"/test", config, 200)["accepted"] != true || <-auth != "Bearer export-secret" {
+	if h.json("POST", path+"/test", config, 200)["accepted"] != true || <-testAuth != "Bearer export-secret" {
 		t.Fatal("stored headers were not reused for test")
 	}
 	config["clear_headers"] = true
@@ -138,7 +168,7 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 	if view["headers_configured"] != false {
 		t.Fatal("headers not cleared")
 	}
-	if h.json("POST", path+"/test", view["config"], 200)["accepted"] != true || <-auth != "" {
+	if h.json("POST", path+"/test", view["config"], 200)["accepted"] != true || <-testAuth != "" {
 		t.Fatal("cleared headers were sent")
 	}
 }
@@ -214,6 +244,7 @@ func TestDatabaseMCPMatrix(t *testing.T) {
 			before, _ := json.Marshal(read(f.Baseline, false).Data)
 			for i, q := range f.Queries {
 				r := read(q.Query, q.Error)
+				matrixTemplate(t, h, s, id, capability.Tool, q.Query, r, q.Error)
 				if q.Error {
 					continue
 				}
@@ -232,6 +263,7 @@ func TestDatabaseMCPMatrix(t *testing.T) {
 			}
 			for _, q := range f.Denied {
 				read(q, true)
+				matrixTemplate(t, h, s, id, capability.Tool, q, nil, true)
 			}
 			after, _ := json.Marshal(read(f.Baseline, false).Data)
 			if string(before) != string(after) {
@@ -287,6 +319,7 @@ func TestDuckDBMCPReadOnly(t *testing.T) {
 	id := source["id"].(string)
 	a := h.json("POST", "/api/agents", map[string]any{"name": "DuckDB reader", "sources": []string{id}, "enabled": true}, 200)
 	s := h.mcp(a["token"].(string))
+	localTemplateMatrix(t, h, s, id)
 	call(t, s, "describe_object", map[string]any{"source_id": id, "namespace": "main", "object": "events"}, false)
 	r := call(t, s, "query_sql", map[string]any{"source_id": id, "query": "SELECT ?::BIGINT AS large_value", "params": []any{int64(9007199254740993)}}, false)
 	wire, _ := json.Marshal(r.StructuredContent)
@@ -439,6 +472,7 @@ func TestLifecycleAuthorizationReadOnlyAndPersistence(t *testing.T) {
 	token := a["token"].(string)
 	agent := a["agent"].(map[string]any)
 	s := h.mcp(token)
+	localTemplateMatrix(t, h, s, id)
 	args := map[string]any{"source_id": id, "query": "WITH totals AS (SELECT id, amount FROM events WHERE id >= ?) SELECT id, amount, sum(amount) OVER () FROM totals ORDER BY id", "params": []any{1}}
 	r := call(t, s, "query_sql", args, false)
 	encoded, _ := json.Marshal(r.StructuredContent)
@@ -558,6 +592,17 @@ func TestOAuthPKCERotationReplayAndRevocation(t *testing.T) {
 		t.Fatalf("no access token: %v", tokens)
 	}
 	call(t, h.mcp(access), "query_sql", map[string]any{"source_id": id, "query": "SELECT count(*) FROM events"}, false)
+	semanticPath := "/api/sources/" + id + "/semantics"
+	draft := h.json("PUT", semanticPath, map[string]any{"revision": "0", "snapshot": map[string]any{"format_version": 1, "entries": []any{semanticFixture()}}}, 200)
+	h.json("POST", semanticPath+"/trial", map[string]any{"revision": draft["revision"], "template_id": "amount"}, 200)
+	h.json("POST", semanticPath+"/publish", map[string]any{"revision": draft["revision"]}, 200)
+	source, _ := h.s.Store.Source(id)
+	view := publicSource(source)
+	view.QueryAccessMode = "templates_only"
+	h.json("PUT", "/api/sources/"+id, view, 200)
+	call(t, h.mcp(access), "query_sql", map[string]any{"source_id": id, "query": "SELECT count(*) FROM events"}, true)
+	call(t, h.mcp(access), "search_semantics", map[string]any{"source_id": id}, false)
+	call(t, h.mcp(access), "execute_query_template", map[string]any{"source_id": id, "template_id": "amount", "execution_version": "1", "parameters": map[string]any{"id": 1}}, false)
 	refresh := tokens["refresh_token"].(string)
 	rotated := h.form("/oauth/token", url.Values{"grant_type": {"refresh_token"}, "client_id": {clientID}, "resource": {h.http.URL + "/mcp"}, "refresh_token": {refresh}}, 200)
 	if rotated["refresh_token"] == refresh {

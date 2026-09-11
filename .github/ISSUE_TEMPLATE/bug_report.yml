@@ -9,7 +9,7 @@ body:
     id: version
     attributes:
       label: Hub version and platform
-      placeholder: v0.1.1, Linux arm64, Docker
+      placeholder: v0.2.0, Linux arm64, Docker
     validations:
       required: true
   - type: input

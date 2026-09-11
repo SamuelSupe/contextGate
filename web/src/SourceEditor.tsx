@@ -430,6 +430,26 @@ export function SourceEditor({
           ) : null}
         </section>
         <section className="form-section">
+          <h3>Query access</h3>
+          <Field
+            label="Agent query access"
+            hint="Templates only blocks native Agent queries across HTTP, stdio, OAuth and Agent previews. Structure discovery remains available."
+          >
+            <select
+              value={form.query_access_mode || "native_and_templates"}
+              onChange={(e) =>
+                field(
+                  "query_access_mode",
+                  e.target.value as Source["query_access_mode"],
+                )
+              }
+            >
+              <option value="native_and_templates">
+                Native queries and templates
+              </option>
+              <option value="templates_only">Templates only</option>
+            </select>
+          </Field>
           <h3>Query limits</h3>
           <div className="field-grid">
             <Field label="Timeout" required>

@@ -15,7 +15,10 @@
     "cancel",
     "mcp_http_queries",
     "mcp_discovery",
-    "mcp_limits_and_pagination"
+    "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial"
   ],
   "denied_cases": 7,
   "kind": "sqlite",
@@ -28,11 +31,11 @@
       "Database opened READ_ONLY; external file access and extensions disabled"
     ],
     "server_version": "3.53.4",
-    "checked_at": "2026-09-11T09:36:56.115121584Z"
+    "checked_at": "2026-09-11T15:43:55.727904088Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T09:36:56.116160218Z",
+  "verified_at": "2026-09-11T15:43:55.729356934Z",
   "version": "3.53.4",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

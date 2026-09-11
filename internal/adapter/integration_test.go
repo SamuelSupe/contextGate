@@ -407,3 +407,23 @@ func TestRedisLengthBudgetBeforeAllocation(t *testing.T) {
 		t.Fatalf("bulk content was interpreted as a RESP header: %q %v", data, err)
 	}
 }
+
+func TestTemplateTargetsCannotBeParameters(t *testing.T) {
+	for _, test := range []struct {
+		kind, version, query string
+		denied               bool
+	}{
+		{"influxdb", "2", `from(bucket:params.bucket) |> range(start:-1h)`, true},
+		{"influxdb", "2", `from(bucket:"orders" + params.suffix) |> range(start:-1h)`, true},
+		{"influxdb", "2", `from(bucket:"orders") |> range(start:-1h) |> filter(fn:(r)=>r.region == params.region)`, false},
+		{"neo4j", "", `MATCH (n:$($label)) RETURN n`, true},
+		{"neo4j", "", `MATCH (n:Event {id:$id}) RETURN n`, false},
+		{"clickhouse", "", `SELECT * FROM {table:Identifier}`, true},
+		{"clickhouse", "", `SELECT * FROM orders WHERE id={id:Int64}`, false},
+	} {
+		err := CheckTemplateTargets(model.Source{Kind: test.kind, Version: test.version}, model.Query{Query: test.query})
+		if (err != nil) != test.denied {
+			t.Fatalf("%s: %v", test.query, err)
+		}
+	}
+}

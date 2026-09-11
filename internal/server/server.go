@@ -120,6 +120,7 @@ func (s *Server) limited(next http.HandlerFunc) http.HandlerFunc {
 }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.semanticRoutes(mux)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
 		ctx, cancel := context.WithTimeout(r.Context(), time.Second)
 		defer cancel()

@@ -228,7 +228,14 @@ export function AuditPage({
                     ) : null}
                   </td>
                   <td>{sourceName(a.source_id)}</td>
-                  <td>{a.operation}</td>
+                  <td>
+                    {a.operation}
+                    {a.template_id && (
+                      <small className="block">
+                        {a.template_id} · v{a.template_version || "draft"}
+                      </small>
+                    )}
+                  </td>
                   <td>{a.elapsed_ms} ms</td>
                   <td>{a.rows}</td>
                   <td>
@@ -300,6 +307,15 @@ export function AuditPage({
             <div>
               <dt>Operation</dt>
               <dd>{detail.operation}</dd>
+              {detail.template_id && (
+                <>
+                  <dt>Query template</dt>
+                  <dd>
+                    {detail.template_id} · execution version{" "}
+                    {detail.template_version || "draft trial"}
+                  </dd>
+                </>
+              )}
             </div>
             <div>
               <dt>Result</dt>

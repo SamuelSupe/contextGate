@@ -15,6 +15,8 @@ export interface Probe {
   checked_at: string;
 }
 export interface Source {
+  query_access_mode?: "native_and_templates" | "templates_only";
+  connection_revision?: string;
   id: string;
   name: string;
   kind: string;
@@ -67,6 +69,8 @@ export interface Capability {
   verified_versions: string[];
 }
 export interface Audit {
+  template_id?: string;
+  template_version?: string;
   request_id: string;
   native_code?: string;
   preview: boolean;
@@ -81,6 +85,9 @@ export interface Audit {
   error_code?: string;
 }
 export interface QueryResult {
+  semantic_version?: string;
+  template_id?: string;
+  template_version?: string;
   request_id?: string;
   format: string;
   data: unknown[];

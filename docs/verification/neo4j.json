@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "EXPLAIN must report read-only; write clauses, procedures and external loading are rejected; driver read routing is not a permission guarantee"
     ],
     "server_version": "Neo4j/5.26.10",
-    "checked_at": "2026-09-11T09:35:26.732314863Z"
+    "checked_at": "2026-09-11T15:42:26.887009239Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T09:35:27.190140751Z",
+  "verified_at": "2026-09-11T15:42:27.344051414Z",
   "version": "Neo4j/5.26.10",
   "image_id": "sha256:225b14923479dde15797534ee887d9950077308f6b56c96d2fb0daf3a2194814",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

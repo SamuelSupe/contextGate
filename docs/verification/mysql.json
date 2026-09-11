@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "START TRANSACTION READ ONLY accepted; every query uses a new read-only transaction"
     ],
     "server_version": "8.4.11",
-    "checked_at": "2026-09-11T09:34:18.487710147Z"
+    "checked_at": "2026-09-11T15:41:21.962765663Z"
   },
   "query_cases": 6,
-  "verified_at": "2026-09-11T09:34:18.512979624Z",
+  "verified_at": "2026-09-11T15:41:21.977269143Z",
   "version": "8.4.11",
   "image_id": "sha256:b3b90af2a6552ae30c266fdb7d5dd55f3afb72404bb78d37fe8a23eb857fd3fb",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

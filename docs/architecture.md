@@ -25,8 +25,9 @@ flowchart LR
 |---|---|
 | `cmd/mcpdbhub` | serve command and stdio-to-HTTP bridge |
 | `internal/server` | Admin HTTP API, setup, login, CSRF and UI routing |
-| `internal/mcpserver` | Eleven MCP tools and JSON Schema validation |
+| `internal/mcpserver` | Fourteen MCP tools and JSON Schema validation |
 | `internal/engine` | Per-call authorization, connection lifecycle, concurrency, timeouts, cancellation, cursor protection and auditing |
+| `internal/semantic` | Catalog definitions, typed value binding and executable definition fingerprints |
 | `internal/adapter` | SQL, MongoDB, Redis, Search, Cypher, CQL and InfluxDB |
 | `internal/auditexport` | Bounded OTLP Logs encoding, HTTP/gRPC delivery, encrypted configuration and durable progress |
 | `internal/oauth` | Fosite provider, persistence, consent, registration, refresh and revocation |
@@ -49,6 +50,9 @@ flowchart LR
 | `query_cypher` | query, named_params |
 | `query_cql` | query, params, cursor |
 | `query_influxdb` | language: sql/influxql/flux, query, named_params |
+| `search_semantics` | source_id, optional keyword, kind, limit, cursor |
+| `get_semantic_entry` | source_id, entry_id |
+| `execute_query_template` | source_id, template_id, execution_version, parameters, optional cursor and tighter limits |
 
 Queries can tighten `max_rows`, `timeout_seconds` and `max_bytes`; native pagination uses `cursor`. Undeclared connection fields are rejected by the schema. Administrator previews, HTTP MCP and stdio share the execution layer.
 
@@ -89,3 +93,7 @@ The implementation follows the [MCP authorization specification](https://modelco
 ## Audit export
 
 The optional worker reads committed audit rows and saves encrypted configuration, cursor and delivery status in one SQLite KV record. It does not add network work to query execution. Administrator-only `/api/settings/audit-export` and `/api/settings/audit-export/test` endpoints share the existing session and CSRF boundary. Settings revisions prevent stale credential/configuration updates; changes cancel active export requests. See [OTLP configuration and delivery semantics](audit-export.md).
+
+## Semantic publication
+
+Per-source encrypted draft and published entries are updated in one SQLite transaction with optimistic draft revisions. Templates bind only declared JSON Pointer value slots and reuse the execution engine. Trial and publication proofs bind the executable definition and connection/credentials/observed database version. Queries recheck current authorization and template version before execution and return. Templates-only mode is enforced here for every Agent transport. See the [semantic guide](semantics.md) for workflow, metadata import boundaries, limits and examples.

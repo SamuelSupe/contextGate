@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "Only fixed read endpoints are exposed; database account grants are not inferred"
     ],
     "server_version": "v2.7.12",
-    "checked_at": "2026-09-11T09:36:51.976753103Z"
+    "checked_at": "2026-09-11T15:43:51.231284012Z"
   },
   "query_cases": 5,
-  "verified_at": "2026-09-11T09:36:51.998169164Z",
+  "verified_at": "2026-09-11T15:43:51.249852682Z",
   "version": "v2.7.12",
   "image_id": "sha256:b8d940ca9376f85118260f5b6bd236b8a00b1749c3350c5578d4cde8e27f31f2",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

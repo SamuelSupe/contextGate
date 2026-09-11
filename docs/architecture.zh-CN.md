@@ -23,7 +23,7 @@ flowchart LR
 |---|---|
 | `cmd/mcpdbhub` | serve 命令、stdio → HTTP 桥接 |
 | `internal/server` | 管理 HTTP API、初始化、登录、CSRF、UI 路由 |
-| `internal/mcpserver` | 11 个 MCP 工具及 JSON Schema 验证 |
+| `internal/mcpserver` | 14 个 MCP 工具及 JSON Schema 验证 |
 | `internal/engine` | 每次调用授权、连接生命周期、并发、超时、取消、游标封装、审计 |
 | `internal/adapter` | SQL、MongoDB、Redis、Search、Cypher、CQL、InfluxDB |
 | `internal/oauth` | Fosite provider、持久化、同意、注册、刷新和撤销 |
@@ -86,3 +86,7 @@ OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKC
 ## OTLP 审计上报
 
 可选的 `internal/auditexport` 工作协程读取已提交审计，将配置、确认游标和发送状态加密保存在同一 SQLite KV 记录中，不在查询请求中执行网络上报。管理接口 `/api/settings/audit-export` 和 `/api/settings/audit-export/test` 复用管理员会话及 CSRF 校验；版本号阻止旧配置覆盖，变更取消正在发送的请求。详见[配置及发送语义](audit-export.zh-CN.md)。
+
+## 语义发布
+
+每个数据源独立保存加密草稿与发布条目，SQLite 事务与草稿修订控制原子发布和编辑冲突。模板仅绑定声明的 JSON Pointer 值位置，并复用现有执行引擎。试跑及发布证据绑定执行定义、连接、凭证和实际数据库版本；执行前与返回前检查授权和模板版本。仅模板模式在共享引擎中约束所有 Agent 入口。详细流程、结构导入边界、限制及示例见[语义目录说明](semantics.zh-CN.md)。

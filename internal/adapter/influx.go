@@ -70,29 +70,7 @@ func (c *httpConn) queryInflux(ctx context.Context, q model.Query, l model.Limit
 		if e := guardFlux(q.Query); e != nil {
 			return nil, e
 		}
-		org := c.s.Options["org"]
-		if org == "" {
-			return nil, model.Fail("invalid_input", "Configure the InfluxDB organization on this data source.")
-		}
-		body := map[string]any{"query": q.Query, "type": "flux", "dialect": map[string]any{"annotations": []string{"datatype"}, "dateTimeFormat": "RFC3339Nano"}}
-		if len(q.NamedParams) > 0 {
-			extern, err := fluxExtern(q.NamedParams)
-			if err != nil {
-				return nil, err
-			}
-			body["extern"] = extern
-		}
-		res, e := c.request(ctx, http.MethodPost, "/api/v2/query", url.Values{"org": {org}}, body)
-		if e != nil {
-			return nil, e
-		}
-		defer res.Body.Close()
-		bounded := &io.LimitedReader{R: res.Body, N: int64(l.MaxBytes) + 1}
-		result, err := fluxCSV(bounded, l)
-		if bounded.N == 0 {
-			return nil, model.Fail("result_too_large", "Flux response exceeds byte limit")
-		}
-		return result, err
+		return c.runFlux(ctx, q, l)
 	case "3":
 		lang := q.Language
 		if lang == "" {
@@ -131,6 +109,32 @@ func (c *httpConn) queryInflux(ctx context.Context, q model.Query, l model.Limit
 		return nil, errors.New("InfluxDB version must be 1, 2 or 3")
 	}
 }
+func (c *httpConn) runFlux(ctx context.Context, q model.Query, l model.Limits) (*model.Result, error) {
+	org := c.s.Options["org"]
+	if org == "" {
+		return nil, model.Fail("invalid_input", "Configure the InfluxDB organization on this data source.")
+	}
+	body := map[string]any{"query": q.Query, "type": "flux", "dialect": map[string]any{"annotations": []string{"datatype"}, "dateTimeFormat": "RFC3339Nano"}}
+	if len(q.NamedParams) > 0 {
+		extern, err := fluxExtern(q.NamedParams)
+		if err != nil {
+			return nil, err
+		}
+		body["extern"] = extern
+	}
+	res, e := c.request(ctx, http.MethodPost, "/api/v2/query", url.Values{"org": {org}}, body)
+	if e != nil {
+		return nil, e
+	}
+	defer res.Body.Close()
+	bounded := &io.LimitedReader{R: res.Body, N: int64(l.MaxBytes) + 1}
+	result, err := fluxCSV(bounded, l)
+	if bounded.N == 0 {
+		return nil, model.Fail("result_too_large", "Flux response exceeds byte limit")
+	}
+	return result, err
+}
+
 func (c *httpConn) influxQL(ctx context.Context, q model.Query, l model.Limits) (*model.Result, error) {
 	p := url.Values{"db": {c.s.Database}, "q": {q.Query}, "epoch": {"ns"}}
 	if len(q.NamedParams) > 0 {
@@ -230,14 +234,18 @@ func (c *httpConn) discoverInflux(ctx context.Context, op, ns, obj string) ([]mo
 		if ns != "" && ns != bucket {
 			return nil, model.Fail("query_denied", "namespace outside configured bucket")
 		}
-		q := `from(bucket: ` + strconv.Quote(bucket) + `) |> range(start: -30d)`
+		if strings.Contains(bucket, "${") || strings.Contains(obj, "${") {
+			return nil, model.Fail("invalid_object", "Flux interpolation is not allowed in metadata identifiers")
+		}
+		// Use InfluxDB's schema functions; no measurement values leave the engine.
+		q := "import \"influxdata/influxdb/schema\"\n" + `schema.measurements(bucket: ` + strconv.Quote(bucket) + `, start: -30d)`
 		field := "_measurement"
 		if op == "describe" {
-			q += ` |> filter(fn: (r) => r._measurement == ` + strconv.Quote(obj) + `)`
+			q = "import \"influxdata/influxdb/schema\"\n" + `schema.measurementFieldKeys(bucket: ` + strconv.Quote(bucket) + `, measurement: ` + strconv.Quote(obj) + `, start: -30d)`
 			field = "_field"
 		}
-		q += ` |> keep(columns: [` + strconv.Quote(field) + `]) |> group() |> distinct(column: ` + strconv.Quote(field) + `) |> limit(n: 1000)`
-		r, e := c.queryInflux(ctx, model.Query{Language: "flux", Query: q}, l)
+		q += ` |> limit(n: 1000)`
+		r, e := c.runFlux(ctx, model.Query{Language: "flux", Query: q}, l)
 		if e != nil {
 			return nil, e
 		}

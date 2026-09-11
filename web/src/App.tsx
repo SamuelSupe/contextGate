@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { api, message, payload, setCSRF } from "./api";
 import { Button, ErrorNote, Field, Loading } from "./components";
+import { Semantics } from "./Semantics";
 import { Sources } from "./Sources";
 import { Agents } from "./Agents";
 import { AuditPage } from "./Audit";
@@ -105,6 +106,8 @@ export function App() {
   if (!session.authenticated)
     return <Login initialized={session.initialized} onLogin={loggedIn} />;
   if (path === "/oauth/consent") return <ConsentPage notify={notify} />;
+  const semanticID = path.match(/^\/sources\/([^/]+)\/semantics$/)?.[1];
+  const semanticSource = sources.find((s) => s.id === semanticID);
   const active = nav.find((n) => n[0] === path)?.[0] || "/sources";
   return (
     <div className="app">
@@ -166,8 +169,24 @@ export function App() {
         <ErrorNote error={error} />
         {loading ? (
           <Loading />
+        ) : semanticID ? (
+          semanticSource ? (
+            <Semantics
+              key={semanticID}
+              source={semanticSource}
+              agents={agents}
+              notify={notify}
+              onBack={() => navigate("/sources")}
+            />
+          ) : (
+            <div>
+              <ErrorNote error="Data source not found." />
+              <Button onClick={() => navigate("/sources")}>Data sources</Button>
+            </div>
+          )
         ) : active === "/sources" ? (
           <Sources
+            navigate={navigate}
             agents={agents}
             sources={sources}
             catalog={catalog}

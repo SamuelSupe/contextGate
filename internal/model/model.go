@@ -37,27 +37,30 @@ func (l Limits) Validate() error {
 }
 
 type Source struct {
-	ID            string            `json:"id"`
-	Name          string            `json:"name"`
-	Kind          string            `json:"kind"`
-	Version       string            `json:"version,omitempty"`
-	Host          string            `json:"host,omitempty"`
-	Port          int               `json:"port,omitempty"`
-	Database      string            `json:"database,omitempty"`
-	Username      string            `json:"username,omitempty"`
-	Password      string            `json:"password,omitempty"`
-	Token         string            `json:"token,omitempty"`
-	Path          string            `json:"path,omitempty"`
-	TLSMode       string            `json:"tls_mode"`
-	CACert        string            `json:"ca_cert,omitempty"`
-	Options       map[string]string `json:"options,omitempty"`
-	Enabled       bool              `json:"enabled"`
-	Limits        Limits            `json:"limits"`
-	Revision      int64             `json:"revision,string"`
-	QueryRevision int64             `json:"query_revision,string"`
-	HasSecret     bool              `json:"has_secret"`
-	AuthMode      string            `json:"auth_mode,omitempty"`
-	Probe         *Probe            `json:"probe,omitempty"`
+	ObservedVersion    string            `json:"observed_version,omitempty"`
+	QueryAccessMode    string            `json:"query_access_mode"`
+	ConnectionRevision int64             `json:"connection_revision,string"`
+	ID                 string            `json:"id"`
+	Name               string            `json:"name"`
+	Kind               string            `json:"kind"`
+	Version            string            `json:"version,omitempty"`
+	Host               string            `json:"host,omitempty"`
+	Port               int               `json:"port,omitempty"`
+	Database           string            `json:"database,omitempty"`
+	Username           string            `json:"username,omitempty"`
+	Password           string            `json:"password,omitempty"`
+	Token              string            `json:"token,omitempty"`
+	Path               string            `json:"path,omitempty"`
+	TLSMode            string            `json:"tls_mode"`
+	CACert             string            `json:"ca_cert,omitempty"`
+	Options            map[string]string `json:"options,omitempty"`
+	Enabled            bool              `json:"enabled"`
+	Limits             Limits            `json:"limits"`
+	Revision           int64             `json:"revision,string"`
+	QueryRevision      int64             `json:"query_revision,string"`
+	HasSecret          bool              `json:"has_secret"`
+	AuthMode           string            `json:"auth_mode,omitempty"`
+	Probe              *Probe            `json:"probe,omitempty"`
 }
 
 // Display edits have their own revision; active queries and cursors only depend
@@ -71,6 +74,9 @@ func (s Source) ExecutionRevision() int64 {
 
 func (s Source) SameQueryConfig(other Source) bool {
 	s.Name, other.Name = "", ""
+	s.ConnectionRevision, other.ConnectionRevision = 0, 0
+	s.ObservedVersion, other.ObservedVersion = "", ""
+	s.QueryAccessMode, other.QueryAccessMode = s.QueryMode(), other.QueryMode()
 	s.Revision, other.Revision = 0, 0
 	s.QueryRevision, other.QueryRevision = 0, 0
 	s.Probe, other.Probe = nil, nil
@@ -85,7 +91,22 @@ func (s Source) SameQueryConfig(other Source) bool {
 	return reflect.DeepEqual(s, other)
 }
 
+func (s Source) QueryMode() string {
+	if s.QueryAccessMode == "" {
+		return "native_and_templates"
+	}
+	return s.QueryAccessMode
+}
+
+func (s Source) SameConnection(other Source) bool {
+	s.Limits, other.Limits = Limits{}, Limits{}
+	s.Enabled, other.Enabled = false, false
+	s.QueryAccessMode, other.QueryAccessMode = "", ""
+	return s.SameQueryConfig(other)
+}
+
 func (s Source) Public() Source {
+	s.QueryAccessMode = s.QueryMode()
 	s.HasSecret = s.Password != "" || s.Token != ""
 	if s.AuthMode == "" {
 		s.AuthMode = "none"
@@ -153,15 +174,18 @@ type Column struct {
 	Type string `json:"type"`
 }
 type Result struct {
-	RequestID  string   `json:"request_id,omitempty"`
-	Format     string   `json:"format"`
-	Columns    []Column `json:"columns,omitempty"`
-	Data       []any    `json:"data"`
-	RowCount   int      `json:"row_count"`
-	ElapsedMS  int64    `json:"elapsed_ms"`
-	Truncated  bool     `json:"truncated"`
-	NextCursor string   `json:"next_cursor,omitempty"`
-	Bytes      int      `json:"bytes"`
+	SemanticVersion string   `json:"semantic_version,omitempty"`
+	TemplateID      string   `json:"template_id,omitempty"`
+	TemplateVersion string   `json:"template_version,omitempty"`
+	RequestID       string   `json:"request_id,omitempty"`
+	Format          string   `json:"format"`
+	Columns         []Column `json:"columns,omitempty"`
+	Data            []any    `json:"data"`
+	RowCount        int      `json:"row_count"`
+	ElapsedMS       int64    `json:"elapsed_ms"`
+	Truncated       bool     `json:"truncated"`
+	NextCursor      string   `json:"next_cursor,omitempty"`
+	Bytes           int      `json:"bytes"`
 }
 
 func NewResult(format string) *Result { return &Result{Format: format, Data: []any{}} }
@@ -189,18 +213,20 @@ type Object struct {
 	Details   any      `json:"details,omitempty"`
 }
 type Audit struct {
-	RequestID   string    `json:"request_id"`
-	NativeCode  string    `json:"native_code,omitempty"`
-	Preview     bool      `json:"preview"`
-	ID          int64     `json:"id"`
-	At          time.Time `json:"at"`
-	AgentID     string    `json:"agent_id"`
-	SourceID    string    `json:"source_id"`
-	Operation   string    `json:"operation"`
-	Fingerprint string    `json:"fingerprint"`
-	ElapsedMS   int64     `json:"elapsed_ms"`
-	Rows        int       `json:"rows"`
-	ErrorCode   string    `json:"error_code,omitempty"`
+	TemplateID      string    `json:"template_id,omitempty"`
+	TemplateVersion string    `json:"template_version,omitempty"`
+	RequestID       string    `json:"request_id"`
+	NativeCode      string    `json:"native_code,omitempty"`
+	Preview         bool      `json:"preview"`
+	ID              int64     `json:"id"`
+	At              time.Time `json:"at"`
+	AgentID         string    `json:"agent_id"`
+	SourceID        string    `json:"source_id"`
+	Operation       string    `json:"operation"`
+	Fingerprint     string    `json:"fingerprint"`
+	ElapsedMS       int64     `json:"elapsed_ms"`
+	Rows            int       `json:"rows"`
+	ErrorCode       string    `json:"error_code,omitempty"`
 }
 type Error struct {
 	Code       string `json:"code"`

@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "Only a single CQL SELECT is exposed; provision a SELECT-only account externally"
     ],
     "server_version": "5.0.8",
-    "checked_at": "2026-09-11T09:36:37.396251595Z"
+    "checked_at": "2026-09-11T15:43:36.66667935Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T09:36:37.555321834Z",
+  "verified_at": "2026-09-11T15:43:36.824137155Z",
   "version": "5.0.8",
   "image_id": "sha256:e52bb93c21f69cc5c2f5eb9e7d9736b10a047ad38bc7776480c7dbbf7d4e0ba7",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

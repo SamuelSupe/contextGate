@@ -17,3 +17,21 @@ test("preview and subsequent pages preserve native numeric parameters verbatim",
   assert.throws(() => queryPayload("[]", "source", "query_sql"));
   assert.throws(() => queryPayload('{"query":', "source", "query_sql"));
 });
+
+import { templatePayload } from "../src/semantic-types.ts";
+test("template preview preserves numeric values on first and subsequent pages", () => {
+  const params = '{"id":9007199254740993,"amount":0.1234567890123456789012345}';
+  for (const cursor of ["", "template-cursor"]) {
+    const wire = templatePayload(
+      "source",
+      { id: "orders", template: { execution_version: "7" } },
+      params,
+      "agent",
+      cursor,
+    );
+    assert.ok(wire.includes(`"parameters":${params}`));
+    assert.equal(JSON.parse(wire).execution_version, "7");
+    assert.equal(JSON.parse(wire).cursor, cursor);
+  }
+  assert.throws(() => templatePayload("source", { id: "t" }, "[]", "agent"));
+});

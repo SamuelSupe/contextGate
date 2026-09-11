@@ -1,0 +1,43 @@
+{
+  "format_version": 1,
+  "overview": "Example order analytics catalog. Adapt the fixed query, object references and business definitions to this data source before trial and publication.",
+  "entries": [
+    {
+      "id": "order-amount",
+      "kind": "metric",
+      "name": "Order amount",
+      "aliases": [
+        "订单金额"
+      ],
+      "description": "Amount recorded by the order system. Define currency, refunds and recognition rules for your organization.",
+      "unit": "minor currency units",
+      "grain": "order; time-series examples aggregate by the stated query grain",
+      "caveats": "Do not sum across currencies. This example is not a financial reporting policy.",
+      "template_id": "lookup-orders"
+    },
+    {
+      "id": "lookup-orders",
+      "kind": "template",
+      "name": "Read order amounts",
+      "description": "Read an approved native query using named template parameters.",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"SELECT id, amount, status FROM orders WHERE id = {id:Int64}\", \"named_params\": {\"id\": 0}}",
+        "parameters": [
+          {
+            "name": "id",
+            "description": "Requested business identifier or region",
+            "type": "integer",
+            "required": true,
+            "pointers": [
+              "/named_params/id"
+            ]
+          }
+        ],
+        "example_json": "{\"id\": 42}",
+        "result_description": "Native result structure. Integers, decimals, timestamps and binary values retain the database adapter encoding."
+      }
+    }
+  ]
+}

@@ -4,6 +4,16 @@
 
 The records below describe checks performed on 2026-09-11. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
 
+## v0.2.0 semantic catalogs and templates
+
+- The complete **18-product / 20-version** OrbStack matrix was rerun on the current implementation. Native adapter/MCP acceptance includes 132 query/error cases and 89 denied-operation cases. Each product also compares trialled, published template results with its native calls, including lossless values, empty/error cases and supported cursor pages. Target data remained unchanged. [Current matrix](verification/matrix.json) and individual reports retain the implementation digest.
+- OrbStack `go test -race ./...` passed, including encrypted snapshot recovery/deletion, stale-save conflicts, draft isolation, trial/publish gating, connection/credential/version invalidation, description-only publication, active-query cancellation, cursor isolation, parameter injection/forbidden binding targets and OAuth templates-only enforcement.
+- TypeScript/Vite and both existing Node lossless request tests passed. Seven-family example catalogs and English/Chinese guides are included in the dist packaging inputs.
+- Local Chrome completed administrator setup, SQLite source creation in templates-only mode, multilingual overview/field editing, metadata import, parameterized template editing, rejection before trial, successful trial/publication and native-structured preview retaining `9007199254740993`. The [desktop capture](screenshots/semantics.png) comes from that actual isolated configuration.
+- Remaining Chrome checks (Agent preview, JSON round-trip, keyboard/narrow viewport and final console inspection) are pending because the Mac became locked. They are not reported as passed. Release publication remains pending this UI gate; final CI/archive records are prepared separately from historical releases.
+
+Historical sections below refer to their original versions. The current matrix files now describe 0.2.0; v0.1.0 matrix evidence remains available [at its immutable tag](https://github.com/SamuelSupe/mcpdbhub/blob/v0.1.0/docs/verification/matrix.json).
+
 ## v0.1.1 release scope
 
 v0.1.1 adds OTLP audit log export. The [OTLP checks below](#otlp-audit-export--2026-09-11-after-v010) cover real Collector delivery, failure recovery, administrator boundaries and the English UI. Release-specific native CI and independently unpacked archive results are attached as [VALIDATION.json](https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.1/VALIDATION.json). PostgreSQL adapter/MCP checks were rerun for package validation; the full 18-product/20-version matrix remains the historical v0.1.0 evidence and was not rerun for this export-only change.

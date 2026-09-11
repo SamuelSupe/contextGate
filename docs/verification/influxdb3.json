@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "InfluxDB 3 Core admin token is restricted by this adapter to query_sql/query_influxql; this is not a read-only database account"
     ],
     "server_version": "3.11.2",
-    "checked_at": "2026-09-11T09:36:55.682868303Z"
+    "checked_at": "2026-09-11T15:43:55.228760834Z"
   },
   "query_cases": 5,
-  "verified_at": "2026-09-11T09:36:55.709103874Z",
+  "verified_at": "2026-09-11T15:43:55.273691101Z",
   "version": "3.11.2",
   "image_id": "sha256:f4a6d4a76f0ed0a196cc997da472cd0b7ae52a766430493a1bead807ab8c1217",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

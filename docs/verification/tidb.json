@@ -16,6 +16,9 @@
     "mcp_http_queries",
     "mcp_discovery",
     "mcp_limits_and_pagination",
+    "template_native_equivalence",
+    "template_trial_and_publish",
+    "template_write_denial",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -31,12 +34,12 @@
       "SHOW GRANTS contains only SELECT / SHOW VIEW / USAGE"
     ],
     "server_version": "8.0.11-TiDB-v8.5.1",
-    "checked_at": "2026-09-11T09:34:27.392861336Z"
+    "checked_at": "2026-09-11T15:41:30.920021386Z"
   },
   "query_cases": 6,
-  "verified_at": "2026-09-11T09:34:27.408775095Z",
+  "verified_at": "2026-09-11T15:41:30.929951585Z",
   "version": "8.0.11-TiDB-v8.5.1",
   "image_id": "sha256:a40b5b4fe4c08ed9dae0ccf7c7d15f50aae9aa5613189e8991ec55e22b55717c",
-  "implementation_sha256": "29a51cacc4405496204b4eb9a340dd9bd19b4b36d9b7fb45b01cd977324402f9",
+  "implementation_sha256": "2a2daf2689b8495627c5b236973eb9a2168a32dd0623e088b54b9910913d55ec",
   "environment": "OrbStack Linux arm64"
 }

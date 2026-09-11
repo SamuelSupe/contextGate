@@ -11,7 +11,7 @@
 
 A self-hosted, read-only MCP service written in Go. Configure connections and Agent grants through the embedded UI. Agents query in native database languages, with shared authorization, read-only protection, execution limits and auditing. No Node.js runtime is required.
 
-[简体中文](README.zh-CN.md) · [Download v0.1.1](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.1) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.2.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.2.0) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -21,6 +21,7 @@ A self-hosted, read-only MCP service written in Go. Configure connections and Ag
 
 | Capability | Behavior |
 |---|---|
+| Semantic catalogs and templates | Per-source business definitions, verified native templates and optional templates-only Agent access |
 | Native reads | SQL, MongoDB, Redis, Search DSL, Cypher, CQL, InfluxQL and Flux |
 | Independent Agent access | Source grants, precise expiration, pause, rotation, revocation and OAuth |
 | Enforced read-only execution | Parsers and engine classification, read-only transactions/files, safe commands and fixed query APIs |
@@ -57,7 +58,7 @@ For a corporate build proxy, pass its CA with `docker build --secret id=build_ca
 
 ![Native query preview with real sample data](docs/screenshots/query-preview.png)
 
-Streamable HTTP and the stdio bridge share authorization, execution limits, and auditing. Eleven tools expose four discovery operations and seven native query families.
+Streamable HTTP and the stdio bridge share authorization, execution limits, and auditing. Fourteen tools expose four discovery operations, seven native query families, and three semantic catalog/template operations.
 
 ```json
 {"mcpServers":{"mcpdbhub":{"url":"http://127.0.0.1:8080/mcp","headers":{"Authorization":"Bearer <AGENT_TOKEN>"}}}}
@@ -102,6 +103,14 @@ Connectivity and privilege evidence are shown separately. “Account permissions
 Configuration is stored in SQLite. Source credentials use AES-256-GCM; the master key is held in a separate `master.key` file or the `MCPDBHUB_MASTER_KEY` environment variable (standard Base64 of 32 bytes). Administrator passwords use Argon2id; agent and session tokens are hashed. Admin sessions use HttpOnly/SameSite cookies and CSRF checks. Audit records expire after 30 days and exclude results, plaintext parameters and full query text. Grant changes cancel affected work.
 
 ## OTLP audit logs
+
+## Semantic catalogs and query templates
+
+![Published semantic query templates — actual administration UI](docs/screenshots/semantics.png)
+
+Version 0.2.0 adds independent business catalogs and verified native query templates to every data source. Use **Data sources → Semantics** to import schema skeletons, define terms/fields/relationships/metrics, trial templates against the real database, and publish an Agent-visible snapshot. **Templates only** mode enforces curated query access across HTTP, stdio, OAuth and Agent previews.
+
+`search_semantics`, `get_semantic_entry` and `execute_query_template` expose published content with bounded pagination, typed JSON Pointer bindings and execution versions. Connection, credential or observed database version changes require a new trial and publication. Template audit metadata also flows to OTLP Logs. See the [complete guide](docs/semantics.md) and [examples for all query families](examples/semantics/).
 
 Since v0.1.1, **Settings → Audit log export** supports OpenTelemetry Collector and compatible OTLP Logs receivers. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the existing sanitized SQLite audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
 

@@ -329,7 +329,17 @@ func (c *mongoConn) Discover(ctx context.Context, op, ns, obj string) ([]model.O
 			if e != nil {
 				return nil, e
 			}
-			out = append(out, model.Object{Name: obj, Namespace: c.s.Database, Type: "index", Details: v})
+			o := model.Object{Name: obj, Namespace: c.s.Database, Type: "index", Details: v}
+			for _, element := range d {
+				if element.Key == "key" {
+					if keys, ok := element.Value.(bson.D); ok {
+						for _, field := range keys {
+							o.Columns = append(o.Columns, model.Column{Name: field.Key, Type: "unknown (indexed field)"})
+						}
+					}
+				}
+			}
+			out = append(out, o)
 			if len(out) >= 1000 {
 				break
 			}

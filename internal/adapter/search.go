@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"path"
 	"regexp"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -213,6 +214,11 @@ func (c *httpConn) discoverSearch(ctx context.Context, op, ns, obj string) ([]mo
 		o := model.Object{Name: name, Namespace: c.s.Database, Type: "index"}
 		if op == "describe" {
 			o.Details = mapping
+			if m, ok := mapping.(map[string]any); ok {
+				if schema, ok := m["mappings"].(map[string]any); ok {
+					o.Columns = mappingColumns(schema, "")
+				}
+			}
 		}
 		out = append(out, o)
 		if len(out) >= 1000 {
@@ -220,4 +226,30 @@ func (c *httpConn) discoverSearch(ctx context.Context, op, ns, obj string) ([]mo
 		}
 	}
 	return out, nil
+}
+
+func mappingColumns(schema map[string]any, prefix string) []model.Column {
+	out := []model.Column{}
+	for _, group := range []string{"properties", "fields"} {
+		properties, _ := schema[group].(map[string]any)
+		names := make([]string, 0, len(properties))
+		for name := range properties {
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			definition, ok := properties[name].(map[string]any)
+			if !ok {
+				continue
+			}
+			path := prefix + name
+			typ, _ := definition["type"].(string)
+			if typ == "" {
+				typ = "object"
+			}
+			out = append(out, model.Column{Name: path, Type: typ})
+			out = append(out, mappingColumns(definition, path+".")...)
+		}
+	}
+	return out
 }
