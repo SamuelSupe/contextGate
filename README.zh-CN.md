@@ -11,7 +11,7 @@
 
 用 Go 实现的自部署只读 MCP 服务。管理员通过内嵌 Web UI 配置连接和授权；Agent 使用数据库原生语言查询，所有入口共享只读保护、执行限制与审计。运行时无需 Node.js。
 
-[English](README.md) · [下载 v0.1.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.0) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
+[English](README.md) · [下载 v0.1.1](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.1) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -102,6 +102,10 @@ SQL 数据源的命名空间、表和字段发现支持 `next_cursor`，管理�
 连接成功与账号权限验证分别展示。显示“账号权限未验证”时必须根据数据库端授权确认访问范围。InfluxDB 3 Core 显示“查询 API 隔离”：其管理员 Token 仍有数据库管理权限，服务通过固定查询 API 限制 Agent。
 
 配置使用 SQLite；数据库凭证以 AES-256-GCM 加密，主密钥独立保存于 `master.key` 或 `MCPDBHUB_MASTER_KEY`（32 字节密钥的标准 Base64）。管理员密码使用 Argon2id，Agent Token 和会话 Token 使用散列。管理 Cookie 为 HttpOnly/SameSite，管理写接口验证 CSRF。审计保留 30 天，不保存查询结果、参数明文和完整查询文本。授权变化会取消相关执行任务。
+
+## OTLP 审计上报
+
+v0.1.1 支持在 **Settings → Audit log export** 配置 OTLP Logs，通过 HTTP/protobuf 或 gRPC 上报到 OpenTelemetry Collector 或兼容接收端。支持认证 Header 加密、CA 证书、测试发送和状态查看；异步读取已有脱敏审计，持久化进度并重试，不发送完整查询、参数、结果或凭证。详见[配置、Collector 示例和发送语义](docs/audit-export.zh-CN.md)。
 
 ## OAuth
 

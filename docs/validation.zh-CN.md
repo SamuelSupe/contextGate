@@ -139,3 +139,13 @@ python3 scripts/check-recovery.py
 - Go 全量测试与竞态检查通过；包含真实 SQLite/DuckDB、HTTP MCP、stdio 桥接、OAuth、授权撤销和分页回归。PostgreSQL/TimescaleDB 的测试初始化也改为等待正式 TCP 服务，避免临时启动服务尚未安装扩展时抢先建表。
 - README 截图来自本机 Chrome 实际运行页面。使用独立配置卷、真实 PostgreSQL / SQLite / DuckDB 和示例数据，验证 3 个 Agent 的 MCP 查询以及授权下的收入聚合；截图未包含数据库或 Agent 凭证。
 - Linux 发行包构建方式、运行库要求、独立解包验收及发布步骤见 [发行流程](releasing.md)。每个最终发行包的下载摘要和验收记录随 GitHub Release 提供，历史修复记录保留其各自源码摘要。
+
+## OTLP 审计上报 — 2026-09-11（v0.1.0 之后）
+
+OrbStack 中 `go test -race ./...` 通过，覆盖实际 HTTP/TLS/gRPC 接收端、SQLite 进度恢复、认证与脱敏、拒收与重试、发送取消和管理接口权限。独立 Hub 与官方 Collector 0.160.0 完成 HTTP/protobuf、gRPC 联调，真实查询成功及写入拒绝均生成审计日志。停 Collector 后查询仍约 4 ms 完成；积压 3 条日志跨 Hub 重启保留，恢复后补发，最终接收连续 ID 1–7、待发送为 0、实例 ID 不变。这是小型隔离用例的隔离性验证，不是性能基准。
+
+本机 Chrome 验证英文配置页的保存、测试、错误提示、凭证清除、刷新状态、键盘操作和 390×844 窄屏，无横向溢出及应用控制台错误。TypeScript/Vite 构建通过。本轮未修改数据库适配器，未重跑全部 20 个版本的兼容矩阵，也未发布新发行包。详见[英文验证记录](validation.md)及[发送语义](audit-export.zh-CN.md)。
+
+## v0.1.1 发行范围
+
+v0.1.1 增加 OTLP 审计上报，发行专属的原生 CI 及实际解压包验证见 [VALIDATION.json](https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.1/VALIDATION.json)。本轮重新验证 PostgreSQL 适配器和 MCP，并验证 Collector 上报、故障恢复与英文界面。全部 18 产品/20 版本的矩阵仍是 v0.1.0 的历史证据，本次未重跑全矩阵。

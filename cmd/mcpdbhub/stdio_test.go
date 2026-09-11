@@ -50,7 +50,7 @@ func TestStdioBridgeUsesHTTPAuthorization(t *testing.T) {
 	if e != nil {
 		t.Fatal(e)
 	}
-	defer app.Engine.Close()
+	defer app.Close()
 	ts.Config.Handler = app.Handler()
 	ts.Start()
 	defer ts.Close()

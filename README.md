@@ -11,7 +11,7 @@
 
 A self-hosted, read-only MCP service written in Go. Configure connections and Agent grants through the embedded UI. Agents query in native database languages, with shared authorization, read-only protection, execution limits and auditing. No Node.js runtime is required.
 
-[简体中文](README.zh-CN.md) · [Download v0.1.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.0) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.1.1](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.1) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -26,11 +26,12 @@ A self-hosted, read-only MCP service written in Go. Configure connections and Ag
 | Enforced read-only execution | Parsers and engine classification, read-only transactions/files, safe commands and fixed query APIs |
 | Bounded queries | Timeouts, cancellation, isolated concurrency, response limits and identity-bound cursors |
 | Lossless results | Large integers, decimals, binary data and native document, graph and time-series structures |
+| Audit log export | Optional OTLP Logs over HTTP/protobuf or gRPC, encrypted headers, durable progress and delivery status |
 | Built-in administration | Embedded UI, encrypted credentials, schema preview, audit trail and local password recovery |
 
 ## Download
 
-The first release ships Linux **arm64 / amd64** archives with the program, private C++ runtime libraries, bilingual instructions, dependency licenses and `SHA256SUMS`. They require glibc ≥ 2.36. Extract and run `./mcpdbhub serve`. Follow the [installation guide](docs/install.md) for checksums, Agent setup, backups and upgrades.
+The release ships Linux **arm64 / amd64** archives with the program, private C++ runtime libraries, bilingual instructions, dependency licenses and `SHA256SUMS`. They require glibc ≥ 2.36. Extract and run `./mcpdbhub serve`. Follow the [installation guide](docs/install.md) for checksums, Agent setup, backups and upgrades.
 
 ## Run
 
@@ -99,6 +100,10 @@ Execution combines statement parsing or engine classification, read-only transac
 Connectivity and privilege evidence are shown separately. “Account permissions unverified” means database-side grants require independent confirmation. InfluxDB 3 Core is explicitly labeled “query API isolation”: its admin token retains database administration privileges; only the adapter's fixed query APIs are available to agents.
 
 Configuration is stored in SQLite. Source credentials use AES-256-GCM; the master key is held in a separate `master.key` file or the `MCPDBHUB_MASTER_KEY` environment variable (standard Base64 of 32 bytes). Administrator passwords use Argon2id; agent and session tokens are hashed. Admin sessions use HttpOnly/SameSite cookies and CSRF checks. Audit records expire after 30 days and exclude results, plaintext parameters and full query text. Grant changes cancel affected work.
+
+## OTLP audit logs
+
+Since v0.1.1, **Settings → Audit log export** supports OpenTelemetry Collector and compatible OTLP Logs receivers. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the existing sanitized SQLite audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
 
 ## OAuth
 

@@ -82,3 +82,7 @@ OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKC
 公开元数据：`/.well-known/oauth-protected-resource`（也提供 `/mcp` 后缀）、`/.well-known/oauth-authorization-server`。预注册：管理页面；动态注册：`/oauth/register`；CIMD：公开 HTTPS 文档，client_id 必须等于文档 URL。最多 1,000 客户端。文档最多 64 KiB、5 秒、不跟随重定向，DNS 解析后的地址全部通过公网检查，并直接拨号该解析地址防止重绑定。回调使用精确匹配，无通配符。
 
 实现以 [MCP 授权规范](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization) 和 [官方 Go SDK](https://github.com/modelcontextprotocol/go-sdk) 为基础；不包含外部 IdP、多租户或团队 RBAC。
+
+## OTLP 审计上报
+
+可选的 `internal/auditexport` 工作协程读取已提交审计，将配置、确认游标和发送状态加密保存在同一 SQLite KV 记录中，不在查询请求中执行网络上报。管理接口 `/api/settings/audit-export` 和 `/api/settings/audit-export/test` 复用管理员会话及 CSRF 校验；版本号阻止旧配置覆盖，变更取消正在发送的请求。详见[配置及发送语义](audit-export.zh-CN.md)。

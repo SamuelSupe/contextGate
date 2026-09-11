@@ -4,6 +4,10 @@
 
 The records below describe checks performed on 2026-09-11. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
 
+## v0.1.1 release scope
+
+v0.1.1 adds OTLP audit log export. The [OTLP checks below](#otlp-audit-export--2026-09-11-after-v010) cover real Collector delivery, failure recovery, administrator boundaries and the English UI. Release-specific native CI and independently unpacked archive results are attached as [VALIDATION.json](https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.1/VALIDATION.json). PostgreSQL adapter/MCP checks were rerun for package validation; the full 18-product/20-version matrix remains the historical v0.1.0 evidence and was not rerun for this export-only change.
+
 ## v0.1.0 release verification
 
 All **18 products / 20 version combinations** passed, with **132 query/error cases and 89 rejected-operation cases**. Network databases were exercised through their native adapters and MCP HTTP; SQLite/DuckDB used real file engines and MCP. The [machine-readable matrix](verification/matrix.json) identifies the implementation digest and individual reports.
@@ -146,3 +150,12 @@ This round used isolated configuration/database files and did not alter the orig
 - Full Go and race checks passed, including real SQLite/DuckDB, HTTP MCP, stdio, OAuth, revocation and pagination. PostgreSQL/TimescaleDB fixture initialization also waits for the final TCP server, avoiding premature table creation before extensions are installed.
 - README images came from actual local Chrome sessions with an isolated configuration volume, real PostgreSQL/SQLite/DuckDB and sample data. Three Agents completed MCP queries, including authorized revenue aggregation. Captures contain no database or Agent credentials.
 - Final archive checks, GitHub download verification and platform scope are listed at the top of this page and in the release's validation attachment. Historical records continue to identify their own source digests.
+
+## OTLP audit export — 2026-09-11 (after v0.1.0)
+
+- `go test -race ./...` passed in the OrbStack Go 1.26 build container. Export regressions use real HTTP, TLS and gRPC receivers plus SQLite: protobuf requests, authentication headers, retry hints, partial/permanent rejection, trusted/untrusted certificates, redirects, invalid/oversized responses, bounded caller fields, in-flight cancellation and pending records across restart.
+- An administrator/API/MCP integration test verified default-off behavior, Agent exclusion from all export administration routes, CSRF, stale revisions, invalid destinations/headers, one-way credential handling and real successful/rejected SQLite query logs without query text, values, results or credentials.
+- An isolated OrbStack Hub and official `otel/opentelemetry-collector:0.160.0` exercised HTTP/protobuf and gRPC. Chrome sent a synthetic log and saved each protocol. The Collector decoded INFO/ERROR audit events with the expected resource, correlation and typed count/duration fields.
+- Stopping the Collector left database queries working (approximately 4 ms in this small local fixture). Three pending events survived Hub restart and were exported after Collector recovery. The receiver ultimately held consecutive audit IDs 1–7 with one stable service instance ID, while pending returned to zero and accepted reached seven. These timings demonstrate isolation in this fixture, not a throughput benchmark.
+- Local Chrome verified sign-in, the English Settings form, invalid header feedback, HTTP 404 test feedback, save/reload, clearing stored headers, live delivery status, keyboard focus, and desktop/390×844 layout without horizontal overflow. Stored header values disappeared after saving. No application warnings or errors were recorded in the browser console.
+- TypeScript/Vite production build passed. Database adapters were unchanged; this feature round did not rerun the 20-version database compatibility matrix or build a new release archive. The [OTLP guide](audit-export.md) describes at-least-once retries, rejection behavior and the shared 30-day retention limit.

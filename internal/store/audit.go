@@ -1,6 +1,8 @@
 package store
 
 import (
+	"context"
+	"database/sql"
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
 	"strings"
 	"time"
@@ -47,12 +49,26 @@ func (s *Store) Audits(f AuditFilter, limit int) ([]model.Audit, error) {
 	if err != nil {
 		return nil, err
 	}
+	return scanAudits(rows)
+}
+
+// AuditBatch reads a bounded export page; the extra character lets the encoder
+// report truncation without loading unbounded caller-supplied identifiers.
+func (s *Store) AuditBatch(ctx context.Context, after int64) ([]model.Audit, error) {
+	rows, err := s.DB.QueryContext(ctx, `SELECT id,at,substr(agent_id,1,2049),substr(source_id,1,2049),substr(operation,1,2049),substr(fingerprint,1,2049),elapsed_ms,rows,substr(error_code,1,2049),substr(request_id,1,2049),substr(native_code,1,2049),preview FROM audit WHERE id>? ORDER BY id LIMIT 64`, after)
+	if err != nil {
+		return nil, err
+	}
+	return scanAudits(rows)
+}
+
+func scanAudits(rows *sql.Rows) ([]model.Audit, error) {
 	defer rows.Close()
 	out := []model.Audit{}
 	for rows.Next() {
 		var a model.Audit
 		var at int64
-		if err = rows.Scan(&a.ID, &at, &a.AgentID, &a.SourceID, &a.Operation, &a.Fingerprint, &a.ElapsedMS, &a.Rows, &a.ErrorCode, &a.RequestID, &a.NativeCode, &a.Preview); err != nil {
+		if err := rows.Scan(&a.ID, &at, &a.AgentID, &a.SourceID, &a.Operation, &a.Fingerprint, &a.ElapsedMS, &a.Rows, &a.ErrorCode, &a.RequestID, &a.NativeCode, &a.Preview); err != nil {
 			return nil, err
 		}
 		a.At = time.UnixMilli(at)

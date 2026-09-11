@@ -1,3 +1,4 @@
+import { AuditExport } from "./AuditExport";
 import { capabilityLabel } from "./display";
 import { useEffect, useState } from "react";
 import { ShieldCheck, CheckCircle2, Search } from "lucide-react";
@@ -153,6 +154,7 @@ export function SettingsPage({
             restart the service.
           </p>
         </section>
+        <AuditExport notify={notify} />
         <section>
           <h2>Change administrator password</h2>
           <p className="help">

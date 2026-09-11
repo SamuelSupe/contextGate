@@ -12,6 +12,9 @@ import (
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
 	"github.com/SamuelSupe/mcpdbhub/internal/store"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	collectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
+	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
+	"google.golang.org/protobuf/proto"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
@@ -25,6 +28,120 @@ import (
 	"testing"
 	"time"
 )
+
+func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
+	h := newHub(t)
+	id := h.source()
+	agent := h.json("POST", "/api/agents", map[string]any{"name": "Audit reader", "sources": []string{id}, "enabled": true}, 200)
+	token := agent["token"].(string)
+	path := "/api/settings/audit-export"
+	view := h.json("GET", path, nil, 200)
+	config := view["config"].(map[string]any)
+	if config["enabled"] != false {
+		t.Fatal("export enabled by default")
+	}
+	for _, route := range []struct{ method, path string }{{"GET", path}, {"PUT", path}, {"POST", path + "/test"}} {
+		req, _ := http.NewRequest(route.method, h.http.URL+route.path, strings.NewReader("{}"))
+		req.Header.Set("Authorization", "Bearer "+token)
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != 401 {
+			t.Fatal("Agent accessed export administration", res.StatusCode)
+		}
+	}
+	csrf := h.csrf
+	h.csrf = "invalid"
+	h.json("PUT", path, config, 403)
+	h.csrf = csrf
+
+	for _, patch := range []map[string]any{
+		{"endpoint": "https://user:secret@example.com/v1/logs"},
+		{"endpoint": "https://example.com/v1/logs?token=secret"},
+		{"endpoint": "file:///tmp/logs"},
+		{"endpoint": "http://localhost:4317/v1/logs", "protocol": "grpc"},
+		{"headers": map[string]string{"Authorization": "Bearer secret\r\nHost: elsewhere"}},
+		{"headers": map[string]string{"Host": "elsewhere"}},
+	} {
+		input := map[string]any{"revision": config["revision"]}
+		for key, value := range patch {
+			input[key] = value
+		}
+		h.json("PUT", path, input, 400)
+	}
+	received := make(chan *collectorpb.ExportLogsServiceRequest, 16)
+	auth := make(chan string, 16)
+	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, _ := io.ReadAll(r.Body)
+		for _, secret := range []string{"secret-query-text", "db-secret-never-echo", "export-secret", token, "SELECT note", "DELETE FROM"} {
+			if bytes.Contains(body, []byte(secret)) {
+				t.Error("sensitive data in OTLP payload")
+			}
+		}
+		request := new(collectorpb.ExportLogsServiceRequest)
+		if err := proto.Unmarshal(body, request); err != nil {
+			t.Error(err)
+		}
+		received <- request
+		auth <- r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/x-protobuf")
+	}))
+	defer receiver.Close()
+	config["enabled"], config["endpoint"] = true, receiver.URL
+	config["headers"] = map[string]string{"Authorization": "Bearer export-secret"}
+	view = h.json("PUT", path, config, 200)
+	encoded, _ := json.Marshal(view)
+	if bytes.Contains(encoded, []byte("export-secret")) || view["headers_configured"] != true {
+		t.Fatal("stored headers exposed or missing")
+	}
+	h.json("PUT", path, config, 409)
+	config = view["config"].(map[string]any)
+
+	session := h.mcp(token)
+	call(t, session, "query_sql", map[string]any{"source_id": id, "query": "SELECT note FROM events WHERE note = ?", "params": []string{"secret-query-text"}}, false)
+	call(t, session, "query_sql", map[string]any{"source_id": id, "query": "DELETE FROM events"}, true)
+	seen := map[logspb.SeverityNumber]bool{}
+	deadline := time.After(8 * time.Second)
+	for len(seen) < 2 {
+		select {
+		case request := <-received:
+			if <-auth != "Bearer export-secret" {
+				t.Fatal("export authentication missing")
+			}
+			for _, record := range request.ResourceLogs[0].ScopeLogs[0].LogRecords {
+				seen[record.SeverityNumber] = true
+				attrs := map[string]string{}
+				for _, a := range record.Attributes {
+					attrs[a.Key] = a.Value.GetStringValue()
+				}
+				if attrs["mcpdbhub.audit.source_id"] != id || attrs["mcpdbhub.audit.request_id"] == "" || attrs["mcpdbhub.audit.query_fingerprint"] == "" {
+					t.Fatal("audit correlation fields missing")
+				}
+			}
+		case <-deadline:
+			t.Fatal("MCP success/failure audit export missing")
+		}
+	}
+	if !seen[logspb.SeverityNumber_SEVERITY_NUMBER_INFO] || !seen[logspb.SeverityNumber_SEVERITY_NUMBER_ERROR] {
+		t.Fatal("incorrect severity")
+	}
+	// Empty credentials preserve the stored headers until the administrator explicitly clears them.
+	view = h.json("PUT", path, config, 200)
+	config = view["config"].(map[string]any)
+	if h.json("POST", path+"/test", config, 200)["accepted"] != true || <-auth != "Bearer export-secret" {
+		t.Fatal("stored headers were not reused for test")
+	}
+	config["clear_headers"] = true
+	view = h.json("PUT", path, config, 200)
+	if view["headers_configured"] != false {
+		t.Fatal("headers not cleared")
+	}
+	if h.json("POST", path+"/test", view["config"], 200)["accepted"] != true || <-auth != "" {
+		t.Fatal("cleared headers were sent")
+	}
+}
 
 // Run the same real fixtures through the public Agent protocol, so adapter-only
 // success cannot hide schema, authorization, encoding or cursor wrapper defects.
@@ -217,7 +334,7 @@ func newHub(t *testing.T) *hubTest {
 	ts.Start()
 	jar, _ := cookiejar.New(nil)
 	h := &hubTest{t: t, s: s, http: ts, client: &http.Client{Jar: jar, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}, dir: dir}
-	t.Cleanup(func() { ts.Close(); s.Engine.Close(); st.DB.Close() })
+	t.Cleanup(func() { ts.Close(); s.Close(); st.DB.Close() })
 	code, err := s.EnsureSetup()
 	if err != nil {
 		t.Fatal(err)

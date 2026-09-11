@@ -68,7 +68,7 @@ func serve() error {
 	if e != nil {
 		return e
 	}
-	defer app.Engine.Close()
+	defer app.Close()
 	setup, e := app.EnsureSetup()
 	if e != nil {
 		return e

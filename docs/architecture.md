@@ -15,6 +15,8 @@ flowchart LR
   Execute --> Adapters[Seven native query families]
   Adapters --> DB[(User databases)]
   Execute --> Store[(Configuration and audit SQLite)]
+  Store --> Export[Optional audit export worker]
+  Export --> OTLP[OTLP Logs receiver]
 ```
 
 ## Code organization
@@ -26,6 +28,7 @@ flowchart LR
 | `internal/mcpserver` | Eleven MCP tools and JSON Schema validation |
 | `internal/engine` | Per-call authorization, connection lifecycle, concurrency, timeouts, cancellation, cursor protection and auditing |
 | `internal/adapter` | SQL, MongoDB, Redis, Search, Cypher, CQL and InfluxDB |
+| `internal/auditexport` | Bounded OTLP Logs encoding, HTTP/gRPC delivery, encrypted configuration and durable progress |
 | `internal/oauth` | Fosite provider, persistence, consent, registration, refresh and revocation |
 | `internal/store`, `internal/secure` | Configuration transactions, encryption and hashing |
 | `web`, `internal/ui` | React/TypeScript source and Go-embedded build output |
@@ -82,3 +85,7 @@ Agent tokens are stored as SHA-256 hashes; administrator passwords use Argon2id.
 Public metadata is available at `/.well-known/oauth-protected-resource` (including the `/mcp` suffix) and `/.well-known/oauth-authorization-server`. Clients can be pre-registered in the UI or dynamically registered at `/oauth/register`. CIMD uses a public HTTPS document whose URL must equal client_id. Registration is capped at 1,000 clients. Metadata fetches have a 64 KiB limit and five-second timeout, reject redirects, validate every resolved IP as public, and connect directly to that validated address to prevent DNS rebinding. Redirects match exactly, without wildcards.
 
 The implementation follows the [MCP authorization specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization) and [official Go SDK](https://github.com/modelcontextprotocol/go-sdk). External identity providers, multi-tenancy and team RBAC are outside scope.
+
+## Audit export
+
+The optional worker reads committed audit rows and saves encrypted configuration, cursor and delivery status in one SQLite KV record. It does not add network work to query execution. Administrator-only `/api/settings/audit-export` and `/api/settings/audit-export/test` endpoints share the existing session and CSRF boundary. Settings revisions prevent stale credential/configuration updates; changes cancel active export requests. See [OTLP configuration and delivery semantics](audit-export.md).

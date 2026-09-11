@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
+	"github.com/SamuelSupe/mcpdbhub/internal/auditexport"
 	"github.com/SamuelSupe/mcpdbhub/internal/engine"
 	"github.com/SamuelSupe/mcpdbhub/internal/mcpserver"
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
@@ -24,6 +25,7 @@ import (
 
 type Server struct {
 	Store               *store.Store
+	AuditExport         *auditexport.Manager
 	Engine              *engine.Engine
 	OAuth               *oauth.Server
 	PublicURL, FileRoot string
@@ -44,8 +46,18 @@ func New(st *store.Store, publicURL, fileRoot string) (*Server, error) {
 	en.FileRoot = fileRoot
 	s := &Server{Store: st, Engine: en, PublicURL: strings.TrimRight(publicURL, "/"), FileRoot: fileRoot, authRate: map[string]*rate.Limiter{}}
 	s.OAuth = oauth.New(st, en, s.PublicURL)
+	s.AuditExport, e = auditexport.New(st)
+	if e != nil {
+		en.Close()
+		return nil, e
+	}
 	return s, nil
 }
+func (s *Server) Close() {
+	s.Engine.Close()
+	s.AuditExport.Close()
+}
+
 func write(w http.ResponseWriter, status int, v any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.Header().Set("Cache-Control", "no-store")
@@ -137,6 +149,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/audit", s.requireAdmin(s.audit))
 	mux.HandleFunc("GET /api/catalog", s.requireAdmin(func(w http.ResponseWriter, r *http.Request) { write(w, 200, adapter.Catalog()) }))
 	mux.HandleFunc("GET /api/settings", s.requireAdmin(s.settings))
+	mux.HandleFunc("GET /api/settings/audit-export", s.requireAdmin(s.auditExportSettings))
+	mux.HandleFunc("PUT /api/settings/audit-export", s.requireAdmin(s.saveAuditExport))
+	mux.HandleFunc("POST /api/settings/audit-export/test", s.requireAdmin(s.testAuditExport))
 	mux.HandleFunc("POST /api/password", s.requireAdmin(s.password))
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource", s.OAuth.ResourceMetadata)
 	mux.HandleFunc("GET /.well-known/oauth-protected-resource/mcp", s.OAuth.ResourceMetadata)

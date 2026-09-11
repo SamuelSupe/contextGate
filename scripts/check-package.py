@@ -20,6 +20,7 @@ ROOT = pathlib.Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--image', default='mcpdbhub:local')
 parser.add_argument('--archive', type=pathlib.Path, help='Verify an independently unpacked Linux dist instead of an image')
+parser.add_argument('--otlp', action='store_true', help='Verify audit delivery through an isolated OpenTelemetry Collector')
 parser.add_argument('--report', type=pathlib.Path, default=ROOT/'docs/verification/package.json')
 args = parser.parse_args()
 IMAGE = args.image
@@ -83,6 +84,22 @@ unpacked = None
 runtime = []
 binary = 'mcpdbhub'
 manifest = None
+collector = None
+
+
+def export_view():
+    return request('GET', '/api/settings/audit-export')
+
+
+def await_export(predicate):
+    for _ in range(120):
+        view = export_view()
+        if predicate(view['status']):
+            return view
+        time.sleep(.25)
+    raise RuntimeError('Audit export did not reach the expected state: '+str(view['status']))
+
+
 try:
     assert docker("inspect", "--format", '{{index .Config.Labels "com.mcpdbhub.fixture"}}', "mcpdbhub-it-postgres").stdout.strip() == "true"
     if args.archive:
@@ -119,15 +136,46 @@ try:
     csrf = request("POST", "/api/setup", {"token": setup, "password": initial_password})["csrf"]
     assert docker("exec", name, "id", "-u").stdout.strip() == "10001"
     assert docker("exec", name, "sh", "-c", "command -v node", check=False).returncode != 0
+    version_output = docker('exec', name, binary, 'version').stdout.strip()
+    runtime_version = re.fullmatch(r'mcpdbhub (\d+\.\d+\.\d+) \(commit ([^)]+)\)', version_output)
+    assert runtime_version, 'missing runtime version'
     if manifest:
-        assert docker('exec', name, binary, 'version').stdout.strip() == 'mcpdbhub '+manifest['version']+' (commit '+manifest['commit']+')'
+        assert version_output == 'mcpdbhub '+manifest['version']+' (commit '+manifest['commit']+')'
     fixture = json.loads((ROOT/"artifacts/matrix/postgres-fixture.json").read_text())[0]["source"]
     fixture.update(name="Package PostgreSQL fixture", enabled=True)
     source = request("POST", "/api/sources", fixture)
     agent = request("POST", "/api/agents", {"name": "Package reader", "sources": [source["id"]], "enabled": True})
+    if args.otlp:
+        assert export_view()['config']['enabled'] is False
+        collector = name+'-collector'
+        docker('run', '-d', '--name', collector, '--network', 'mcpdbhub-test', '--cpus', '1', '--memory', '256m',
+               '-v', str(ROOT/'examples/otel-collector.yaml')+':/etc/otelcol/config.yaml:ro',
+               'otel/opentelemetry-collector:0.160.0', '--config=/etc/otelcol/config.yaml')
+        for _ in range(40):
+            logs = docker('logs', collector)
+            if 'Everything is ready' in logs.stdout+logs.stderr:
+                break
+            time.sleep(.25)
+        else:
+            raise RuntimeError('Collector did not become ready')
+        config = export_view()['config']
+        config.update(enabled=True, endpoint='http://'+collector+':4318/v1/logs', headers={'Authorization': 'Bearer package-test-only'})
+        assert request('POST', '/api/settings/audit-export/test', config)['accepted'] is True
+        saved = request('PUT', '/api/settings/audit-export', config)
+        assert saved['headers_configured'] is True and 'package-test-only' not in json.dumps(saved)
     query = {"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "query_sql", "arguments": {"source_id": source["id"], "query": "SELECT count(*) FROM events"}}}
     result = request("POST", "/mcp", query, agent["token"])
     assert result["result"]["structuredContent"]["data"] == [["3"]], result
+    if args.otlp:
+        config = await_export(lambda status: status['accepted'] == 1 and status['pending'] == 0)['config']
+        config.update(protocol='grpc', endpoint='http://'+collector+':4317')
+        assert request('POST', '/api/settings/audit-export/test', config)['accepted'] is True
+        request('PUT', '/api/settings/audit-export', config)
+        assert request('POST', '/mcp', query, agent['token'])['result']['structuredContent']['data'] == [['3']]
+        await_export(lambda status: status['accepted'] == 2 and status['pending'] == 0)
+        docker('stop', collector)
+        assert request('POST', '/mcp', query, agent['token'])['result']['structuredContent']['data'] == [['3']]
+        await_export(lambda status: status['state'] == 'retrying' and status['pending'] == 1)
     bridge = subprocess.Popen(['docker', 'exec', '-i', '-e', 'MCPDBHUB_TOKEN', name, binary,
                                'stdio', '--url', 'http://127.0.0.1:8080/mcp'],
                               stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -140,7 +188,7 @@ try:
     try:
         initialized = bridge_call({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
             'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'dist-verification', 'version': '1'}}})
-        assert initialized['result']['serverInfo']['version'] == '0.1.0'
+        assert initialized['result']['serverInfo']['version'] == runtime_version.group(1)
         bridge.stdin.write(json.dumps({'jsonrpc': '2.0', 'method': 'notifications/initialized'})+'\n')
         tools = bridge_call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'})
         assert len(tools['result']['tools']) == 11
@@ -161,6 +209,16 @@ try:
     ready()
     assert any(s["id"] == source["id"] for s in request("GET", "/api/sources"))
     assert request("POST", "/mcp", query, agent["token"])["result"]["structuredContent"]["data"] == [["3"]]
+    if args.otlp:
+        saved = export_view()
+        assert saved['config']['protocol'] == 'grpc' and saved['headers_configured'] is True
+        assert saved['status']['pending'] == 3 and saved['status']['accepted'] == 2
+        docker('start', collector)
+        await_export(lambda status: status['pending'] == 0 and status['accepted'] == 5)
+        logs = docker('logs', collector)
+        wire = logs.stdout+logs.stderr
+        assert source['id'] in wire and 'event.name: Str(mcpdbhub.audit)' in wire
+        assert 'package-test-only' not in wire and 'SELECT count(*)' not in wire and agent['token'] not in wire
     docker("stop", name)
     replacement_password = uuid.uuid4().hex
     recovery = subprocess.run(["docker", "run", "--rm", "-i", "--read-only", "--cap-drop", "ALL",
@@ -180,10 +238,15 @@ try:
     request("POST", "/mcp", query, agent["token"], expected=401)
     image = json.loads(docker("image", "inspect", IMAGE).stdout)[0]
     result = {"result": "passed", "image_id": image["Id"], "architecture": image["Architecture"],
+              "version": runtime_version.group(1),
               "source_sha256": source_digest(), "verified_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
               "checks": ["nonroot_uid_10001", "readonly_root_filesystem", "no_node_runtime", "bootstrap",
                          "source_persistence", "HTTP_MCP_query", "stdio_initialize_discovery_and_query", "restart_session_agent_and_source_recovery", "revoked_agent_denied",
                          "password_recovery_cli", "old_password_and_admin_sessions_rejected", "recovery_preserves_database_credentials_and_agent_token"]}
+    if args.otlp:
+        result['collector_version'] = '0.160.0'
+        result['checks'].extend(['OTLP_HTTP_protobuf', 'OTLP_gRPC', 'OTLP_header_and_payload_redaction',
+                                 'OTLP_receiver_outage_query_isolation', 'OTLP_pending_restart_and_recovery'])
     if manifest:
         result.update(architecture=manifest['arch'], commit=manifest['commit'], image_id=manifest['image_id'],
                       binary_sha256=manifest['binary_sha256'], archive=args.archive.name,
@@ -201,6 +264,8 @@ except Exception:
 finally:
     if created:
         docker("rm", "-f", name, check=False)
+    if collector:
+        docker('rm', '-f', collector, check=False)
     docker("volume", "rm", volume, check=False)
     if unpacked:
         unpacked.cleanup()

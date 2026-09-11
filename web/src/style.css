@@ -1199,3 +1199,12 @@ tbody tr.selected {
     max-width: 100%;
   }
 }
+
+.otlp-form { margin-top: 18px; }
+.otlp-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
+.otlp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.otlp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.otlp-fields textarea { font-family: ui-monospace, monospace; font-size: 12px; }
+.otlp-status-title { margin: 24px 0 8px; }
+.capitalize { text-transform: capitalize; }
+@media (max-width: 620px) { .otlp-grid { grid-template-columns: 1fr; } }

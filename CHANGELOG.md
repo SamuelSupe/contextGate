@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.1 — 2026-09-11
+
+- Optional OTLP audit Logs export over HTTP/protobuf and gRPC, configured through the English Settings page. Includes TLS/custom CA, encrypted headers, a synthetic connection test, persisted delivery progress, retry and rejection status, and cancellation on configuration changes.
+
 ## 0.1.0 — 2026-09-11
 
 First public release of MCP DB Hub.
