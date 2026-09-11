@@ -13,5 +13,3 @@ First public release of MCP DB Hub.
 - Linux arm64 and amd64 distributions with bilingual instructions, dependency notices and SHA256 checksums.
 
 The service is single-instance and single-administrator. SQL/Cypher query pagination is explicit; SQL metadata supports continuation. It does not provide cross-database federation, arbitrary scripts or automatic database account management. See the [support matrix](docs/support-matrix.md) and [validation record](docs/validation.md) for tested versions and limits.
-
-首个公开版本：提供 18 个数据库产品的原生只读 MCP 查询、内嵌英文管理界面、独立 Agent 授权、OAuth、审计和无损结果；交付 Linux arm64/amd64 发行包。实际版本与验收边界见支持矩阵，不把协议兼容视为已验证支持。

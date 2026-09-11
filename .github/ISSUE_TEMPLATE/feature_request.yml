@@ -1,17 +1,17 @@
-name: Feature request / 功能建议
+name: Feature request
 description: Describe a database reading or administration workflow you need.
 labels: [enhancement]
 body:
   - type: textarea
     id: problem
     attributes:
-      label: Problem and use case / 问题与使用场景
+      label: Problem and use case
     validations:
       required: true
   - type: textarea
     id: proposal
     attributes:
-      label: Proposed behavior / 建议行为
+      label: Proposed behavior
       description: For a database feature, include the product, version and a read-only query example.
     validations:
       required: true

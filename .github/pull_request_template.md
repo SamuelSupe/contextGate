@@ -1,7 +1,7 @@
-## Change / 变更
+## Change
 
 Describe the user-visible problem and resulting behavior.
 
-## Validation / 验证
+## Validation
 
 List the checks actually run, database products/versions, and any unverified cases.

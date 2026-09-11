@@ -1,15 +1,15 @@
-# 安装 v0.1.0
+# Install v0.1.0
 
-[English](install.en.md) · [发行版](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.0)
+[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.1.0)
 
-## Linux 发行包
+## Linux distributions
 
-支持 Linux arm64 / amd64，要求 glibc 2.36 或更新版本，例如 Debian 12、Ubuntu 24.04。发行包自带所需 C++ 运行库和内嵌管理 UI，无需 Go、Node.js 或数据库客户端。Alpine/musl、macOS、Windows 不能直接运行这些 Linux 包；macOS 可通过 Docker Desktop 或 OrbStack 使用容器。
+Packages target Linux arm64 and amd64 with glibc 2.36 or newer, such as Debian 12 or Ubuntu 24.04. They include private C++ runtime libraries and the embedded UI. Go, Node.js and database client programs are unnecessary at runtime. These Linux packages do not run directly on Alpine/musl, macOS or Windows. On macOS, use Docker Desktop or OrbStack.
 
-根据 `uname -m` 选择：`x86_64` 下载 `linux-amd64`，`aarch64` / `arm64` 下载 `linux-arm64`。
+Check `uname -m`: choose `linux-amd64` for `x86_64`, or `linux-arm64` for `aarch64` / `arm64`.
 
 ```sh
-# 示例：Linux arm64。amd64 用户替换文件名中的 arm64。
+# Linux arm64 example; replace arm64 with amd64 for x86_64.
 curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.0/mcpdbhub-0.1.0-linux-arm64.tar.gz
 curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
@@ -20,17 +20,17 @@ mkdir -p data databases
 ./mcpdbhub serve --data-dir ./data --database-dir ./databases
 ```
 
-保留解压后的完整目录：根目录 `mcpdbhub` 启动器设置私有运行库路径，再运行 `libexec/mcpdbhub`。不要只复制其中一个文件。启动器保留当前工作目录、参数和信号传递。
+Keep the entire extracted directory together. The root `mcpdbhub` launcher sets the private library path and executes `libexec/mcpdbhub`; copying either file alone is insufficient. It preserves the working directory, arguments and process signals.
 
-打开 `http://127.0.0.1:8080`，使用服务日志中的一次性设置码创建管理员密码。按以下流程配置：
+Open `http://127.0.0.1:8080` and enter the one-time setup code from the server log to create the administrator password.
 
-1. **Data sources → Add data source**：选择产品、填写连接与数据库读取账号，配置 TLS 和执行上限。
-2. 保存并检查连接与只读保护证据。`Not verified` 不等同于已验证账号权限；InfluxDB 3 Core 明确采用查询 API 隔离。
-3. **Agents → Create Agent**：选择可访问的数据源和到期时间。保存唯一一次显示的 Token。
-4. **Connect** 中复制 HTTP 或 stdio 配置。包内 `examples/` 提供占位示例；先调用 `list_data_sources`，再执行相应查询工具。
-5. 在 **Audit log** 查看调用结果，用请求 ID 关联脱敏错误。撤销 Token 后更新客户端，不会恢复旧凭证。
+1. In **Data sources → Add data source**, choose a product, enter its connection and database reader credentials, then configure TLS and query limits.
+2. Save and inspect connectivity and read-only evidence. `Not verified` is not proof of account privileges. InfluxDB 3 Core explicitly uses query API isolation.
+3. In **Agents → Create Agent**, select permitted data sources and an expiration. Save the token displayed once.
+4. Open **Connect** for HTTP or stdio configuration. The package includes placeholder files in `examples/`. Start with `list_data_sources`, then use the matching native query tool.
+5. Inspect calls in **Audit log** and correlate redacted failures by request ID. Revoked credentials cannot be restored; update the client when issuing a replacement.
 
-## 从源码运行 Docker
+## Docker from source
 
 ```sh
 git clone --branch v0.1.0 https://github.com/SamuelSupe/mcpdbhub.git
@@ -40,28 +40,28 @@ docker compose up --build -d
 docker compose logs hub
 ```
 
-默认只监听宿主机回环端口；数据库文件需允许容器 UID 10001 读取，数据库目录只读挂载。配置保存在 `hub-data` 卷中。不要执行 `docker compose down -v` 来升级。
+The host port binds to loopback by default. Database files must be readable by container UID 10001; their directory is mounted read-only. Configuration persists in the `hub-data` volume. Do not use `docker compose down -v` when upgrading.
 
-## 远程部署、持久化与升级
+## Remote access, backups and upgrades
 
-远程部署应在 HTTPS 反向代理后运行，设置 `MCPDBHUB_PUBLIC_URL=https://db.example.com`，并保留原 Host 与 Authorization 请求头；OAuth 的资源地址为 `https://db.example.com/mcp`。二进制服务可通过 `--listen 0.0.0.0:8080` 监听容器或内网接口。完整配置变量见 [README](../README.md)。
+For remote deployment, place the service behind HTTPS and set `MCPDBHUB_PUBLIC_URL=https://db.example.com`. Preserve the public Host and Authorization headers. The OAuth resource is `https://db.example.com/mcp`. Use `--listen 0.0.0.0:8080` when the binary must listen on a container or private network interface. See the [README](../README.md) for all configuration variables.
 
-将配置目录放在发行包目录外，以便替换程序时保留配置。备份前停止服务，复制配置 SQLite 与匹配的 `master.key`，单独保护密钥；如使用 `MCPDBHUB_MASTER_KEY`，另行备份该外部密钥。恢复时密钥必须与配置匹配。
+Keep configuration outside the extracted program directory. Stop the service before backing up its SQLite configuration and matching `master.key`; protect the key separately. If using `MCPDBHUB_MASTER_KEY`, back up that external key too. Restoring configuration requires the matching key.
 
-升级前保留旧程序和停止状态下的配置备份，新版本使用原配置路径启动。不要删除主密钥、配置库或数据卷。数据库迁移后如需回退，应恢复与旧程序配套的配置备份。
+Before upgrading, preserve the old program and a stopped-service configuration backup. Start the new program with the existing configuration path. Never delete the key, database or volume to upgrade. If a migration has run, rollback requires restoring the configuration backup matching the old program.
 
-忘记管理员密码时，停止服务，通过 stdin 执行 `./mcpdbhub reset-password --data-dir /原配置路径 --password-stdin`；具体无回显命令见 [恢复说明](../README.md#管理员忘记密码后的恢复)。原数据源与 Agent Token 保留，管理员会话失效。
+For password recovery, stop the service and supply a new password through stdin to `./mcpdbhub reset-password --data-dir /existing/config --password-stdin`. The [recovery instructions](../README.md#recover-a-forgotten-administrator-password) show a prompt that does not echo input. Recovery preserves data sources and Agent credentials while invalidating administrator sessions.
 
-## 运行故障
+## Troubleshooting
 
-| 现象 | 排查 |
+| Symptom | Check |
 |---|---|
-| `Exec format error` | 选择与主机 CPU/系统对应的 Linux 发行包 |
-| glibc 版本错误 | 使用 glibc ≥ 2.36 的系统或从源码构建 Docker 镜像 |
-| 运行库缺失 | 保留完整目录，使用根目录 `./mcpdbhub` 启动器 |
-| 数据源连接失败 | 检查网络、TLS、数据库读取账号和 UI 中的脱敏诊断 |
-| Agent 无法发现数据源 | 检查授权、启停、到期时间、撤销状态及数据源启用状态 |
-| `query_denied` | 查询超出只读子集；参阅对应产品的[限制](support-matrix.md) |
-| 游标无效 | 使用相同身份、参数和上限；过期、升级或授权改变后重新开始查询 |
+| `Exec format error` | Select the package matching the operating system and CPU |
+| glibc version error | Use glibc ≥ 2.36 or build the Docker image from source |
+| Missing runtime library | Retain the complete package and use the root `./mcpdbhub` launcher |
+| Connection failure | Check network, TLS, reader credentials and the redacted UI diagnostic |
+| No visible sources | Check grants, expiration, revocation, paused Agents and disabled sources |
+| `query_denied` | The query exceeds the supported read-only subset; see [limits](support-matrix.md) |
+| Invalid cursor | Keep identity, parameters and limits identical; restart after expiration, upgrade or access changes |
 
-版本、二进制摘要与源码提交记录在包内 `BUILD.json`。已执行的产品/平台验收与剩余边界见 [验收说明](validation.md)。
+`BUILD.json` identifies the version, binary digest and source commit. See [validation](validation.md) for tested products/platforms and remaining limitations.

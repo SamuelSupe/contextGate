@@ -22,7 +22,3 @@ Full texts: `third_party/licenses/frontend/`. Build tools such as TypeScript and
 ## Linux runtime libraries
 
 The Linux archives bundle unmodified Debian GCC runtime libraries (`libstdc++.so.6` and `libgcc_s.so.1`). Their Debian copyright notices, GPLv3 and LGPLv3 texts are supplied under `licenses/gcc-runtime/` in each archive and `/usr/share/doc/mcpdbhub-runtime/` in the image. The notices describe the GCC Runtime Library Exception and upstream source locations. System glibc is supplied by the host operating system.
-
-## 中文
-
-依赖许可证与项目本身的许可证分别适用。发行包保留 Go、内嵌前端、DuckDB 原生依赖与 GCC 运行库的上游许可文本及声明；需要随二进制分发的依赖源码由收集工具一并保留。许可证分类工具无法识别的 Segment MIT-0 和 Apache Thrift 项目已按固定版本的原文补齐。

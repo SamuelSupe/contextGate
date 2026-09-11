@@ -1,6 +1,8 @@
-# Release process / 发行流程
+# Release process
 
 Release artifacts come from the same versioned Docker build as the runtime image. `scripts/dist.py` requires a clean committed checkout, injects its commit into the CLI, copies the binary and required C++ libraries, and packages the bilingual documentation, notices and examples. Build on Linux or through OrbStack/Docker; CGO requires the target architecture's C/C++ toolchain.
+
+The default `README.md`, installation guide, release notes and templates use English. Chinese documentation lives in `.zh-CN.md` files. Existing `.en.md` URLs point readers to the canonical English pages. Published tags and distribution assets retain their original contents; documentation updates are delivered on the default branch and in subsequent packages.
 
 ## Prepare and verify
 
@@ -40,9 +42,3 @@ Each command unpacks into a fresh directory, verifies its manifest/hash, and run
 Push the reviewed commit to `main` and require both CI architecture jobs to pass. Create an annotated `v0.1.0` tag at that commit. Create the GitHub Release as a draft, attach both archives, `SHA256SUMS` and the actual validation records, then download those assets again and compare hashes. Verify the local, remote branch and dereferenced tag commits before publishing the Release as latest.
 
 Do not attach configuration databases, master keys, fixture manifests, tokens, local logs or build caches. Do not move a published tag to another commit. Keep historical verification records tied to the source they actually tested.
-
-## 中文
-
-先完成前端、Go、真实数据库矩阵和 Chrome 验证，更新中英文文档并提交源码，再使用 `scripts/dist.py` 构建。发行包包含私有 C++ 运行库、双语安装说明、示例、依赖许可和源码提交摘要；通过 `scripts/check-package.py --archive` 在全新目录解压并运行实际发行包，不能用工作目录下的旧二进制代替验收。
-
-双架构 CI 通过后，将带注释的版本标签指向已验证提交，创建草稿 Release、上传附件、重新下载并校验 SHA256，再公开发布。配置库、主密钥、测试凭证及本地日志不得上传。保留历史验收摘要，不移动已发布的标签；arm64 主机上的 amd64 仿真检查不应描述为原生 amd64 硬件验证。

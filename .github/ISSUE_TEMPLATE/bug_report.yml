@@ -1,4 +1,4 @@
-name: Bug report / 缺陷反馈
+name: Bug report
 description: Report a reproducible problem with a query, connection, authorization or UI.
 labels: [bug]
 body:
@@ -8,26 +8,26 @@ body:
   - type: input
     id: version
     attributes:
-      label: Hub version and platform / 版本与平台
+      label: Hub version and platform
       placeholder: v0.1.0, Linux arm64, Docker
     validations:
       required: true
   - type: input
     id: database
     attributes:
-      label: Database product and version / 数据库产品与版本
+      label: Database product and version
       placeholder: PostgreSQL 17.11
   - type: textarea
     id: steps
     attributes:
-      label: Steps to reproduce / 复现步骤
+      label: Steps to reproduce
       description: Include a minimal redacted query or UI workflow and the expected result.
     validations:
       required: true
   - type: textarea
     id: actual
     attributes:
-      label: Actual result / 实际结果
+      label: Actual result
       description: Include the safe error code, request ID and logs with credentials removed.
     validations:
       required: true

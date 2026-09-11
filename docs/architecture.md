@@ -1,82 +1,84 @@
-# 接口与执行边界 / Architecture
+# Architecture
 
-单进程 Go 服务内嵌 React 静态资源。配置和审计保存在服务自己的 SQLite 中。用户数据库由管理员配置的账号访问；Agent 不获得连接凭证。
+[简体中文](architecture.zh-CN.md)
+
+A single Go process embeds the React application. Configuration and audit records live in the service's own SQLite database. User databases are accessed through administrator-configured accounts; agents never receive connection credentials.
 
 ```mermaid
 flowchart LR
-  UI[管理 UI] --> API[会话认证与 CSRF]
-  Agent[Agent] --> MCP[官方 MCP SDK / Streamable HTTP]
-  CLI[stdio 桥接] --> MCP
+  UI[Admin UI] --> API[Session authentication and CSRF]
+  Agent[Agent] --> MCP[Official MCP SDK / Streamable HTTP]
+  CLI[stdio bridge] --> MCP
   OAuth[Ory Fosite / OAuth] --> MCP
-  API --> Execute[授权与执行引擎]
+  API --> Execute[Authorization and query execution]
   MCP --> Execute
-  Execute --> Adapters[7 个查询语言族适配器]
-  Adapters --> DB[(用户数据库)]
-  Execute --> Store[(配置与审计 SQLite)]
+  Execute --> Adapters[Seven native query families]
+  Adapters --> DB[(User databases)]
+  Execute --> Store[(Configuration and audit SQLite)]
 ```
 
-## 目录
+## Code organization
 
-| 路径 | 职责 |
+| Path | Responsibility |
 |---|---|
-| `cmd/mcpdbhub` | serve 命令、stdio → HTTP 桥接 |
-| `internal/server` | 管理 HTTP API、初始化、登录、CSRF、UI 路由 |
-| `internal/mcpserver` | 11 个 MCP 工具及 JSON Schema 验证 |
-| `internal/engine` | 每次调用授权、连接生命周期、并发、超时、取消、游标封装、审计 |
-| `internal/adapter` | SQL、MongoDB、Redis、Search、Cypher、CQL、InfluxDB |
-| `internal/oauth` | Fosite provider、持久化、同意、注册、刷新和撤销 |
-| `internal/store`、`internal/secure` | 配置事务、加密、散列 |
-| `web`、`internal/ui` | React/TS 源码、Go 内嵌构建产物 |
+| `cmd/mcpdbhub` | serve command and stdio-to-HTTP bridge |
+| `internal/server` | Admin HTTP API, setup, login, CSRF and UI routing |
+| `internal/mcpserver` | Eleven MCP tools and JSON Schema validation |
+| `internal/engine` | Per-call authorization, connection lifecycle, concurrency, timeouts, cancellation, cursor protection and auditing |
+| `internal/adapter` | SQL, MongoDB, Redis, Search, Cypher, CQL and InfluxDB |
+| `internal/oauth` | Fosite provider, persistence, consent, registration, refresh and revocation |
+| `internal/store`, `internal/secure` | Configuration transactions, encryption and hashing |
+| `web`, `internal/ui` | React/TypeScript source and Go-embedded build output |
 
-## MCP 契约
+## MCP contract
 
-`list_data_sources` 无参数，只返回当前身份被授权且启用的数据源。每个数据源提供 capability、示例、上限和已验收版本。其余工具均要求 `source_id`。
+`list_data_sources` takes no arguments and returns only enabled sources authorized for the caller. Each source includes capabilities, examples, limits and verified versions. Every other tool requires `source_id`.
 
-| 工具 | 输入 |
+| Tool | Inputs |
 |---|---|
 | `list_namespaces` | source_id |
-| `list_objects` | source_id、namespace（可选） |
-| `describe_object` | source_id、object、namespace（可选） |
-| `query_sql` | query、params 或 named_params |
-| `query_mongodb` | object、operation: find/aggregate/count/distinct；filter、projection、sort、pipeline；distinct 字段放 query |
-| `query_redis` | command、args 字符串数组 |
-| `query_search` | object/index、operation: search/get/count、body；get 的 query 为文档 ID |
-| `query_cypher` | query、named_params |
-| `query_cql` | query、params、cursor |
-| `query_influxdb` | language: sql/influxql/flux、query、named_params |
+| `list_objects` | source_id, optional namespace |
+| `describe_object` | source_id, object, optional namespace |
+| `query_sql` | query, params or named_params |
+| `query_mongodb` | object, operation: find/aggregate/count/distinct; filter, projection, sort, pipeline; the distinct field goes in query |
+| `query_redis` | command, args as a string array |
+| `query_search` | object/index, operation: search/get/count, body; query contains the document ID for get |
+| `query_cypher` | query, named_params |
+| `query_cql` | query, params, cursor |
+| `query_influxdb` | language: sql/influxql/flux, query, named_params |
 
-所有查询可收紧 `max_rows`、`timeout_seconds`、`max_bytes`；原生分页提供 `cursor`。不接受 schema 未声明的连接字段。管理查询、HTTP MCP 与 stdio 使用同一执行层。
+Queries can tighten `max_rows`, `timeout_seconds` and `max_bytes`; native pagination uses `cursor`. Undeclared connection fields are rejected by the schema. Administrator previews, HTTP MCP and stdio share the execution layer.
 
-结果同时放在 `structuredContent` 与 JSON 文本中。`data` 保留表行、文档、节点/关系/路径、时序标签/列信息。`columns` 提供驱动可得的原生类型。整数/Decimal 使用字符串避免 JavaScript 精度丢失；MongoDB 使用 Canonical Extended JSON；二进制采用 Base64，时间保留引擎提供的精度。JSON 对象的普通数字不会被先转成 float64。
+Results appear in both `structuredContent` and JSON text. `data` preserves rows, documents, nodes/relationships/paths and time-series tags/columns. `columns` carries available driver-native types. Integers and decimals use strings to avoid JavaScript precision loss; MongoDB uses Canonical Extended JSON; binary values use Base64 and timestamps retain engine precision. Ordinary JSON numeric values are not first converted to float64.
 
-Cypher 参数递归保留整数、小数、列表及 map 的原生类型，超出 int64 的整数拒绝。CQL 根据预备语句参数类型编码 Decimal、float/double 与集合，避免把精确 Decimal 提前转成浮点数。SQL 的精确 Decimal 仍可通过十进制字符串与显式类型绑定传入。
+Cypher parameters recursively retain native integer, decimal, list and map types; integers outside int64 are rejected. CQL encodes Decimal, float/double and collections according to prepared-statement parameter types, avoiding premature float conversion of exact decimals. SQL exact decimals can also be supplied as decimal strings with explicit type binding.
 
-默认每次 30 秒、1,000 条、5 MiB。最大可配置 120 秒、10,000 条、20 MiB、每源 16 并发。全局并发 32、每 Agent 4。等待并发槽也计入超时。完成后再检查授权，审计失败时不返回查询结果。
+Defaults are 30 seconds, 1,000 rows and 5 MiB per request. Administrators can configure up to 120 seconds, 10,000 rows, 20 MiB and 16 concurrent queries per source. Global concurrency is 32; each Agent is limited to four. Queue time counts toward the timeout. Authorization is rechecked after execution, and audit failures prevent returning query results.
 
-游标由 AES-GCM 封装并绑定身份、数据源 revision、原始查询/参数/限制，5 分钟过期。MongoDB 原生游标每源最多 64 个、一次消费、到期关闭；服务重启后失效。CQL 使用 PageState，Redis 使用 SCAN 游标，Search 使用 search_after。SQL 和 Cypher 不做隐式重写分页。字节截断时不发放可能漏行的续页游标。
+AES-GCM cursors bind identity, source revision, original query/parameters/limits and expire after five minutes. MongoDB keeps at most 64 native cursors per source, closes them at expiration, and consumes continuation handles once; a restart invalidates them. CQL uses PageState, Redis uses SCAN cursors and Search uses search_after. SQL and Cypher queries are not implicitly rewritten for pagination. Byte truncation never issues a continuation that could skip rows.
 
-## 只读实现与限制
+## Read-only implementation and limits
 
-- PostgreSQL 系使用 PostgreSQL AST；MySQL 系使用 TiDB parser AST；ClickHouse 使用独立 parser。整个语句树检查写入 CTE、INTO、锁等。所有族均先词法扫描，拒绝多语句和危险语法。
-- SQLite authorizer 在引擎准备/执行时拒绝非读取动作；文件以 mode=ro/query_only 打开。DuckDB 准备语句后检查 StatementType=SELECT，禁用外部访问、扩展自动安装/加载并锁定配置。
-- PostgreSQL/MySQL/MariaDB/CockroachDB 每次执行创建新的只读事务；PostgreSQL/TimescaleDB 设置事务内超时和固定 search_path。TiDB 对 SHOW GRANTS 做保守检查，仅接受 SELECT/SHOW VIEW/USAGE，无法证明时拒绝连接。
-- ClickHouse 连接设置 readonly=1、allow_ddl=0、执行/结果上限。禁止远程/文件表函数与自定义函数。
-- CQL 对完整 token 流限制为单条 SELECT，再交给引擎解析；不提供完整 CQL AST，数据库 SELECT-only 角色是额外边界。
-- Cypher 在完整 token 检查后执行 EXPLAIN，只有引擎分类为只读才执行；读取会话不等同账号本身没有写权限。
-- 函数白名单按内置纯读取函数维护；自定义函数、过程调用、外部访问不在支持范围。语法解析不能证明任意数据库扩展或账号权限安全，因此建议始终配置最小权限账号。
-- MongoDB 递归拒绝 `$out/$merge/$where/$function/$accumulator/$eval`，不暴露 RunCommand。聚合不允许磁盘溢出。
-- Redis/Valkey 只开放显式读取命令，拒绝 EVAL、FUNCTION、MODULE、CONFIG、写命令、KEYS 与阻塞命令。范围读取被限制为有限返回量。
-- Search 仅构造固定读取路径，禁止任意路径、脚本、远程索引与有状态 scroll/PIT。
-- Flux 禁止 import/package/option、网络参数、插值和非白名单调用。参数用 extern 的字面量 AST 绑定，兼容 OSS 2.x；不拼接字符串。InfluxDB 3 Core 仅调用固定查询 API，不声称管理员 Token 是数据库只读凭证。
+- PostgreSQL-family statements use the PostgreSQL AST; MySQL-family statements use the TiDB parser AST; ClickHouse uses a separate parser. The complete tree is checked for writing CTEs, INTO, locks and related operations. Lexical validation rejects multiple statements and dangerous syntax before execution.
+- SQLite's authorizer rejects non-read actions at preparation/execution; files open with mode=ro/query_only. DuckDB checks StatementType=SELECT after preparation, disables external access and automatic extension installation/loading, and locks its configuration.
+- PostgreSQL/MySQL/MariaDB/CockroachDB create a new read-only transaction for each query. PostgreSQL/TimescaleDB also set a transaction-local timeout and fixed search_path. TiDB conservatively checks SHOW GRANTS, accepting only SELECT/SHOW VIEW/USAGE and refusing connections without sufficient evidence.
+- ClickHouse connections set readonly=1, allow_ddl=0 and execution/result limits. Remote/file table functions and custom functions are rejected.
+- CQL restricts the complete token stream to one SELECT and then lets the engine parse it. It does not provide a full CQL AST; a SELECT-only database role is an additional boundary.
+- Cypher executes EXPLAIN after complete token checks and runs only statements the engine classifies as read-only. A read session does not prove the account lacks write privileges.
+- Function allowlists contain built-in read-only functions. Custom functions, procedure calls and external access are outside the supported subset. Parsing cannot establish the safety of arbitrary extensions or account privileges; configure least-privilege accounts.
+- MongoDB recursively rejects `$out/$merge/$where/$function/$accumulator/$eval` and exposes no RunCommand. Aggregation cannot spill to disk.
+- Redis/Valkey expose an explicit read-command allowlist and reject EVAL, FUNCTION, MODULE, CONFIG, writing commands, KEYS and blocking commands. Range reads have bounded return sizes.
+- Search constructs only fixed read paths and rejects arbitrary paths, scripts, remote indexes and stateful scroll/PIT.
+- Flux rejects import/package/option, network parameters, interpolation and non-allowlisted calls. Parameters bind through an extern literal AST compatible with OSS 2.x, without string concatenation. InfluxDB 3 Core uses fixed query APIs; its administrator token is not described as a database read-only credential.
 
-## 管理与 OAuth
+## Administration and OAuth
 
-管理 API 的 `/api/sources`、`/api/agents`、`/api/audit`、`/api/catalog`、`/api/settings` 分别服务五个页面。`/api/setup` 消费一次性设置码；`/api/login` 建立 12 小时会话；写接口检查 `X-CSRF-Token`、Host 与 Origin。Token 只可放在 Authorization Header。远程公开地址必须使用 HTTPS。
+`/api/sources`, `/api/agents`, `/api/audit`, `/api/catalog` and `/api/settings` serve the five administration pages. `/api/setup` consumes a one-time setup code; `/api/login` creates a 12-hour session. Write endpoints check `X-CSRF-Token`, Host and Origin. Tokens are accepted only in the Authorization header. Remote public URLs require HTTPS.
 
-Agent Token 只保存 SHA-256；管理员密码为 Argon2id。数据库凭证和 OAuth 记录分别用带上下文 AAD 的 AES-256-GCM 加密。主密钥与配置数据库分开保存。审计只存身份、数据源、操作、带密钥查询指纹、耗时、数量和错误分类，保留 30 天。
+Agent tokens are stored as SHA-256 hashes; administrator passwords use Argon2id. Database credentials and OAuth records use AES-256-GCM with contextual AAD. The master key is stored separately from the configuration database. Auditing retains identity, source, operation, a keyed query fingerprint, duration, count and error category for 30 days.
 
-OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKCE S256、resource audience、管理员选择数据源、15 分钟 access token、30 天 refresh grant、刷新轮换和重放撤销。每次同意生成可在 Agent 页面撤销/缩小的数据源授权。token/revoke/consent 处理串行化关键状态变更，所有状态保存在 SQLite，重启恢复。
+[Ory Fosite](https://github.com/ory/fosite) provides authorization codes, PKCE S256, resource audiences, administrator source selection, 15-minute access tokens, 30-day refresh grants, rotation and replay revocation. Each consent creates source grants that can be revoked or narrowed on the Agents page. Token, revocation and consent handlers serialize critical state transitions; SQLite persists state across restarts.
 
-公开元数据：`/.well-known/oauth-protected-resource`（也提供 `/mcp` 后缀）、`/.well-known/oauth-authorization-server`。预注册：管理页面；动态注册：`/oauth/register`；CIMD：公开 HTTPS 文档，client_id 必须等于文档 URL。最多 1,000 客户端。文档最多 64 KiB、5 秒、不跟随重定向，DNS 解析后的地址全部通过公网检查，并直接拨号该解析地址防止重绑定。回调使用精确匹配，无通配符。
+Public metadata is available at `/.well-known/oauth-protected-resource` (including the `/mcp` suffix) and `/.well-known/oauth-authorization-server`. Clients can be pre-registered in the UI or dynamically registered at `/oauth/register`. CIMD uses a public HTTPS document whose URL must equal client_id. Registration is capped at 1,000 clients. Metadata fetches have a 64 KiB limit and five-second timeout, reject redirects, validate every resolved IP as public, and connect directly to that validated address to prevent DNS rebinding. Redirects match exactly, without wildcards.
 
-实现以 [MCP 授权规范](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization) 和 [官方 Go SDK](https://github.com/modelcontextprotocol/go-sdk) 为基础；不包含外部 IdP、多租户或团队 RBAC。
+The implementation follows the [MCP authorization specification](https://modelcontextprotocol.io/specification/2026-07-28/basic/authorization) and [official Go SDK](https://github.com/modelcontextprotocol/go-sdk). External identity providers, multi-tenancy and team RBAC are outside scope.

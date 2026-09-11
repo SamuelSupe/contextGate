@@ -65,7 +65,9 @@ def main():
             launcher.write_text('#!/bin/sh\nset -eu\nhub_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport LD_LIBRARY_PATH="$hub_root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$hub_root/libexec/mcpdbhub" "$@"\n')
             launcher.chmod(0o755)
             (package/'libexec/mcpdbhub').chmod(0o755)
-            for filename in ('README.md', 'README.en.md', 'CHANGELOG.md', 'SECURITY.md', 'THIRD_PARTY_NOTICES.md', 'LICENSE'):
+            for filename in ('README.md', 'README.en.md', 'README.zh-CN.md',
+                             'CONTRIBUTING.md', 'CHANGELOG.md', 'SECURITY.md',
+                             'THIRD_PARTY_NOTICES.md', 'LICENSE', 'go.mod'):
                 if (ROOT/filename).is_file():
                     shutil.copy2(ROOT/filename, package/filename)
             for directory in ('docs', 'examples', 'third_party'):
