@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "Explicit read command allowlist; database account permissions have not been inferred"
     ],
     "server_version": "8.1.9",
-    "checked_at": "2026-09-11T15:49:08.078064455Z"
+    "checked_at": "2026-09-12T02:24:08.390352684Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T15:49:08.082855926Z",
+  "verified_at": "2026-09-12T02:24:08.397430904Z",
   "version": "8.1.9",
   "image_id": "sha256:e0eb7c480958d32bdc4357a74bdd70653ae15f2f9b4c93c4a5a9fad1dc471c84",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

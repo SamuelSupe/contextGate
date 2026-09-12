@@ -83,8 +83,15 @@ export interface Audit {
   elapsed_ms: number;
   rows: number;
   error_code?: string;
+  ontology_id?: string;
+  ontology_version?: string;
 }
 export interface QueryResult {
+  ontology_context?: {
+    ontology_id: string;
+    version: string;
+    concept_refs: string[];
+  };
   semantic_version?: string;
   template_id?: string;
   template_version?: string;

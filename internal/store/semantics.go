@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
 	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
 )
 
@@ -56,6 +57,9 @@ func (s *Store) Semantics(source string) (semantic.State, error) {
 	if err = json.Unmarshal(b, &st); err != nil {
 		return st, err
 	}
+	ontology.NormalizeBinding(st.Draft.Ontology)
+	ontology.NormalizeBinding(st.Published.Ontology)
+	st.Draft.FormatVersion, st.Published.FormatVersion = semantic.FormatVersion, semantic.FormatVersion
 	st.Draft.Entries, st.Published.Entries = []semantic.Entry{}, []semantic.Entry{}
 	rows, err := tx.Query("SELECT phase,id,value FROM semantics_entries WHERE source_id=? ORDER BY phase,id LIMIT ?", source, 2*semantic.MaxEntries+1)
 	if err != nil {
@@ -92,6 +96,8 @@ func (s *Store) Semantics(source string) (semantic.State, error) {
 // WriteSemantics performs a compare-and-swap and replaces both snapshots in one
 // transaction. Callers serialize source/semantic mutations with Mutations.
 func (s *Store) WriteSemantics(source string, expected int64, st semantic.State, evidence ...semantic.Evidence) error {
+	ontology.NormalizeBinding(st.Draft.Ontology)
+	ontology.NormalizeBinding(st.Published.Ontology)
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return err
@@ -124,7 +130,16 @@ func (s *Store) WriteSemantics(source string, expected int64, st semantic.State,
 	if _, err = tx.Exec("DELETE FROM semantics_entries WHERE source_id=?", source); err != nil {
 		return err
 	}
+	if _, err = tx.Exec("DELETE FROM ontology_bindings WHERE source_id=?", source); err != nil {
+		return err
+	}
 	for phase, snapshot := range map[string]semantic.Snapshot{"draft": st.Draft, "published": st.Published} {
+		if snapshot.Ontology != nil {
+			b := snapshot.Ontology
+			if _, err = tx.Exec("INSERT INTO ontology_bindings(source_id,phase,ontology_id,version) VALUES(?,?,?,?)", source, phase, b.OntologyID, b.Version); err != nil {
+				return err
+			}
+		}
 		for _, en := range snapshot.Entries {
 			b, err = json.Marshal(en)
 			if err != nil {

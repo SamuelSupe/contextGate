@@ -1,6 +1,6 @@
-# 安装 v0.2.0
+# 安装 v0.3.0
 
-[English](install.md) · [发行版](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.2.0)
+[English](install.md) · [发行版](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0)
 
 ## Linux 发行包
 
@@ -10,11 +10,11 @@
 
 ```sh
 # 示例：Linux arm64。amd64 用户替换文件名中的 arm64。
-curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.2.0/mcpdbhub-0.2.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.2.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.3.0/mcpdbhub-0.3.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.3.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf mcpdbhub-0.2.0-linux-arm64.tar.gz
-cd mcpdbhub-0.2.0-linux-arm64
+tar -xzf mcpdbhub-0.3.0-linux-arm64.tar.gz
+cd mcpdbhub-0.3.0-linux-arm64
 ./mcpdbhub version
 mkdir -p data databases
 ./mcpdbhub serve --data-dir ./data --database-dir ./databases
@@ -33,7 +33,7 @@ mkdir -p data databases
 ## 从源码运行 Docker
 
 ```sh
-git clone --branch v0.2.0 https://github.com/SamuelSupe/mcpdbhub.git
+git clone --branch v0.3.0 https://github.com/SamuelSupe/mcpdbhub.git
 cd mcpdbhub
 mkdir -p databases
 docker compose up --build -d

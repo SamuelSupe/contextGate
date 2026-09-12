@@ -272,10 +272,16 @@ def main():
                 adapter_test = "TestLocalDatabaseReadOnly/"+kind+"$"
                 server_test = "TestDuckDBMCPReadOnly$" if kind == "duckdb" else "TestLifecycleAuthorizationReadOnlyAndPersistence$"
             else:
-                provision(kind, name)
-                created = True
-                fixture = seed(kind, name)
-                (OUT/(kind+"-fixture.json")).write_text(json.dumps([fixture], indent=2))
+                if kind in os.getenv("MCPDBHUB_REUSE_FIXTURES", "").split(","):
+                    label = docker("inspect", "--format", '{{index .Config.Labels "com.mcpdbhub.fixture"}}', name).stdout.strip()
+                    fixture = json.loads((OUT/(kind+"-fixture.json")).read_text())[0]
+                    if label != "true" or fixture["source"].get("host") != name:
+                        raise RuntimeError("refusing to reuse a fixture not owned by this matrix")
+                else:
+                    provision(kind, name)
+                    created = True
+                    fixture = seed(kind, name)
+                    (OUT/(kind+"-fixture.json")).write_text(json.dumps([fixture], indent=2))
                 environment += ["-e", "MCPDBHUB_MATRIX=/work/artifacts/matrix/"+kind+"-fixture.json"]
                 adapter_test, server_test = "TestDatabaseMatrix$", "TestDatabaseMCPMatrix$"
             for package, test in (("adapter", adapter_test), ("server", server_test)):
@@ -289,7 +295,7 @@ def main():
             if source_digest != implementation_digest():
                 raise RuntimeError("implementation changed during verification; rerun")
             result = json.loads(report.read_text())
-            result["checks"].extend(["mcp_http_queries", "mcp_discovery", "mcp_limits_and_pagination", "template_native_equivalence", "template_trial_and_publish", "template_write_denial"])
+            result["checks"].extend(["mcp_http_queries", "mcp_discovery", "mcp_limits_and_pagination", "template_native_equivalence", "template_trial_and_publish", "template_write_denial", "ontology_template_native_equivalence", "ontology_mapping_discovery"])
             if not local:
                 result["checks"].extend(["agent_isolation", "mcp_audit", "token_revocation"])
                 result["image_id"] = docker("inspect", "--format", "{{.Image}}", name).stdout.strip()

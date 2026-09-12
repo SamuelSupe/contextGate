@@ -1,0 +1,31 @@
+{
+  "result": "passed",
+  "environment": "OrbStack Linux arm64",
+  "verified_at": "2026-09-12T02:22:31.362367+00:00",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
+  "images": {
+    "postgres": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+    "mongodb": "sha256:04582c3a144d088f841c446abfc19f79adcefa8bd00ad4a7fb18e27b9585c5d6"
+  },
+  "checks": [
+    "shared_customer_order_postgres_mongodb",
+    "native_join_and_aggregation_equivalence",
+    "exact_decimal_results",
+    "empty_results",
+    "parameter_injection_rejected",
+    "mapped_subset_and_identity_key_isolation",
+    "draft_isolation",
+    "agent_grants",
+    "immutable_versions_and_explicit_adoption",
+    "optimistic_conflicts",
+    "referenced_version_deletion_protection",
+    "archived_binding_protection",
+    "declaration_and_discovery_distinction",
+    "definition_validation",
+    "encrypted_restart_recovery",
+    "request_start_ontology_context",
+    "semantic_and_native_cursor_invalidation",
+    "ontology_audit_correlation"
+  ],
+  "scope": "Declarations and metadata only; no claim of full database constraint validation or OWL/SHACL conformance."
+}

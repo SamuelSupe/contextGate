@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "Only fixed read endpoints are exposed; database account grants are not inferred"
     ],
     "server_version": "1.8.10",
-    "checked_at": "2026-09-11T15:51:10.326403158Z"
+    "checked_at": "2026-09-12T02:26:11.427598209Z"
   },
   "query_cases": 4,
-  "verified_at": "2026-09-11T15:51:10.381950463Z",
+  "verified_at": "2026-09-12T02:26:11.493803902Z",
   "version": "1.8.10",
   "image_id": "sha256:299ebda2c7e308dbef42e26ac9b8fd1d9b3bcb8a0aee80c6509aa0219c1d0290",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

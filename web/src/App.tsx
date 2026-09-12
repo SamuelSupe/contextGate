@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   Database,
+  Network,
   Users,
   ClipboardList,
   ListChecks,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import { api, message, payload, setCSRF } from "./api";
 import { Button, ErrorNote, Field, Loading } from "./components";
+import { Ontologies } from "./Ontologies";
 import { Semantics } from "./Semantics";
 import { Sources } from "./Sources";
 import { Agents } from "./Agents";
@@ -21,6 +23,7 @@ import type { Agent, Capability, Session, Settings, Source } from "./types";
 
 const nav = [
   ["/sources", "Data sources", Database],
+  ["/ontologies", "Ontologies", Network],
   ["/agents", "Agents", Users],
   ["/audit", "Audit log", ClipboardList],
   ["/catalog", "Supported databases", ListChecks],
@@ -108,7 +111,10 @@ export function App() {
   if (path === "/oauth/consent") return <ConsentPage notify={notify} />;
   const semanticID = path.match(/^\/sources\/([^/]+)\/semantics$/)?.[1];
   const semanticSource = sources.find((s) => s.id === semanticID);
-  const active = nav.find((n) => n[0] === path)?.[0] || "/sources";
+  const ontologyID = path.match(/^\/ontologies\/([^/]+)$/)?.[1];
+  const active = ontologyID
+    ? "/ontologies"
+    : nav.find((n) => n[0] === path)?.[0] || "/sources";
   return (
     <div className="app">
       <button
@@ -191,6 +197,13 @@ export function App() {
             sources={sources}
             catalog={catalog}
             reload={reload}
+            notify={notify}
+          />
+        ) : active === "/ontologies" ? (
+          <Ontologies
+            id={ontologyID}
+            sources={sources}
+            navigate={navigate}
             notify={notify}
           />
         ) : active === "/agents" ? (

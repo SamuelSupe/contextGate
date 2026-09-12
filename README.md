@@ -11,7 +11,7 @@
 
 A self-hosted, read-only MCP service written in Go. Configure connections and Agent grants through the embedded UI. Agents query in native database languages, with shared authorization, read-only protection, execution limits and auditing. No Node.js runtime is required.
 
-[简体中文](README.zh-CN.md) · [Download v0.2.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.2.0) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.3.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -102,8 +102,6 @@ Connectivity and privilege evidence are shown separately. “Account permissions
 
 Configuration is stored in SQLite. Source credentials use AES-256-GCM; the master key is held in a separate `master.key` file or the `MCPDBHUB_MASTER_KEY` environment variable (standard Base64 of 32 bytes). Administrator passwords use Argon2id; agent and session tokens are hashed. Admin sessions use HttpOnly/SameSite cookies and CSRF checks. Audit records expire after 30 days and exclude results, plaintext parameters and full query text. Grant changes cancel affected work.
 
-## OTLP audit logs
-
 ## Semantic catalogs and query templates
 
 ![Published semantic query templates — actual administration UI](docs/screenshots/semantics.png)
@@ -111,6 +109,14 @@ Configuration is stored in SQLite. Source credentials use AES-256-GCM; the maste
 Version 0.2.0 adds independent business catalogs and verified native query templates to every data source. Use **Data sources → Semantics** to import schema skeletons, define terms/fields/relationships/metrics, trial templates against the real database, and publish an Agent-visible snapshot. **Templates only** mode enforces curated query access across HTTP, stdio, OAuth and Agent previews.
 
 `search_semantics`, `get_semantic_entry` and `execute_query_template` expose published content with bounded pagination, typed JSON Pointer bindings and execution versions. Connection, credential or observed database version changes require a new trial and publication. Template audit metadata also flows to OTLP Logs. See the [complete guide](docs/semantics.md) and [examples for all query families](examples/semantics/).
+
+## Shared business ontologies
+
+Version 0.3.0 adds **Ontologies** and **Semantics → Ontology mapping**. Define Customer, Order, their properties and relationships once; map PostgreSQL tables and MongoDB documents independently to an explicitly selected, immutable ontology version. Agents discover only concepts mapped to their authorized source and receive native template results with `ontology_context`.
+
+Mappings publish atomically with the source catalog. Definition-only upgrades preserve template trial evidence and running queries; existing sources never follow the latest ontology automatically. Inheritance, identity and cardinality are declarative, without fact inference, federated queries or result conversion. See the [ontology guide](docs/ontologies.md), [PostgreSQL/MongoDB examples](examples/ontologies/) and [real verification record](docs/verification/ontology.json).
+
+## OTLP audit logs
 
 Since v0.1.1, **Settings → Audit log export** supports OpenTelemetry Collector and compatible OTLP Logs receivers. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the existing sanitized SQLite audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
 

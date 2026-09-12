@@ -1,0 +1,117 @@
+{
+  "format_version": 2,
+  "overview": "Customer and order reads for this source. Results keep the database native format.",
+  "ontology": {
+    "ontology_id": "commerce",
+    "version": "1",
+    "entities": [
+      {
+        "entity": "Customer",
+        "objects": [
+          {
+            "namespace": "public",
+            "object": "crm_customers"
+          }
+        ]
+      },
+      {
+        "entity": "Order",
+        "objects": [
+          {
+            "namespace": "public",
+            "object": "sales_orders"
+          }
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "entity": "Customer",
+        "property": "customer_id",
+        "reference": {
+          "namespace": "public",
+          "object": "crm_customers",
+          "field": "customer_key"
+        }
+      },
+      {
+        "entity": "Customer",
+        "property": "customer_name",
+        "reference": {
+          "namespace": "public",
+          "object": "crm_customers",
+          "field": "full_name"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_id",
+        "reference": {
+          "namespace": "public",
+          "object": "sales_orders",
+          "field": "order_key"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "total",
+        "reference": {
+          "namespace": "public",
+          "object": "sales_orders",
+          "field": "total_decimal"
+        }
+      }
+    ],
+    "relations": [
+      {
+        "relation": "places",
+        "fields": [
+          {
+            "from": {
+              "namespace": "public",
+              "object": "crm_customers",
+              "field": "customer_key"
+            },
+            "to": {
+              "namespace": "public",
+              "object": "sales_orders",
+              "field": "customer_key"
+            }
+          }
+        ],
+        "template_id": "customer-orders"
+      }
+    ]
+  },
+  "entries": [
+    {
+      "id": "customer-orders",
+      "kind": "template",
+      "name": "Orders placed by a customer",
+      "description": "Find orders and the customer display name. 按客户查询订单。",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"SELECT o.order_key, o.total_decimal, c.full_name FROM public.sales_orders o JOIN public.crm_customers c ON c.customer_key = o.customer_key WHERE c.customer_key = $1 ORDER BY o.order_key\", \"params\": [\"C-100\"]}",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ]
+          }
+        ],
+        "example_json": "{\"customer_id\":\"C-100\"}",
+        "result_description": "Native rows or documents; exact decimal amounts are preserved.",
+        "concept_refs": [
+          "ontology:entity_type:Customer",
+          "ontology:entity_type:Order",
+          "ontology:relation_type:places",
+          "ontology:property:Order:total"
+        ]
+      }
+    }
+  ]
+}

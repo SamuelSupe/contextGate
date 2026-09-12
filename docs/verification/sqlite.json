@@ -18,7 +18,9 @@
     "mcp_limits_and_pagination",
     "template_native_equivalence",
     "template_trial_and_publish",
-    "template_write_denial"
+    "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery"
   ],
   "denied_cases": 7,
   "kind": "sqlite",
@@ -31,11 +33,11 @@
       "Database opened READ_ONLY; external file access and extensions disabled"
     ],
     "server_version": "3.53.4",
-    "checked_at": "2026-09-11T15:51:17.651996345Z"
+    "checked_at": "2026-09-12T02:26:18.797684753Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T15:51:17.653214182Z",
+  "verified_at": "2026-09-12T02:26:18.80077205Z",
   "version": "3.53.4",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

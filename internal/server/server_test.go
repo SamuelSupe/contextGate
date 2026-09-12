@@ -219,6 +219,7 @@ func TestDatabaseMCPMatrix(t *testing.T) {
 			s := h.mcp(a["token"].(string))
 			capability, _ := adapter.Get(f.Source.Kind)
 			call(t, s, "list_data_sources", map[string]any{}, false)
+			matrixOntology(t, h, id, f.Namespace, f.Object)
 			for _, tool := range []string{"list_namespaces", "list_objects", "describe_object"} {
 				args := map[string]any{"source_id": id, "namespace": f.Namespace}
 				if tool == "describe_object" {

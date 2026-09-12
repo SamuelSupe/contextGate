@@ -1,0 +1,29 @@
+{
+  "result": "passed",
+  "version": "0.3.0",
+  "verified_at": "2026-09-12T02:38:46.982168+00:00",
+  "environment": "Local Google Chrome, real OrbStack Hub and PostgreSQL/MongoDB fixtures",
+  "ui_sha256": "dff9a312130e84ced7c47ab6f0dcb86feefa559e00cba7f5eb99cb2604533413",
+  "checks": [
+    "english_navigation_and_empty_states",
+    "multilingual_structured_entity_property_relation_editing",
+    "contradictory_cardinality_error_and_repair",
+    "ontology_JSON_file_import_and_downloaded_export",
+    "source_mapping_JSON_import_and_downloaded_v2_export",
+    "metadata_checks_and_explicit_unverified_field",
+    "template_trial_and_atomic_source_publication",
+    "agent_grant_denial_and_published_projection",
+    "PostgreSQL_join_and_MongoDB_aggregation_native_results",
+    "exact_decimal_and_nested_document_display",
+    "ontology_context_and_concept_refs_in_preview",
+    "immutable_v3_publish_leaves_both_sources_on_v2",
+    "explicit_diff_and_PostgreSQL_v3_adoption_MongoDB_stays_v2",
+    "description_only_upgrade_preserves_execution_version_1_and_trial",
+    "draft_discard_and_malformed_import_feedback",
+    "reference_protected_delete_controls",
+    "keyboard_arrow_tabs_and_Escape_dialog_close",
+    "390x844_navigation_and_mapping_forms_no_document_overflow",
+    "final_browser_error_and_warning_logs_empty"
+  ],
+  "scope": "New 0.3.0 flows exercised through local Chrome. Historical 0.2.0 build validation remains separately recorded."
+}

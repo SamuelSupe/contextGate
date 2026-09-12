@@ -44,7 +44,7 @@ func auditRequest(config Config, instance string, audits []model.Audit) (*collec
 		truncated := false
 		for _, entry := range []struct{ key, value string }{
 			{"request_id", a.RequestID}, {"agent_id", a.AgentID}, {"source_id", a.SourceID}, {"operation", a.Operation},
-			{"template_id", a.TemplateID}, {"template_version", a.TemplateVersion},
+			{"template_id", a.TemplateID}, {"template_version", a.TemplateVersion}, {"ontology_id", a.OntologyID}, {"ontology_version", a.OntologyVersion},
 			{"query_fingerprint", a.Fingerprint}, {"error_code", a.ErrorCode}, {"native_code", a.NativeCode},
 		} {
 			value := []rune(strings.ToValidUTF8(entry.value, "�"))

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 — 2026-09-12
+
+- Shared, encrypted business ontologies with immutable versions, single inheritance, entity/property/relation validation, explicit version adoption and reference-protected deletion.
+- Independent source mappings publish atomically with semantic catalogs; schema checks distinguish verified fields from administrator declarations.
+- Source-authorized ontology discovery through the existing 14 MCP tools, with filtered definitions, snapshot-bound cursors and native template results carrying ontology context.
+- Definition-only changes preserve query trial evidence and in-flight execution; audit and OTLP Logs carry ontology ID/version without definitions or results.
+- English ontology management and mapping UI, bilingual guides, PostgreSQL/MongoDB reuse examples, semantic JSON v2 with v1 import compatibility, and verified templates across all 18 products / 20 version combinations.
+
 ## 0.2.0 — 2026-09-11
 
 - Independent semantic catalogs for each data source: business context, terms, objects, fields, relationships and metrics. Includes metadata skeleton import, structured English editors, multilingual business content and versioned JSON import/export.

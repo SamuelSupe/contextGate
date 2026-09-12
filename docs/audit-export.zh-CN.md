@@ -33,7 +33,7 @@ docker run --rm --name collector --network hub-telemetry \
 
 Resource 包含 `service.name`、`service.version`、持久化的 `service.instance.id`。时间保留审计事件原始时间；成功为 INFO，失败为 ERROR，正文是固定的成功或失败说明。
 
-日志属性以 `mcpdbhub.audit.` 为前缀，包括 `id`、`request_id`、`agent_id`、`source_id`、`operation`、`template_id`、`template_version`、`query_fingerprint`、`elapsed_ms`、`rows`、`preview`、`error_code`、`native_code`。缺失的字符串属性不发送。超出 2,048 字符的字符串会截断，并设置 `attributes_truncated=true`。`event.name` 为 `mcpdbhub.audit`。0.2.0 起，模板执行和试跑包含模板 ID；已发布模板执行还包含执行版本。语义全文不写入日志。完整类型说明见[英文字段表](audit-export.md#log-fields)。
+日志属性以 `mcpdbhub.audit.` 为前缀，包括 `id`、`request_id`、`agent_id`、`source_id`、`operation`、`template_id`、`template_version`、`query_fingerprint`、`elapsed_ms`、`rows`、`preview`、`error_code`、`native_code`。缺失的字符串属性不发送。超出 2,048 字符的字符串会截断，并设置 `attributes_truncated=true`。`event.name` 为 `mcpdbhub.audit`。0.2.0 起，模板执行和试跑包含模板 ID；已发布模板执行还包含执行版本。0.3.0 起，已发布模板执行还包含请求开始时采用的 `ontology_id`、`ontology_version`。本体定义及语义全文不写入日志。完整类型说明见[英文字段表](audit-export.md#log-fields)。
 
 范围沿用现有数据库审计：查询、经执行引擎的结构发现、管理员预览和连接检测。不新增登录失败、HTTP 认证拒绝或配置变更的安全事件流。不发送完整查询、参数值、查询结果、数据库凭证或上报认证 Header；状态信息不回传接收端原始错误正文。
 

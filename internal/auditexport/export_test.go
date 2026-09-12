@@ -375,7 +375,7 @@ func TestGRPCWireAndThrottling(t *testing.T) {
 
 func TestExportBoundsCallerFields(t *testing.T) {
 	st, m := openManager(t, t.TempDir())
-	if err := st.Audit(model.Audit{At: time.Now(), SourceID: strings.Repeat("界", 100000), Operation: "query_sql"}); err != nil {
+	if err := st.Audit(model.Audit{At: time.Now(), SourceID: strings.Repeat("界", 100000), Operation: "query_sql", OntologyID: "commerce", OntologyVersion: "2"}); err != nil {
 		t.Fatal(err)
 	}
 	audits, err := st.AuditBatch(context.Background(), 0)
@@ -387,6 +387,9 @@ func TestExportBoundsCallerFields(t *testing.T) {
 		t.Fatal("unbounded export")
 	}
 	b, _ := json.Marshal(req)
+	if !strings.Contains(string(b), "mcpdbhub.audit.ontology_id") || !strings.Contains(string(b), "commerce") || !strings.Contains(string(b), "mcpdbhub.audit.ontology_version") {
+		t.Fatal("ontology correlation missing from OTLP")
+	}
 	if !strings.Contains(string(b), "attributes_truncated") || strings.Contains(string(b), strings.Repeat("界", 2049)) {
 		t.Fatal("unbounded caller field")
 	}

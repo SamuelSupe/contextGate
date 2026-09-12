@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "transaction_read_only=on for every query; account grants are not inferred"
     ],
     "server_version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
-    "checked_at": "2026-09-11T15:49:02.800943925Z"
+    "checked_at": "2026-09-12T02:24:06.185063602Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T15:49:02.822371426Z",
+  "verified_at": "2026-09-12T02:24:06.204418759Z",
   "version": "TimescaleDB 2.25.2 / PostgreSQL 17.7 on aarch64-unknown-linux-musl, compiled by gcc (Alpine 14.2.0) 14.2.0, 64-bit",
   "image_id": "sha256:ec9366355ee5a42282006095a8677a042f7d3b0567a31777d77a6e7c9d6e0fdf",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

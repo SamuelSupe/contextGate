@@ -1212,8 +1212,8 @@ tbody tr.selected {
 .semantic-back { display:inline-flex; align-items:center; gap:6px; margin-bottom:18px; }
 .semantic-source { color:var(--muted, #687386); font-size:18px; font-weight:400; overflow-wrap:anywhere; }
 .semantic-status { display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px; font-size:12px; color:#657080; margin-bottom:24px; }
-.semantic-tabs { display:flex; gap:24px; border-bottom:1px solid #e1e5eb; margin-bottom:24px; }
-.semantic-tabs button { border:0; border-radius:0; background:transparent; padding:12px 2px; border-bottom:2px solid transparent; }
+.semantic-tabs { display:flex; overflow-x:auto; gap:24px; border-bottom:1px solid #e1e5eb; margin-bottom:24px; }
+.semantic-tabs button { flex-shrink:0; border:0; border-radius:0; background:transparent; padding:12px 2px; border-bottom:2px solid transparent; }
 .semantic-tabs button[aria-selected="true"] { border-bottom-color:#267451; color:#267451; }
 .semantic-tabs small { margin-left:8px; color:#758176; }
 .semantic-overview { max-width:980px; }
@@ -1232,4 +1232,50 @@ tbody tr.selected {
  .semantic-source { display:block; font-size:15px; margin-top:8px; }
  .semantic-status { gap:8px 14px; }
  .semantic-parameter { padding:10px; }
+}
+
+.ontology-binding-panel,
+.ontology-mapping-section {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border, #e2e6e9);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 18px;
+}
+.ontology-mapping-section .page-header {
+  margin-bottom: 12px;
+}
+.ontology-mapping-section h2 {
+  margin: 0;
+}
+.ontology-version-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border, #e2e6e9);
+}
+.ontology-version-row strong {
+  margin-right: auto;
+}
+.ontology-mapping .semantic-status {
+  flex-wrap: wrap;
+}
+.query-output {
+  overflow: auto;
+  max-height: 60vh;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+@media (max-width: 700px) {
+  .ontology-binding-panel,
+  .ontology-mapping-section {
+    padding: 14px;
+  }
+  .ontology-mapping .page-header {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }

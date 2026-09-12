@@ -32,7 +32,7 @@ func Parse(text string) (any, error) {
 }
 
 func Validate(s Snapshot, tool string) error {
-	if s.FormatVersion != FormatVersion {
+	if s.FormatVersion != FormatVersion && s.FormatVersion != 1 {
 		return invalid("Unsupported semantic format version")
 	}
 	b, _ := json.Marshal(s)
@@ -41,6 +41,9 @@ func Validate(s Snapshot, tool string) error {
 	}
 	ids := map[string]Entry{}
 	for _, en := range s.Entries {
+		if en.Definition != nil || en.Mapping != nil || len(en.Ancestors) > 0 || len(en.TemplateIDs) > 0 {
+			return invalid("Projected ontology entries cannot be saved in the catalog")
+		}
 		if en.ID == "overview" || !identifier.MatchString(en.ID) || strings.TrimSpace(en.Name) == "" || len(en.Name) > 256 {
 			return invalid("Entries need a stable ID and a name of at most 256 bytes")
 		}

@@ -21,6 +21,8 @@ func (s *Server) semanticRoutes(mux *http.ServeMux) {
 		"GET /api/sources/{id}/semantics/entries":            s.semanticEntries,
 		"PUT /api/sources/{id}/semantics/entries/{entry}":    s.saveSemanticEntry,
 		"DELETE /api/sources/{id}/semantics/entries/{entry}": s.saveSemanticEntry,
+		"POST /api/sources/{id}/semantics/preview":           s.previewSemanticVisibility,
+		"POST /api/sources/{id}/semantics/check-mapping":     s.checkOntologyMapping,
 		"POST /api/sources/{id}/semantics/validate":          s.validateSemantics,
 		"POST /api/sources/{id}/semantics/trial":             s.trialSemantics,
 		"POST /api/sources/{id}/semantics/publish":           s.publishSemantics,
@@ -74,7 +76,7 @@ func (s *Server) semanticView(src model.Source, st semantic.State) map[string]an
 		}
 		return out
 	}
-	return map[string]any{"revision": strconv.FormatInt(st.Revision, 10), "published_version": strconv.FormatInt(st.PublishedVersion, 10), "draft": st.Draft, "published": st.Published, "changed": !reflect.DeepEqual(strip(a), strip(b)), "validation": validation}
+	return map[string]any{"revision": strconv.FormatInt(st.Revision, 10), "published_version": strconv.FormatInt(st.PublishedVersion, 10), "draft": st.Draft, "published": st.Published, "changed": !reflect.DeepEqual(strip(a), strip(b)), "validation": validation, "mapping_validation": s.Engine.MappingValidation(src, st.Draft)}
 }
 
 func (s *Server) semantics(w http.ResponseWriter, r *http.Request) {
@@ -92,7 +94,7 @@ type semanticInput struct {
 }
 
 func boundedDraft(draft semantic.Snapshot) error {
-	if draft.FormatVersion != semantic.FormatVersion {
+	if draft.FormatVersion != semantic.FormatVersion && draft.FormatVersion != 1 {
 		return model.Fail("invalid_semantics", "Unsupported semantic format version")
 	}
 	b, _ := json.Marshal(draft)
@@ -129,6 +131,7 @@ func (s *Server) writeDraft(id string, revision int64, draft semantic.Snapshot) 
 			draft.Entries[i].Template.ExecutionVersion = ""
 		}
 	}
+	draft.FormatVersion = semantic.FormatVersion
 	st.Draft = draft
 	return s.Store.WriteSemantics(id, revision, st)
 }
@@ -225,6 +228,10 @@ func (s *Server) validateSemantics(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err = semantic.Validate(st.Draft, adapter.ForSource(src).Tool); err != nil {
+		semanticFailure(w, err)
+		return
+	}
+	if err = s.Engine.ValidateOntologyMapping(st); err != nil {
 		semanticFailure(w, err)
 		return
 	}

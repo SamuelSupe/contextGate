@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
 	"reflect"
 	"time"
 )
@@ -174,18 +175,19 @@ type Column struct {
 	Type string `json:"type"`
 }
 type Result struct {
-	SemanticVersion string   `json:"semantic_version,omitempty"`
-	TemplateID      string   `json:"template_id,omitempty"`
-	TemplateVersion string   `json:"template_version,omitempty"`
-	RequestID       string   `json:"request_id,omitempty"`
-	Format          string   `json:"format"`
-	Columns         []Column `json:"columns,omitempty"`
-	Data            []any    `json:"data"`
-	RowCount        int      `json:"row_count"`
-	ElapsedMS       int64    `json:"elapsed_ms"`
-	Truncated       bool     `json:"truncated"`
-	NextCursor      string   `json:"next_cursor,omitempty"`
-	Bytes           int      `json:"bytes"`
+	OntologyContext *ontology.Context `json:"ontology_context,omitempty"`
+	SemanticVersion string            `json:"semantic_version,omitempty"`
+	TemplateID      string            `json:"template_id,omitempty"`
+	TemplateVersion string            `json:"template_version,omitempty"`
+	RequestID       string            `json:"request_id,omitempty"`
+	Format          string            `json:"format"`
+	Columns         []Column          `json:"columns,omitempty"`
+	Data            []any             `json:"data"`
+	RowCount        int               `json:"row_count"`
+	ElapsedMS       int64             `json:"elapsed_ms"`
+	Truncated       bool              `json:"truncated"`
+	NextCursor      string            `json:"next_cursor,omitempty"`
+	Bytes           int               `json:"bytes"`
 }
 
 func NewResult(format string) *Result { return &Result{Format: format, Data: []any{}} }
@@ -215,6 +217,8 @@ type Object struct {
 type Audit struct {
 	TemplateID      string    `json:"template_id,omitempty"`
 	TemplateVersion string    `json:"template_version,omitempty"`
+	OntologyID      string    `json:"ontology_id,omitempty"`
+	OntologyVersion string    `json:"ontology_version,omitempty"`
 	RequestID       string    `json:"request_id"`
 	NativeCode      string    `json:"native_code,omitempty"`
 	Preview         bool      `json:"preview"`

@@ -9,6 +9,9 @@ import {
 } from "lucide-react";
 import { api, date, message, payload } from "./api";
 import { Button, Drawer, Empty, ErrorNote, Field, Loading } from "./components";
+import { SemanticVisibility } from "./SemanticVisibility";
+import { OntologyMapping } from "./OntologyMapping";
+import { conceptRefs } from "./ontology-types";
 import { SemanticEditor } from "./SemanticEditor";
 import { StructureImport, TemplatePreview } from "./SemanticTools";
 import {
@@ -32,6 +35,7 @@ export function Semantics({
 }) {
   const [state, setState] = useState<SemanticState | null>(null);
   const [tab, setTab] = useState("Overview");
+  const [mappingDirty, setMappingDirty] = useState(false);
   const [overview, setOverview] = useState("");
   const [search, setSearch] = useState("");
   const [kind, setKind] = useState("");
@@ -102,7 +106,7 @@ export function Semantics({
   const trialRequired = state.validation.filter(
     (v) => !v.valid && v.status !== "disabled",
   ).length;
-  const unsavedOverview = overview !== state.draft.overview;
+  const unsavedOverview = overview !== state.draft.overview || mappingDirty;
   const create = () => {
     const template = tab === "Query templates";
     const example = { ...source.capability?.example };
@@ -173,6 +177,14 @@ export function Semantics({
           </Button>
         </div>
       </div>
+      <div className="button-row">
+        <Button
+          disabled={!!busy || unsavedOverview}
+          onClick={() => setDialog("visibility")}
+        >
+          Preview Agent visibility
+        </Button>
+      </div>
       <ErrorNote error={dialog ? "" : error} />
       <div className="semantic-status">
         <span className={`status ${state.changed ? "amber" : "green"}`}>
@@ -195,63 +207,80 @@ export function Semantics({
         role="tablist"
         aria-label="Semantic sections"
       >
-        {["Overview", "Catalog", "Query templates"].map((t) => (
-          <button
-            key={t}
-            role="tab"
-            aria-selected={tab === t}
-            tabIndex={tab === t ? 0 : -1}
-            onKeyDown={(e) => {
-              if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+        {["Overview", "Catalog", "Query templates", "Ontology mapping"].map(
+          (t) => (
+            <button
+              key={t}
+              role="tab"
+              aria-selected={tab === t}
+              tabIndex={tab === t ? 0 : -1}
+              onKeyDown={(e) => {
+                if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
+                  if (unsavedOverview) {
+                    setError(
+                      "Save or revert unsaved changes before switching sections.",
+                    );
+                    return;
+                  }
+                  const tabs = [
+                    "Overview",
+                    "Catalog",
+                    "Query templates",
+                    "Ontology mapping",
+                  ];
+                  const next =
+                    tabs[
+                      (tabs.indexOf(tab) +
+                        (e.key === "ArrowRight" ? 1 : tabs.length - 1)) %
+                        tabs.length
+                    ];
+                  setTab(next);
+                  setKind("");
+                  setPage(0);
+                  (
+                    e.currentTarget.parentElement?.querySelectorAll("button")[
+                      tabs.indexOf(next)
+                    ] as HTMLButtonElement
+                  )?.focus();
+                }
+              }}
+              onClick={() => {
                 if (unsavedOverview) {
                   setError(
-                    "Save or revert the overview before switching sections.",
+                    "Save or revert unsaved changes before switching sections.",
                   );
                   return;
                 }
-                const tabs = ["Overview", "Catalog", "Query templates"];
-                const next =
-                  tabs[
-                    (tabs.indexOf(tab) + (e.key === "ArrowRight" ? 1 : 2)) % 3
-                  ];
-                setTab(next);
+                setTab(t);
                 setKind("");
                 setPage(0);
-                (
-                  e.currentTarget.parentElement?.querySelectorAll("button")[
-                    tabs.indexOf(next)
-                  ] as HTMLButtonElement
-                )?.focus();
-              }
-            }}
-            onClick={() => {
-              if (unsavedOverview) {
-                setError(
-                  "Save or revert the overview before switching sections.",
-                );
-                return;
-              }
-              setTab(t);
-              setKind("");
-              setPage(0);
-            }}
-          >
-            {t}
-            {t !== "Overview" && (
-              <small>
-                {
-                  entries.filter((en) =>
-                    t === "Catalog"
-                      ? en.kind !== "template"
-                      : en.kind === "template",
-                  ).length
-                }
-              </small>
-            )}
-          </button>
-        ))}
+              }}
+            >
+              {t}
+              {(t === "Catalog" || t === "Query templates") && (
+                <small>
+                  {
+                    entries.filter((en) =>
+                      t === "Catalog"
+                        ? en.kind !== "template"
+                        : en.kind === "template",
+                    ).length
+                  }
+                </small>
+              )}
+            </button>
+          ),
+        )}
       </div>
-      {tab === "Overview" ? (
+      {tab === "Ontology mapping" ? (
+        <OntologyMapping
+          endpoint={endpoint}
+          state={state}
+          accept={accept}
+          notify={notify}
+          onDirty={setMappingDirty}
+        />
+      ) : tab === "Overview" ? (
         <div className="semantic-overview" role="tabpanel">
           <section>
             <h2>Data source context</h2>
@@ -568,6 +597,7 @@ export function Semantics({
         <SemanticEditor
           entry={editing}
           entries={entries}
+          concepts={conceptRefs(state.draft.ontology)}
           onClose={() => setEditing(null)}
           onSave={async (entry) => {
             accept(
@@ -600,6 +630,13 @@ export function Semantics({
               "Structure imported without replacing existing descriptions.",
             );
           }}
+        />
+      )}
+      {dialog === "visibility" && (
+        <SemanticVisibility
+          endpoint={endpoint}
+          agents={agents}
+          onClose={() => setDialog("")}
         />
       )}
       {dialog === "preview" && selected && (
@@ -686,6 +723,16 @@ export function Semantics({
                   ? `${trialRequired} enabled templates still require successful trials. Publication will be blocked until they pass.`
                   : "All enabled templates have current trial evidence. Publication will also validate the complete catalog."}
               </p>
+              {state.draft.ontology && (
+                <p>
+                  Adopt ontology <code>{state.draft.ontology.ontology_id}</code>{" "}
+                  version {state.draft.ontology.version} with{" "}
+                  {state.draft.ontology.entities.length} mapped entities.{" "}
+                  {state.mapping_validation?.status === "checked"
+                    ? `${state.mapping_validation.checks?.filter((c) => c.status === "unverified").length || 0} fields remain administrator-declared and unverified.`
+                    : "Structure check is required before publication."}
+                </p>
+              )}
               <p className="help">
                 Changed or removed executable templates cancel affected queries.
                 Description-only changes preserve running queries.

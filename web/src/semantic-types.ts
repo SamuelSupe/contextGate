@@ -1,3 +1,4 @@
+import type { OntologyBinding } from "./ontology-types";
 export interface ObjectReference {
   namespace: string;
   object: string;
@@ -15,6 +16,7 @@ export interface SemanticParameter {
   maximum?: string;
 }
 export interface QueryTemplate {
+  concept_refs?: string[];
   enabled: boolean;
   tool: string;
   query_json: string;
@@ -41,11 +43,17 @@ export interface SemanticEntry {
   template?: QueryTemplate;
 }
 export interface SemanticSnapshot {
+  ontology?: OntologyBinding | null;
   format_version: number;
   overview: string;
   entries: SemanticEntry[];
 }
 export interface SemanticState {
+  mapping_validation?: {
+    status: string;
+    checked_at?: string;
+    checks?: { reference: ObjectReference; status: string }[];
+  };
   revision: string;
   published_version: string;
   draft: SemanticSnapshot;

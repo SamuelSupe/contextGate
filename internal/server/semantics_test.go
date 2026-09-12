@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
 	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
 	"github.com/SamuelSupe/mcpdbhub/internal/store"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -289,7 +290,8 @@ func matrixTemplate(t *testing.T, h *hubTest, session *mcp.ClientSession, source
 		t.Fatal(err)
 	}
 	path := "/api/sources/" + source + "/semantics"
-	draft := semantic.Snapshot{FormatVersion: 1, Entries: []semantic.Entry{{ID: input.TemplateID, Kind: "template", Name: "Matrix native equivalence", Template: &template}}}
+	template.ConceptRefs = []string{ontology.Ref("entity_type", "record")}
+	draft := semantic.Snapshot{FormatVersion: semantic.FormatVersion, Ontology: st.Draft.Ontology, Entries: []semantic.Entry{{ID: input.TemplateID, Kind: "template", Name: "Matrix native equivalence", Template: &template}}}
 	saved := h.json("PUT", path, semanticInput{Revision: st.Revision, Snapshot: draft}, 200)
 	status := 200
 	if denied {
@@ -300,6 +302,7 @@ func matrixTemplate(t *testing.T, h *hubTest, session *mcp.ClientSession, source
 		h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 400)
 		return
 	}
+	h.json("POST", path+"/check-mapping", map[string]any{"revision": saved["revision"]}, 200)
 	published := h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
 	state, _ := h.s.Store.Semantics(source)
 	input.ExecutionVersion = state.Published.Entries[0].Template.ExecutionVersion
@@ -309,7 +312,7 @@ func matrixTemplate(t *testing.T, h *hubTest, session *mcp.ClientSession, source
 	json.Unmarshal(raw, &got)
 	actual := equivalentData(got.Data, tool, query)
 	expected := equivalentData(want.Data, tool, query)
-	if !bytes.Equal(actual, expected) || got.Format != want.Format || got.RowCount != want.RowCount || got.Truncated != want.Truncated || got.SemanticVersion != published["published_version"] {
+	if !bytes.Equal(actual, expected) || got.Format != want.Format || got.RowCount != want.RowCount || got.Truncated != want.Truncated || got.SemanticVersion != published["published_version"] || got.OntologyContext == nil || got.OntologyContext.Version != "1" || len(got.OntologyContext.ConceptRefs) != 1 {
 		t.Fatalf("template differs from native: got %s want %s", actual, expected)
 	}
 	// Page both paths in lockstep; opaque template and native cursors are distinct.
@@ -380,6 +383,7 @@ func TestStructureImportPreservesDescriptionsAndRejectsStaleDraft(t *testing.T) 
 }
 
 func localTemplateMatrix(t *testing.T, h *hubTest, session *mcp.ClientSession, id string) {
+	matrixOntology(t, h, id, "main", "events")
 	for _, tc := range []struct {
 		q      map[string]any
 		denied bool
@@ -418,4 +422,20 @@ func equivalentData(data []any, tool string, query map[string]any) []byte {
 	}
 	b, _ := json.Marshal(data)
 	return b
+}
+
+func matrixOntology(t *testing.T, h *hubTest, source, namespace, object string) {
+	t.Helper()
+	d := ontology.Empty()
+	d.Name = "Matrix business ontology"
+	d.Entities = []ontology.Entity{{ID: "record", Name: "Record"}}
+	created := h.json("POST", "/api/ontologies", ontologyInput{Definition: d}, 200)
+	id := created["id"].(string)
+	h.json("POST", "/api/ontologies/"+id+"/publish", map[string]any{"revision": created["revision"]}, 200)
+	st, err := h.s.Store.Semantics(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	st.Draft.Ontology = &ontology.Binding{OntologyID: id, Version: 1, Entities: []ontology.EntityMapping{{Entity: "record", Objects: []ontology.Reference{{Namespace: namespace, Object: object}}}}}
+	h.json("PUT", "/api/sources/"+source+"/semantics", semanticInput{Revision: st.Revision, Snapshot: st.Draft}, 200)
 }

@@ -1,0 +1,118 @@
+{
+  "format_version": 2,
+  "overview": "Customer and order reads for this source. Results keep the database native format.",
+  "ontology": {
+    "ontology_id": "commerce",
+    "version": "1",
+    "entities": [
+      {
+        "entity": "Customer",
+        "objects": [
+          {
+            "namespace": "hubtest",
+            "object": "buyers"
+          }
+        ]
+      },
+      {
+        "entity": "Order",
+        "objects": [
+          {
+            "namespace": "hubtest",
+            "object": "purchases"
+          }
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "entity": "Customer",
+        "property": "customer_id",
+        "reference": {
+          "namespace": "hubtest",
+          "object": "buyers",
+          "field": "_id"
+        }
+      },
+      {
+        "entity": "Customer",
+        "property": "customer_name",
+        "reference": {
+          "namespace": "hubtest",
+          "object": "buyers",
+          "field": "profile.displayName"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_id",
+        "reference": {
+          "namespace": "hubtest",
+          "object": "purchases",
+          "field": "_id"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "total",
+        "reference": {
+          "namespace": "hubtest",
+          "object": "purchases",
+          "field": "amount"
+        },
+        "declared": true
+      }
+    ],
+    "relations": [
+      {
+        "relation": "places",
+        "fields": [
+          {
+            "from": {
+              "namespace": "hubtest",
+              "object": "buyers",
+              "field": "_id"
+            },
+            "to": {
+              "namespace": "hubtest",
+              "object": "purchases",
+              "field": "buyer"
+            }
+          }
+        ],
+        "template_id": "customer-orders"
+      }
+    ]
+  },
+  "entries": [
+    {
+      "id": "customer-orders",
+      "kind": "template",
+      "name": "Orders placed by a customer",
+      "description": "Find orders and the customer display name. 按客户查询订单。",
+      "template": {
+        "enabled": true,
+        "tool": "query_mongodb",
+        "query_json": "{\"namespace\": \"hubtest\", \"object\": \"purchases\", \"operation\": \"aggregate\", \"pipeline\": [{\"$match\": {\"buyer\": \"C-100\"}}, {\"$lookup\": {\"from\": \"buyers\", \"localField\": \"buyer\", \"foreignField\": \"_id\", \"as\": \"customer\"}}, {\"$sort\": {\"_id\": 1}}, {\"$project\": {\"_id\": 1, \"amount\": 1, \"customer.profile.displayName\": 1}}]}",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/pipeline/0/$match/buyer"
+            ]
+          }
+        ],
+        "example_json": "{\"customer_id\":\"C-100\"}",
+        "result_description": "Native rows or documents; exact decimal amounts are preserved.",
+        "concept_refs": [
+          "ontology:entity_type:Customer",
+          "ontology:entity_type:Order",
+          "ontology:relation_type:places",
+          "ontology:property:Order:total"
+        ]
+      }
+    }
+  ]
+}

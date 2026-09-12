@@ -13,7 +13,7 @@ for name in names:
  d=json.loads(p.read_text())
  if not d['version'] or 'unchanged_data' not in d['checks']:
   raise SystemExit('Missing verification: '+name)
- if d.get('implementation_sha256') != digest or 'mcp_http_queries' not in d['checks'] or 'template_native_equivalence' not in d['checks']:
+ if d.get('implementation_sha256') != digest or 'mcp_http_queries' not in d['checks'] or 'template_native_equivalence' not in d['checks'] or 'ontology_template_native_equivalence' not in d['checks']:
   raise SystemExit('Missing current implementation / MCP verification: '+name)
  version=d['version']
  if name=='tidb':version=version.split('TiDB-v')[-1]
@@ -32,6 +32,6 @@ for name in names:
  'query_cases':sum(d['query_cases'] for d in verified_reports),
  'denied_cases':sum(d['denied_cases'] for d in verified_reports),
  'implementation_sha256':digest, 'reports':[name+'.json' for name in names],
- 'scope':'Independent single-node fixtures; native adapters, HTTP MCP and trialled/published template equivalence across all seven query families; real SQLite/DuckDB file engines. Elasticsearch/OpenSearch verified TLS and read-account write denial.'
+ 'scope':'Independent single-node fixtures; native adapters, HTTP MCP and trialled/published template equivalence with pinned ontology mappings across all seven query families; real SQLite/DuckDB file engines. Elasticsearch/OpenSearch verified TLS and read-account write denial.'
 },indent=2)+'\n')
 print('Published',len(names),'independent version reports for',len(versions),'products')

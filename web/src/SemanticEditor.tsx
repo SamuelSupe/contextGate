@@ -8,7 +8,7 @@ import {
   type SemanticParameter,
 } from "./semantic-types";
 
-function ReferenceFields({
+export function ReferenceFields({
   value,
   onChange,
   prefix,
@@ -151,11 +151,13 @@ function ParameterFields({
 export function SemanticEditor({
   entry,
   entries,
+  concepts = [],
   onClose,
   onSave,
 }: {
   entry: SemanticEntry;
   entries: SemanticEntry[];
+  concepts?: string[];
   onClose: () => void;
   onSave: (v: SemanticEntry) => Promise<void>;
 }) {
@@ -420,6 +422,40 @@ export function SemanticEditor({
                   onChange={(e) => editTemplate({ query_json: e.target.value })}
                 />
               </Field>
+              <section className="form-section">
+                <h3>Ontology concepts</h3>
+                <p className="help">
+                  Explicit associations are included in native results. Changing
+                  associations does not change the query or its trial evidence.
+                </p>
+                {[
+                  ...new Set([...concepts, ...(template.concept_refs || [])]),
+                ].map((ref) => (
+                  <label className="checkbox-row" key={ref}>
+                    <input
+                      type="checkbox"
+                      checked={(template.concept_refs || []).includes(ref)}
+                      onChange={(e) =>
+                        editTemplate({
+                          concept_refs: e.target.checked
+                            ? [...(template.concept_refs || []), ref]
+                            : template.concept_refs?.filter((v) => v !== ref),
+                        })
+                      }
+                    />
+                    <code>{ref}</code>
+                    {!concepts.includes(ref)
+                      ? " (unmapped; remove before publishing)"
+                      : ""}
+                  </label>
+                ))}
+                {concepts.length === 0 && (
+                  <p className="help">
+                    Map ontology concepts in the Ontology mapping section to
+                    associate them here.
+                  </p>
+                )}
+              </section>
               <h3>Parameters</h3>
               {(template.parameters || []).map((param, i) => (
                 <ParameterFields

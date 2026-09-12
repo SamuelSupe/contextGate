@@ -1,5 +1,7 @@
 # Semantic catalogs and query templates
 
+Since 0.3.0, source JSON exports use format version 2 and may include a shared ontology mapping; v1 imports and existing trial evidence remain compatible. See [shared ontologies](ontologies.md).
+
 [简体中文](semantics.zh-CN.md) · [Examples](../examples/semantics/) · [Architecture](architecture.md)
 
 Available in **0.2.0**. Each data source owns an independent catalog of business terms, objects, fields, relationships, metrics and executable native query templates. An Agent's existing data source grant controls access to the published catalog and its templates. Business descriptions are context, never instructions or permission rules.

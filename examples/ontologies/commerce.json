@@ -1,0 +1,85 @@
+{
+  "id": "commerce",
+  "definition": {
+    "format_version": 1,
+    "name": "Commerce",
+    "description": "Shared customer and order definitions. 客户与订单共享业务定义。",
+    "entities": [
+      {
+        "id": "Customer",
+        "name": "Customer",
+        "aliases": [
+          "客户"
+        ],
+        "identity": [
+          "customer_id"
+        ]
+      },
+      {
+        "id": "Order",
+        "name": "Order",
+        "aliases": [
+          "订单"
+        ],
+        "identity": [
+          "order_id"
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "id": "customer_id",
+        "entity": "Customer",
+        "name": "Customer ID",
+        "type": "string",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "id": "customer_name",
+        "entity": "Customer",
+        "name": "Customer name",
+        "type": "string",
+        "required": false,
+        "multiple": false
+      },
+      {
+        "id": "order_id",
+        "entity": "Order",
+        "name": "Order ID",
+        "type": "string",
+        "required": true,
+        "multiple": false
+      },
+      {
+        "id": "total",
+        "entity": "Order",
+        "name": "Order total",
+        "type": "decimal",
+        "required": true,
+        "multiple": false,
+        "unit": "USD",
+        "minimum": "0",
+        "description": "Gross order amount before refunds."
+      }
+    ],
+    "relations": [
+      {
+        "id": "places",
+        "name": "places",
+        "description": "A customer places orders. Each order belongs to one customer.",
+        "from": "Customer",
+        "to": "Order",
+        "directed": true,
+        "from_cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "to_cardinality": {
+          "min": 0,
+          "max": null
+        }
+      }
+    ]
+  }
+}

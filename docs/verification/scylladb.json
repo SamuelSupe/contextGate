@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "Only a single CQL SELECT is exposed; provision a SELECT-only account externally"
     ],
     "server_version": "2026.2.5-0.20260815.d50c7da866e2",
-    "checked_at": "2026-09-11T15:51:06.955275122Z"
+    "checked_at": "2026-09-12T02:26:07.94539467Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T15:51:07.028365183Z",
+  "verified_at": "2026-09-12T02:26:08.028946934Z",
   "version": "2026.2.5-0.20260815.d50c7da866e2",
   "image_id": "sha256:62dcb58bdc1d1e9aad47c2af02a6a36e8f7a0a61ab5ac13b447898f87d3730c8",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

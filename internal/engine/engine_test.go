@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
 	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
 	"github.com/SamuelSupe/mcpdbhub/internal/store"
 	"github.com/go-sql-driver/mysql"
@@ -19,6 +20,7 @@ import (
 
 type controlledConnection struct {
 	started chan struct{}
+	release chan struct{}
 	version atomic.Int32
 }
 
@@ -34,6 +36,14 @@ func (c *controlledConnection) Query(ctx context.Context, q model.Query, l model
 		c.started <- struct{}{}
 		<-ctx.Done()
 		return nil, ctx.Err()
+	}
+	if q.Query == "hold" {
+		c.started <- struct{}{}
+		select {
+		case <-c.release:
+		case <-ctx.Done():
+			return nil, ctx.Err()
+		}
 	}
 	r := model.NewResult("values")
 	r.Add("row", l)
@@ -379,5 +389,93 @@ func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
 	}
 	if _, err = en.PublishSemantics(src.ID, st.Revision); err == nil {
 		t.Fatal("stale database proof republished")
+	}
+}
+
+func TestOntologyPublicationKeepsExecutionStartContext(t *testing.T) {
+	en, c, src := testEngine(t)
+	c.release = make(chan struct{})
+	d := ontology.Empty()
+	d.Name = "Commerce"
+	d.Entities = []ontology.Entity{{ID: "customer", Name: "Customer"}, {ID: "order", Name: "Order"}}
+	owner := ontology.State{ID: "commerce", Draft: d}
+	if err := en.Store.WriteOntology(owner, 0, true); err != nil {
+		t.Fatal(err)
+	}
+	owner, _ = en.Store.Ontology(owner.ID)
+	owner.Draft.Description = "New definition"
+	if err := en.Store.WriteOntology(owner, owner.Revision, true); err != nil {
+		t.Fatal(err)
+	}
+	b := &ontology.Binding{OntologyID: owner.ID, Version: 1, Entities: []ontology.EntityMapping{{Entity: "customer", Objects: []ontology.Reference{{Object: "customers"}}}, {Entity: "order", Objects: []ontology.Reference{{Object: "orders"}}}}}
+	template := semantic.Template{Enabled: true, Tool: "query_sql", QueryJSON: `{"query":"hold"}`, ExampleJSON: `{}`, Parameters: []semantic.Parameter{}, ConceptRefs: []string{ontology.Ref("entity_type", "customer")}}
+	for _, key := range []string{semantic.Definition(template), mappingProof(b)} {
+		if err := en.Store.SaveSemanticEvidence(src.ID, semantic.Evidence{Definition: key, Connection: en.connectionProof(src), CheckedAt: time.Now()}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	draft := semantic.Empty()
+	draft.Ontology = b
+	draft.Entries = []semantic.Entry{{ID: "held", Kind: "template", Name: "Held query", Template: &template}}
+	pageTemplate := template
+	pageTemplate.QueryJSON = `{"query":"page"}`
+	draft.Entries = append(draft.Entries, semantic.Entry{ID: "paged", Kind: "template", Name: "Paged query", Template: &pageTemplate})
+	if err := en.Store.SaveSemanticEvidence(src.ID, semantic.Evidence{Definition: semantic.Definition(pageTemplate), Connection: en.connectionProof(src), CheckedAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if err := en.Store.WriteSemantics(src.ID, 0, semantic.State{Draft: draft, Published: semantic.Empty()}); err != nil {
+		t.Fatal(err)
+	}
+	st, err := en.PublishSemantics(src.ID, 1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageInput := semantic.Execution{SourceID: src.ID, TemplateID: "paged", ExecutionVersion: "1", Parameters: map[string]any{}}
+	first, err := en.ExecuteTemplate(context.Background(), model.Principal{AgentID: "a"}, pageInput)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pageInput.Cursor = first.NextCursor
+	done := make(chan *model.Result, 1)
+	failed := make(chan error, 1)
+	go func() {
+		result, err := en.ExecuteTemplate(context.Background(), model.Principal{AgentID: "a"}, semantic.Execution{SourceID: src.ID, TemplateID: "held", ExecutionVersion: "1", Parameters: map[string]any{}})
+		if err != nil {
+			failed <- err
+		} else {
+			done <- result
+		}
+	}()
+	select {
+	case <-c.started:
+	case <-time.After(time.Second):
+		t.Fatal("query did not start")
+	}
+	st.Draft.Ontology.Version = 2
+	st.Draft.Entries[0].Template.ConceptRefs = []string{ontology.Ref("entity_type", "order")}
+	if err = en.Store.SaveSemanticEvidence(src.ID, semantic.Evidence{Definition: mappingProof(st.Draft.Ontology), Connection: en.connectionProof(src), CheckedAt: time.Now()}); err != nil {
+		t.Fatal(err)
+	}
+	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = en.PublishSemantics(src.ID, st.Revision+1); err != nil {
+		t.Fatal(err)
+	}
+	close(c.release)
+	defer func() {
+		if _, err := en.ExecuteTemplate(context.Background(), model.Principal{AgentID: "a"}, pageInput); model.ErrorCode(err) != "invalid_cursor" {
+			t.Fatal("ontology adoption accepted an old native cursor", err)
+		}
+	}()
+	select {
+	case result := <-done:
+		if result.OntologyContext == nil || result.OntologyContext.Version != "1" || result.OntologyContext.ConceptRefs[0] != ontology.Ref("entity_type", "customer") {
+			t.Fatal("request-start ontology context changed", result)
+		}
+	case err := <-failed:
+		t.Fatal("definition publication cancelled execution", err)
+	case <-time.After(time.Second):
+		t.Fatal("query did not return")
 	}
 }

@@ -84,7 +84,7 @@ func (e *Engine) Sources(p model.Principal) ([]map[string]any, error) {
 		if s.QueryMode() != "templates_only" {
 			tools = append(tools, cap.Tool)
 		}
-		out = append(out, map[string]any{"query_access_mode": s.QueryMode(), "semantics_available": st.PublishedVersion > 0 && (len(st.Published.Entries) > 0 || st.Published.Overview != ""), "semantic_version": strconv.FormatInt(st.PublishedVersion, 10), "available_tools": tools, "id": s.ID, "name": s.Name, "kind": s.Kind, "version": s.Version, "database": s.Database, "capability": cap, "limits": s.Limits})
+		out = append(out, map[string]any{"query_access_mode": s.QueryMode(), "ontology": e.ontologySummary(st.Published), "semantics_available": st.PublishedVersion > 0 && (len(st.Published.Entries) > 0 || st.Published.Overview != "" || st.Published.Ontology != nil), "semantic_version": strconv.FormatInt(st.PublishedVersion, 10), "available_tools": tools, "id": s.ID, "name": s.Name, "kind": s.Kind, "version": s.Version, "database": s.Database, "capability": cap, "limits": s.Limits})
 	}
 	return out, nil
 }
@@ -198,6 +198,9 @@ func (e *Engine) fingerprint(q model.Query) string {
 }
 
 type cursor struct {
+	SemanticVersion string `json:"semantic_version,omitempty"`
+	OntologyID      string `json:"ontology_id,omitempty"`
+	OntologyVersion string `json:"ontology_version,omitempty"`
 	Agent           string `json:"agent"`
 	Source          string `json:"source"`
 	Operation       string `json:"operation"`
@@ -239,7 +242,11 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 			result.ElapsedMS = time.Since(started).Milliseconds()
 			result.RequestID = requestID
 		}
-		if auditErr := e.Store.Audit(model.Audit{RequestID: requestID, NativeCode: nativeCode, Preview: p.Preview, At: started, AgentID: principal, SourceID: q.SourceID, Operation: auditOperation, TemplateID: run.ID, TemplateVersion: run.Version, Fingerprint: fp, ElapsedMS: time.Since(started).Milliseconds(), Rows: rows, ErrorCode: code}); auditErr != nil {
+		ontologyID, ontologyVersion := "", ""
+		if run.Ontology != nil {
+			ontologyID, ontologyVersion = run.Ontology.OntologyID, run.Ontology.Version
+		}
+		if auditErr := e.Store.Audit(model.Audit{RequestID: requestID, NativeCode: nativeCode, Preview: p.Preview, At: started, AgentID: principal, SourceID: q.SourceID, Operation: auditOperation, TemplateID: run.ID, TemplateVersion: run.Version, OntologyID: ontologyID, OntologyVersion: ontologyVersion, Fingerprint: fp, ElapsedMS: time.Since(started).Milliseconds(), Rows: rows, ErrorCode: code}); auditErr != nil {
 			result = nil
 			err = &model.Error{Code: "audit_unavailable", Message: "Query result withheld because audit storage is unavailable.", RequestID: requestID}
 		}
@@ -296,13 +303,17 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 		}
 		l.TimeoutSeconds = q.TimeoutSeconds
 	}
+	semanticVersion, ontologyID, ontologyVersion := "", "", ""
+	if run.Ontology != nil {
+		semanticVersion, ontologyID, ontologyVersion = run.Published, run.Ontology.OntologyID, run.Ontology.Version
+	}
 	if q.Cursor != "" {
 		b, err := e.Store.Vault.Open(q.Cursor, "cursor")
 		if err != nil {
 			return nil, model.Fail("invalid_cursor", "cursor is invalid")
 		}
 		var c cursor
-		if err = json.Unmarshal(b, &c); err != nil || c.Agent != principal || c.Source != src.ID || c.Operation != operation || c.Revision != src.ExecutionRevision() || c.Fingerprint != fp || c.Expires < time.Now().Unix() || c.TemplateID != run.ID || c.TemplateVersion != run.Version {
+		if err = json.Unmarshal(b, &c); err != nil || c.Agent != principal || c.Source != src.ID || c.Operation != operation || c.Revision != src.ExecutionRevision() || c.Fingerprint != fp || c.Expires < time.Now().Unix() || c.TemplateID != run.ID || c.TemplateVersion != run.Version || c.SemanticVersion != semanticVersion || c.OntologyID != ontologyID || c.OntologyVersion != ontologyVersion {
 			return nil, model.Fail("invalid_cursor", "cursor expired or belongs to another query")
 		}
 		q.Cursor = c.State
@@ -395,9 +406,10 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 			return nil, err
 		}
 		result.SemanticVersion, result.TemplateID, result.TemplateVersion = run.Published, run.ID, run.Version
+		result.OntologyContext = run.Ontology
 	}
 	if result.NextCursor != "" {
-		b, _ := json.Marshal(cursor{Agent: principal, Source: src.ID, Operation: operation, Revision: src.ExecutionRevision(), Fingerprint: fp, State: result.NextCursor, Expires: time.Now().Add(5 * time.Minute).Unix(), TemplateID: run.ID, TemplateVersion: run.Version})
+		b, _ := json.Marshal(cursor{Agent: principal, Source: src.ID, Operation: operation, Revision: src.ExecutionRevision(), Fingerprint: fp, State: result.NextCursor, Expires: time.Now().Add(5 * time.Minute).Unix(), TemplateID: run.ID, TemplateVersion: run.Version, SemanticVersion: semanticVersion, OntologyID: ontologyID, OntologyVersion: ontologyVersion})
 		result.NextCursor = e.Store.Vault.Seal(b, "cursor")
 	}
 	b, err := json.Marshal(result)

@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "SHOW GRANTS contains only SELECT / SHOW VIEW / USAGE"
     ],
     "server_version": "8.0.11-TiDB-v8.5.1",
-    "checked_at": "2026-09-11T15:48:54.421635385Z"
+    "checked_at": "2026-09-12T02:23:57.811611217Z"
   },
   "query_cases": 6,
-  "verified_at": "2026-09-11T15:48:54.435010324Z",
+  "verified_at": "2026-09-12T02:23:57.823283069Z",
   "version": "8.0.11-TiDB-v8.5.1",
   "image_id": "sha256:a40b5b4fe4c08ed9dae0ccf7c7d15f50aae9aa5613189e8991ec55e22b55717c",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

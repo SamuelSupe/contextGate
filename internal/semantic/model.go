@@ -4,20 +4,21 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
 	"time"
 )
 
-const FormatVersion = 1
+const FormatVersion = 2
 const MaxEntries = 500
 const MaxSnapshotBytes = 768 << 10
 
-type Reference struct {
-	Namespace string `json:"namespace"`
-	Object    string `json:"object"`
-	Field     string `json:"field,omitempty"`
-}
+type Reference = ontology.Reference
 
 type Entry struct {
+	Definition     any               `json:"definition,omitempty"`
+	Mapping        any               `json:"mapping,omitempty"`
+	Ancestors      []ontology.Entity `json:"ancestors,omitempty"`
+	TemplateIDs    []string          `json:"template_ids,omitempty"`
 	ID             string            `json:"id"`
 	Kind           string            `json:"kind"`
 	Name           string            `json:"name"`
@@ -38,6 +39,7 @@ type Entry struct {
 // JSON documents are strings in configuration APIs so editing in a browser does
 // not round database integers or decimals through JavaScript's number type.
 type Template struct {
+	ConceptRefs       []string    `json:"concept_refs,omitempty"`
 	Enabled           bool        `json:"enabled"`
 	Tool              string      `json:"tool"`
 	QueryJSON         string      `json:"query_json"`
@@ -60,9 +62,10 @@ type Parameter struct {
 }
 
 type Snapshot struct {
-	FormatVersion int     `json:"format_version"`
-	Overview      string  `json:"overview"`
-	Entries       []Entry `json:"entries"`
+	Ontology      *ontology.Binding `json:"ontology,omitempty"`
+	FormatVersion int               `json:"format_version"`
+	Overview      string            `json:"overview"`
+	Entries       []Entry           `json:"entries"`
 }
 
 type State struct {
@@ -73,9 +76,10 @@ type State struct {
 }
 
 type Evidence struct {
-	Definition string    `json:"definition"`
-	Connection string    `json:"connection"`
-	CheckedAt  time.Time `json:"checked_at"`
+	DetailsJSON string    `json:"details_json,omitempty"`
+	Definition  string    `json:"definition"`
+	Connection  string    `json:"connection"`
+	CheckedAt   time.Time `json:"checked_at"`
 }
 
 type Execution struct {
@@ -90,6 +94,7 @@ type Execution struct {
 }
 
 func Definition(t Template) string {
+	t.ConceptRefs = nil
 	t.ExecutionVersion, t.ResultDescription, t.ExampleJSON = "", "", ""
 	// Description and examples do not change executable behavior.
 	t.Parameters = append([]Parameter(nil), t.Parameters...)

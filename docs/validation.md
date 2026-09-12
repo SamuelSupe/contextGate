@@ -2,18 +2,27 @@
 
 [简体中文](validation.zh-CN.md)
 
-The records below describe checks performed on 2026-09-11. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
+The records below describe checks performed on 2026-09-11 and 2026-09-12. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
 
-## v0.2.0 semantic catalogs and templates
+## v0.3.0 shared business ontologies — 2026-09-12
+
+- The final **18-product / 20-version** OrbStack matrix passed with the ontology implementation: 132 native query/error cases, 89 denied operations, and seven-family template/native equivalence plus mapped concept discovery. Target data remained unchanged. [Matrix](verification/matrix.json).
+- The shared Customer/Order scenario uses real PostgreSQL tables and MongoDB collections with different physical structures. It verified joins/aggregation, exact decimals, empty results, parameter rejection, mapped-only visibility, immutable version adoption, conflicts, reference deletion protection, archive behavior and encrypted restart recovery. Controlled engine tests verify request-start context and old-cursor rejection during publication. [Business and lifecycle record](verification/ontology.json).
+- OrbStack full Go race checks and the TypeScript/Vite build passed. Existing numeric request tests passed. Definition validation covers inheritance cycles, inherited property conflicts, invalid identities, missing endpoints, cardinality/range conflicts and declared versus discovered fields.
+- Local Chrome created and edited multilingual definitions, rejected and repaired invalid cardinality, imported both source mappings, trialled and published templates, inspected Agent visibility and denied an ungranted Agent. PostgreSQL and MongoDB returned native results with the correct ontology references. Publishing v3 left both sources on v2; explicitly adopting v3 for PostgreSQL left MongoDB on v2 and retained template execution version 1 without a new trial.
+- Chrome downloaded ontology and semantic v2 JSON files, verified discard/import errors, and exercised arrow-key tabs, Escape, mobile navigation and mapping forms at 390×844. A tab overflow found during validation was fixed; document width remained 390 pixels. Final browser warning/error logs were empty. [UI record](verification/ontology-ui.json).
+- Dual-architecture CI, independently extracted archives and GitHub download verification are attached to the [0.3.0 release](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0). Local amd64 archive execution uses OrbStack emulation; the external database matrix runs on Linux arm64.
+
+## v0.2.0 semantic catalogs and templates (historical draft)
 
 - The complete **18-product / 20-version** OrbStack matrix was rerun on the current implementation. Native adapter/MCP acceptance includes 132 query/error cases and 89 denied-operation cases. Each product also compares trialled, published template results with its native calls, including lossless values, empty/error cases and supported cursor pages. Target data remained unchanged. [Current matrix](verification/matrix.json) and individual reports retain the implementation digest.
 - OrbStack `go test -race ./...` passed, including encrypted snapshot recovery/deletion, stale-save conflicts, draft isolation, trial/publish gating, connection/credential/version invalidation, description-only publication, active-query cancellation, cursor isolation, parameter injection/forbidden binding targets and OAuth templates-only enforcement.
 - TypeScript/Vite and both existing Node lossless request tests passed. Seven-family example catalogs and English/Chinese guides are included in the dist packaging inputs.
 - Local Chrome completed administrator setup, SQLite source creation in templates-only mode, multilingual overview/field editing, metadata import, parameterized template editing, rejection before trial, successful trial/publication and native-structured preview retaining `9007199254740993`. The [desktop capture](screenshots/semantics.png) comes from that actual isolated configuration.
 - A real HTTP/API follow-up with the Chrome-created Agent token verified semantic discovery, template execution after service restart, native-query denial, JSON export/import round-trip and discard. These are API checks, not a substitute for the remaining browser interactions. [Detailed semantic record](verification/semantics.json).
-- Remaining Chrome checks (Agent preview, JSON round-trip, keyboard/narrow viewport and final console inspection) are pending because the Mac became locked. They are not reported as passed. Release publication remains pending this UI gate; final CI/archive records are prepared separately from historical releases.
+- Remaining Chrome checks (Agent preview, JSON round-trip, keyboard/narrow viewport and final console inspection) are pending because the Mac became locked. They are not reported as passed. That 0.2.0 release remained a draft. The new 0.3.0 browser checks above cover the current implementation; they do not relabel the older build as tested.
 
-Historical sections below refer to their original versions. The current matrix files now describe 0.2.0; v0.1.0 matrix evidence remains available [at its immutable tag](https://github.com/SamuelSupe/mcpdbhub/blob/v0.1.0/docs/verification/matrix.json).
+Historical sections below refer to their original versions. The current matrix files now describe 0.3.0; v0.1.0 matrix evidence remains available [at its immutable tag](https://github.com/SamuelSupe/mcpdbhub/blob/v0.1.0/docs/verification/matrix.json).
 
 ## v0.1.1 release scope
 

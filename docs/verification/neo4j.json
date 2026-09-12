@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "EXPLAIN must report read-only; write clauses, procedures and external loading are rejected; driver read routing is not a permission guarantee"
     ],
     "server_version": "Neo4j/5.26.10",
-    "checked_at": "2026-09-11T15:49:48.779603233Z"
+    "checked_at": "2026-09-12T02:24:49.257072007Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-11T15:49:49.206105092Z",
+  "verified_at": "2026-09-12T02:24:49.710811877Z",
   "version": "Neo4j/5.26.10",
   "image_id": "sha256:225b14923479dde15797534ee887d9950077308f6b56c96d2fb0daf3a2194814",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

@@ -56,6 +56,10 @@ func Open(dir string) (*Store, error) {
 		db.Close()
 		return nil, e
 	}
+	if e = st.migrateOntologies(); e != nil {
+		db.Close()
+		return nil, e
+	}
 	return st, nil
 }
 func (s *Store) Close() error { return s.DB.Close() }

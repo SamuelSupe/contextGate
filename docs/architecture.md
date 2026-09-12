@@ -97,3 +97,7 @@ The optional worker reads committed audit rows and saves encrypted configuration
 ## Semantic publication
 
 Per-source encrypted draft and published entries are updated in one SQLite transaction with optimistic draft revisions. Templates bind only declared JSON Pointer value slots and reuse the execution engine. Trial and publication proofs bind the executable definition and connection/credentials/observed database version. Queries recheck current authorization and template version before execution and return. Templates-only mode is enforced here for every Agent transport. See the [semantic guide](semantics.md) for workflow, metadata import boundaries, limits and examples.
+
+## Shared ontologies
+
+Encrypted ontology drafts and immutable published versions live independently from source semantic snapshots. Each source snapshot pins one version and stores its own mappings; a transactional reference index protects versions from deletion. The engine builds the source-authorized concept projection only after authorization and captures ontology context at template request start. Definitions and mappings never compile queries or change native results. See [ontology storage, APIs and visibility boundaries](ontologies.md).

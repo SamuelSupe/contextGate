@@ -41,6 +41,8 @@ Resource attributes are `service.name`, `service.version` and a persistent `serv
 | `mcpdbhub.audit.agent_id` | Calling identity, when available |
 | `mcpdbhub.audit.source_id` | Configured source ID |
 | `mcpdbhub.audit.operation` | Query, discovery or connection-check operation |
+| `mcpdbhub.audit.ontology_id` | Adopted ontology ID for published template execution (since 0.3.0) |
+| `mcpdbhub.audit.ontology_version` | Ontology version captured at request start (since 0.3.0) |
 | `mcpdbhub.audit.template_id` | Template ID for execution or trial (since 0.2.0) |
 | `mcpdbhub.audit.template_version` | Published template execution version, when applicable |
 | `mcpdbhub.audit.query_fingerprint` | Existing keyed fingerprint, when available |

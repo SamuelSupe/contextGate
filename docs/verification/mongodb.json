@@ -19,6 +19,8 @@
     "template_native_equivalence",
     "template_trial_and_publish",
     "template_write_denial",
+    "ontology_template_native_equivalence",
+    "ontology_mapping_discovery",
     "agent_isolation",
     "mcp_audit",
     "token_revocation"
@@ -34,12 +36,12 @@
       "Only find, aggregate without writes, count and distinct are exposed"
     ],
     "server_version": "7.0.39",
-    "checked_at": "2026-09-11T15:49:06.251041Z"
+    "checked_at": "2026-09-12T02:24:06.702306743Z"
   },
   "query_cases": 8,
-  "verified_at": "2026-09-11T15:49:06.255796473Z",
+  "verified_at": "2026-09-12T02:24:06.710898716Z",
   "version": "7.0.39",
   "image_id": "sha256:04582c3a144d088f841c446abfc19f79adcefa8bd00ad4a7fb18e27b9585c5d6",
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "environment": "OrbStack Linux arm64"
 }

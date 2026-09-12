@@ -1,5 +1,7 @@
 # 数据源语义目录与查询模板
 
+0.3.0 起，源 JSON 导出采用格式 v2，可包含共享本体映射；兼容 v1 导入及已有试跑证据。详见[共享本体](ontologies.zh-CN.md)。
+
 [English](semantics.md) · [示例目录](../examples/semantics/) · [架构](architecture.zh-CN.md)
 
 **0.2.0** 为每个数据源提供独立的业务术语、对象、字段、关系、指标和原生查询模板。继续采用 **Agent → Data Source** 授权。语义只描述业务，不承担权限控制，也不能覆盖 Agent 的系统指令。界面使用英文；名称、别名和说明支持中文及其他语言。

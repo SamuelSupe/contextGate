@@ -1,12 +1,12 @@
 {
   "result": "passed",
   "environment": "OrbStack Linux arm64",
-  "verified_at": "2026-09-11T15:52:41.039009+00:00",
+  "verified_at": "2026-09-12T02:30:29.644955+00:00",
   "products": 18,
   "version_cases": 20,
   "query_cases": 132,
   "denied_cases": 89,
-  "implementation_sha256": "acb8830088322bd04c7bc55435d895db21973af80be122eb46b546f4a1530d03",
+  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
   "reports": [
     "postgres.json",
     "mysql.json",
@@ -29,5 +29,5 @@
     "influxdb2.json",
     "influxdb3.json"
   ],
-  "scope": "Independent single-node fixtures; native adapters, HTTP MCP and trialled/published template equivalence across all seven query families; real SQLite/DuckDB file engines. Elasticsearch/OpenSearch verified TLS and read-account write denial."
+  "scope": "Independent single-node fixtures; native adapters, HTTP MCP and trialled/published template equivalence with pinned ontology mappings across all seven query families; real SQLite/DuckDB file engines. Elasticsearch/OpenSearch verified TLS and read-account write denial."
 }

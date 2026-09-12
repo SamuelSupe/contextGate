@@ -1,6 +1,6 @@
-# Install v0.2.0
+# Install v0.3.0
 
-[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.2.0)
+[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0)
 
 ## Linux distributions
 
@@ -10,11 +10,11 @@ Check `uname -m`: choose `linux-amd64` for `x86_64`, or `linux-arm64` for `aarch
 
 ```sh
 # Linux arm64 example; replace arm64 with amd64 for x86_64.
-curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.2.0/mcpdbhub-0.2.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.2.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.3.0/mcpdbhub-0.3.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.3.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf mcpdbhub-0.2.0-linux-arm64.tar.gz
-cd mcpdbhub-0.2.0-linux-arm64
+tar -xzf mcpdbhub-0.3.0-linux-arm64.tar.gz
+cd mcpdbhub-0.3.0-linux-arm64
 ./mcpdbhub version
 mkdir -p data databases
 ./mcpdbhub serve --data-dir ./data --database-dir ./databases
@@ -33,7 +33,7 @@ Open `http://127.0.0.1:8080` and enter the one-time setup code from the server l
 ## Docker from source
 
 ```sh
-git clone --branch v0.2.0 https://github.com/SamuelSupe/mcpdbhub.git
+git clone --branch v0.3.0 https://github.com/SamuelSupe/mcpdbhub.git
 cd mcpdbhub
 mkdir -p databases
 docker compose up --build -d

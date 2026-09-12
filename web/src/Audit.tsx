@@ -317,6 +317,14 @@ export function AuditPage({
                 </>
               )}
             </div>
+            {detail.ontology_id && (
+              <div>
+                <dt>Ontology</dt>
+                <dd>
+                  {detail.ontology_id} · version {detail.ontology_version}
+                </dd>
+              </div>
+            )}
             <div>
               <dt>Result</dt>
               <dd>{detail.error_code || "Success"}</dd>

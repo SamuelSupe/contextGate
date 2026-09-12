@@ -274,6 +274,25 @@ export function TemplatePreview({
             {result.truncated ? "Truncated" : "Complete page"} · Request{" "}
             {result.request_id}
           </p>
+          {result.ontology_context && (
+            <div className="ontology-result-context">
+              <strong>
+                Ontology {result.ontology_context.ontology_id} · version{" "}
+                {result.ontology_context.version}
+              </strong>
+              <p className="help">
+                Source publication {result.semantic_version} · template
+                execution {result.template_version}
+              </p>
+              <ul>
+                {result.ontology_context.concept_refs.map((ref) => (
+                  <li key={ref}>
+                    <code>{ref}</code>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
           <pre className="semantic-result">
             {JSON.stringify(result.data, null, 2)}
           </pre>
