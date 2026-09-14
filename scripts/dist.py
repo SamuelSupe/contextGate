@@ -37,6 +37,8 @@ def main():
     output = ROOT/'dist'
     output.mkdir(exist_ok=True)
     for arch in args.arch or ['arm64', 'amd64']:
+        if run('git', 'status', '--porcelain') or run('git', 'rev-parse', 'HEAD') != commit:
+            raise RuntimeError('release source changed during packaging; restart from a clean commit')
         image = f'contextgate:{args.version}-{arch}'
         build = ['docker', 'build', '--platform', f'linux/{arch}', '--build-arg', f'VCS_REF={commit}', '-t', image]
         if args.build_ca:
@@ -82,6 +84,8 @@ def main():
                         'image_id': run('docker', 'image', 'inspect', '--format', '{{.Id}}', image)}
             (package/'BUILD.json').write_text(json.dumps(manifest, indent=2)+'\n')
             (package/'VERSION').write_text(args.version+'\n')
+            if run('git', 'status', '--porcelain') or run('git', 'rev-parse', 'HEAD') != commit:
+                raise RuntimeError('release source changed during packaging; archive not created')
             archive = output/(name+'.tar.gz')
             with tarfile.open(archive, 'w:gz') as tar:
                 tar.add(package, arcname=name, filter=portable_metadata)
