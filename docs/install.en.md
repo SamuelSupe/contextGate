@@ -1,4 +1,4 @@
-# Install MCP DB Hub
+# Install ContextGate
 
 The canonical English installation guide is now [install.md](install.md).
 

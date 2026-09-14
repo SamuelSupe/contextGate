@@ -7,13 +7,15 @@ import (
 	"net/http"
 	"path/filepath"
 	"sort"
+	"strconv"
 	"strings"
 	"testing"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -45,6 +47,15 @@ func TestSemanticPublicationAuthorizationAndPersistence(t *testing.T) {
 	h.json("POST", path+"/publish", map[string]any{"revision": revision}, 400)
 	h.json("POST", path+"/trial", map[string]any{"revision": revision, "template_id": "amount"}, 200)
 	published := h.json("POST", path+"/publish", map[string]any{"revision": revision}, 200)
+	checkReady := func(want float64) {
+		t.Helper()
+		ready := h.json("GET", "/api/sources/"+id+"/readiness", nil, 200)
+		if ready["executable_templates"] != want {
+			t.Fatalf("incorrect published readiness: %v", ready)
+		}
+	}
+	checkReady(1)
+
 	execution := map[string]any{"source_id": id, "template_id": "amount", "execution_version": "1", "parameters": map[string]any{"id": 1}}
 	result := call(t, session, "execute_query_template", execution, false)
 	b, _ = json.Marshal(result)
@@ -119,11 +130,14 @@ func TestSemanticPublicationAuthorizationAndPersistence(t *testing.T) {
 	view = publicSource(source)
 	view.Password = "new-private-credential"
 	h.json("PUT", "/api/sources/"+id, view, 200)
+	checkReady(0)
 	call(t, session, "execute_query_template", execution, true)
 	h.json("POST", path+"/publish", map[string]any{"revision": published["revision"]}, 400)
 	h.json("POST", path+"/trial", map[string]any{"revision": published["revision"], "template_id": "amount"}, 200)
+	checkReady(0)
 	call(t, session, "execute_query_template", execution, true)
 	published = h.json("POST", path+"/publish", map[string]any{"revision": published["revision"]}, 200)
+	checkReady(1)
 	call(t, session, "execute_query_template", execution, true)
 	execution["execution_version"] = published["published_version"]
 	call(t, session, "execute_query_template", execution, false)
@@ -145,7 +159,7 @@ func TestSemanticPublicationAuthorizationAndPersistence(t *testing.T) {
 		}
 	}
 	// Fresh store instances recover snapshots and proofs; all contents are encrypted on disk.
-	reopened, err := store.Open(filepath.Join(h.dir, "config"))
+	reopened, err := store.Open(filepath.Join(h.dir, "config"), testpg.DSN(t, h.dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -185,7 +199,7 @@ func TestSemanticPublicationAuthorizationAndPersistence(t *testing.T) {
 	h.json("DELETE", "/api/sources/"+id, nil, 200)
 	for _, table := range []string{"semantics_state", "semantics_entries", "semantics_evidence"} {
 		var count int
-		if err := h.s.Store.DB.QueryRow("SELECT count(*) FROM "+table+" WHERE source_id=?", id).Scan(&count); err != nil || count != 0 {
+		if err := h.s.Store.DB.QueryRow("SELECT count(*) FROM "+table+" WHERE source_id=$1", id).Scan(&count); err != nil || count != 0 {
 			t.Fatal("source semantics not atomically deleted", table, err)
 		}
 	}
@@ -438,4 +452,89 @@ func matrixOntology(t *testing.T, h *hubTest, source, namespace, object string) 
 	}
 	st.Draft.Ontology = &ontology.Binding{OntologyID: id, Version: 1, Entities: []ontology.EntityMapping{{Entity: "record", Objects: []ontology.Reference{{Namespace: namespace, Object: object}}}}}
 	h.json("PUT", "/api/sources/"+source+"/semantics", semanticInput{Revision: st.Revision, Snapshot: st.Draft}, 200)
+}
+
+func TestSemanticHistoryRestoreAndRegressionGates(t *testing.T) {
+	h := newHub(t)
+	id := h.source()
+	path := "/api/sources/" + id + "/semantics"
+	one, zero := 1, 0
+	entry := semanticFixture()
+	entry.Template.QueryJSON = `{"query":"SELECT 'ok' AS status WHERE ? = 1","params":[0]}`
+	entry.Template.Tests = []semantic.RegressionCase{
+		{Name: "Matching row", ParametersJSON: `{"id":1}`, MinRows: &one, MaxRows: &one, Columns: []model.Column{{Name: "status"}}, Values: []semantic.ExpectedValue{{Pointer: "/0/0", ExpectedJSON: `"ok"`}}},
+		{Name: "Empty result", ParametersJSON: `{"id":2}`, MinRows: &zero, MaxRows: &zero},
+	}
+	draft := semantic.Snapshot{FormatVersion: semantic.FormatVersion, Entries: []semantic.Entry{entry}}
+	saved := h.json("PUT", path, semanticInput{Snapshot: draft}, 200)
+	trial := h.json("POST", path+"/trial", map[string]any{"revision": saved["revision"], "template_id": "amount"}, 200)
+	if trial["valid"] != true || len(trial["report"].(map[string]any)["cases"].([]any)) != 3 {
+		t.Fatal(trial)
+	}
+	published := h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
+	v1 := h.json("GET", path+"/versions/1", nil, 200)
+	if v1["version"].(map[string]any)["snapshot"] == nil {
+		t.Fatal("publication history missing snapshot")
+	}
+	agent := h.json("POST", "/api/agents", map[string]any{"name": "History reader", "sources": []string{id}, "enabled": true}, 200)
+	session := h.mcp(agent["token"].(string))
+	execution := map[string]any{"source_id": id, "template_id": "amount", "execution_version": "1", "parameters": map[string]any{"id": 1}}
+	call(t, session, "execute_query_template", execution, false)
+	details := call(t, session, "get_semantic_entry", map[string]any{"source_id": id, "entry_id": "amount"}, false)
+	raw, _ := json.Marshal(details.StructuredContent)
+	if bytes.Contains(raw, []byte("Matching row")) {
+		t.Fatal("administrator regression parameters leaked to Agent")
+	}
+	two := 2
+	draft.Entries[0].Template.Tests[0].MinRows = &two
+	draft.Entries[0].Template.Tests[0].MaxRows = &two
+	revision, _ := strconv.ParseInt(published["revision"].(string), 10, 64)
+	saved = h.json("PUT", path, semanticInput{Revision: revision, Snapshot: draft}, 200)
+	h.json("POST", path+"/trial", map[string]any{"revision": saved["revision"], "template_id": "amount"}, 400)
+	h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 400)
+	status := h.json("GET", path, nil, 200)
+	if status["validation"].([]any)[0].(map[string]any)["status"] != "regression_failed" {
+		t.Fatal(status)
+	}
+	call(t, session, "execute_query_template", execution, false)
+	restored := h.json("POST", path+"/restore", map[string]any{"revision": saved["revision"], "version": "1"}, 200)
+	h.json("POST", path+"/restore", map[string]any{"revision": saved["revision"], "version": "1"}, 409)
+	// A restore must not reuse old success evidence, or disrupt the current publication.
+	h.json("POST", path+"/publish", map[string]any{"revision": restored["revision"]}, 400)
+	call(t, session, "execute_query_template", execution, false)
+	h.json("POST", path+"/trial-all", map[string]any{"revision": restored["revision"]}, 200)
+	published = h.json("POST", path+"/publish", map[string]any{"revision": restored["revision"]}, 200)
+	if published["published_version"] != "2" {
+		t.Fatal(published)
+	}
+	// The restored query definition is unchanged, so execution versions stay stable.
+	call(t, session, "execute_query_template", execution, false)
+	other := h.source()
+	h.json("GET", "/api/sources/"+other+"/semantics/versions/1", nil, 404)
+	for _, route := range []string{path + "/versions", path + "/versions/1", "/api/health", "/api/settings/diagnostics"} {
+		req, _ := http.NewRequest("GET", h.http.URL+route, nil)
+		req.Header.Set("Authorization", "Bearer "+agent["token"].(string))
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 401 {
+			t.Fatal("Agent accessed administration", route)
+		}
+	}
+	reopened, err := store.Open(filepath.Join(h.dir, "config"), testpg.DSN(t, h.dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer reopened.Close()
+	versions, err := reopened.SemanticVersions(id, 0)
+	if err != nil || len(versions) != 2 {
+		t.Fatal("history did not survive reopening", versions, err)
+	}
+	h.json("DELETE", "/api/sources/"+id, nil, 200)
+	versions, err = reopened.SemanticVersions(id, 0)
+	if err != nil || len(versions) != 0 {
+		t.Fatal("source history not deleted atomically", err)
+	}
 }

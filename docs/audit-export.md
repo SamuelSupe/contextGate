@@ -8,12 +8,12 @@ Available since v0.1.1. Enable **Settings → Audit log export** to send persist
 
 1. Select **OTLP HTTP / protobuf** or **OTLP gRPC**.
 2. Enter the receiver endpoint. For HTTP, use `http://collector:4318/v1/logs`; an origin without a path automatically gets `/v1/logs`. For gRPC, use `http://collector:4317`, with an explicit port and no path. `https://` enables TLS for either protocol.
-3. Set **Service name** (`mcpdbhub` by default). Optionally supply **Headers (JSON)**, for example `{"Authorization":"Bearer <TOKEN>"}`. Values are encrypted with the existing AES-256-GCM master key and never returned by the API. Leave the field blank to retain stored headers, provide JSON to replace them, or select **Clear stored headers** to remove them.
+3. Set **Service name** (`contextgate` by default). Optionally supply **Headers (JSON)**, for example `{"Authorization":"Bearer <TOKEN>"}`. Values are encrypted with the existing AES-256-GCM master key and never returned by the API. Leave the field blank to retain stored headers, provide JSON to replace them, or select **Clear stored headers** to remove them.
 4. For private HTTPS receivers, paste trusted **CA certificates (PEM)**. These extend system trust; certificate and hostname verification stay enabled. Client certificate authentication is not currently supported. URLs cannot contain credentials, query parameters or fragments; use headers for authentication. HTTP redirects are rejected.
 5. Choose **Send test log** to send one synthetic `mcpdbhub.audit_export.test` event using the current form. This does not save settings or replay audit records. A successful response proves receiver acceptance, not final storage in its downstream backend.
 6. Enable export and **Save export settings**. Generate a query and check **Delivery status** for pending, accepted and rejected event counts, last success and retry information. Counters are cumulative for this installation, across configuration changes, and exclude synthetic test logs.
 
-Endpoints are resolved and contacted by the **Go server**, not the browser. With Docker, `localhost` refers to the Hub container. Use a shared Docker network and the Collector's container/service name, or an address reachable from the server.
+Endpoints are resolved and contacted by the **Go server**, not the browser. With Docker, `localhost` refers to ContextGate container. Use a shared Docker network and the Collector's container/service name, or an address reachable from the server.
 
 ## Try a local Collector
 
@@ -27,7 +27,9 @@ docker run --rm --name collector --network hub-telemetry \
   otel/opentelemetry-collector:0.160.0 --config=/etc/otelcol/config.yaml
 ```
 
-For a host-run Hub, configure `http://127.0.0.1:4318/v1/logs` or `http://127.0.0.1:4317`. For a containerized Hub, attach it to `hub-telemetry` and configure `http://collector:4318/v1/logs` or `http://collector:4317`. Use a Collector exporter for your actual observability backend in production.
+For a host-run ContextGate, configure `http://127.0.0.1:4318/v1/logs` or `http://127.0.0.1:4317`. For a containerized ContextGate, attach it to `hub-telemetry` and configure `http://collector:4318/v1/logs` or `http://collector:4317`. Use a Collector exporter for your actual observability backend in production.
+
+Existing saved service names are retained during the ContextGate rename. The `mcpdbhub.audit.*` attributes and event names remain stable so existing Collector rules and dashboards continue to work.
 
 ## Log fields
 
@@ -57,7 +59,7 @@ Export follows the existing database audit scope: query execution, discovery thr
 
 ## Delivery and retention
 
-- The worker reads committed SQLite audit records in ID order, up to 64 events and 512 KiB per batch. It polls every two seconds when idle and drains a backlog in smaller intervals. Receiver requests time out after ten seconds and responses are limited to 64 KiB. Remote delivery never runs in the query request path.
+- The worker reads committed PostgreSQL audit records in ID order, up to 64 events and 512 KiB per batch. It polls every two seconds when idle and drains a backlog in smaller intervals. Receiver requests time out after ten seconds and responses are limited to 64 KiB. Remote delivery never runs in the query request path.
 - First enable and every re-enable start at the current audit tail: historical and disabled-period events are not exported. Disabling cancels the active send and clears the export backlog without deleting local audit records. Updating an enabled destination preserves the queue, so pending events go to the new destination.
 - Configuration and the acknowledged position are encrypted and persisted together. Pending events and retry state survive restarts. Events already accepted remotely can be repeated if an acknowledgement is lost, a checkpoint cannot be saved, or configuration changes while sending. Deduplicate by `service.instance.id` plus `mcpdbhub.audit.id`; this is not exactly-once delivery.
 - Retryable network/server failures use exponential backoff with jitter, honoring receiver retry hints (capped at 24 hours). HTTP retries cover 429, 502, 503 and 504; gRPC follows OTLP status and RetryInfo rules.
@@ -82,7 +84,7 @@ Use `config.revision` from GET in PUT or POST. Stale revisions return HTTP 409. 
   "enabled": true,
   "protocol": "http/protobuf",
   "endpoint": "https://collector.example.com/v1/logs",
-  "service_name": "mcpdbhub",
+  "service_name": "contextgate",
   "headers": {"Authorization": "Bearer <TOKEN>"},
   "ca_pem": ""
 }

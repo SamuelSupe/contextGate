@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	"github.com/neo4j/neo4j-go-driver/v6/neo4j"
 	"github.com/neo4j/neo4j-go-driver/v6/neo4j/config"
 	"math"

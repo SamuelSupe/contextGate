@@ -1,4 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { SemanticHistory } from "./SemanticHistory";
+import { t } from "./i18n";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ArrowLeft,
   Download,
@@ -22,19 +24,41 @@ import {
 } from "./semantic-types";
 import type { Agent, Source } from "./types";
 
+const regressionLabels: Record<string, string> = {
+  row_count_mismatch: "Row count outside expected range",
+  column_mismatch: "Expected column or type not found",
+  value_missing: "Expected value path not found",
+  value_mismatch: "Value differs from expectation",
+  incomplete_result: "Result is incomplete; narrow the test query",
+  unreadable_result: "Could not read result",
+  invalid_expectation: "Invalid expected value",
+};
+
 export function Semantics({
   source,
   agents,
   onBack,
+  onWorkspace,
   notify,
+  initialQuery = "",
 }: {
   source: Source;
   agents: Agent[];
   onBack: () => void;
+  onWorkspace: () => void;
   notify: (s: string) => void;
+  initialQuery?: string;
 }) {
   const [state, setState] = useState<SemanticState | null>(null);
-  const [tab, setTab] = useState("Overview");
+  const initial = new URLSearchParams(initialQuery);
+  const [tab, setTab] = useState(
+    ["Overview", "Catalog", "Query templates", "Ontology mapping"].includes(
+      initial.get("tab") || "",
+    )
+      ? initial.get("tab")!
+      : "Overview",
+  );
+  const initialPreviewOpened = useRef(false);
   const [mappingDirty, setMappingDirty] = useState(false);
   const [overview, setOverview] = useState("");
   const [search, setSearch] = useState("");
@@ -63,6 +87,19 @@ export function Semantics({
       });
     return () => controller.abort();
   }, [endpoint, accept]);
+  useEffect(() => {
+    if (!state || initialPreviewOpened.current || !initial.get("template"))
+      return;
+    initialPreviewOpened.current = true;
+    const entry = state.published.entries.find(
+      (e) => e.id === initial.get("template") && e.template,
+    );
+    if (entry) {
+      setSelected(entry);
+      setDialog("preview");
+    } else
+      setError(t("Published template changed. Select a current template."));
+  }, [state, initialQuery]);
   async function action(name: string, fn: () => Promise<void>) {
     setBusy(name);
     setError("");
@@ -79,12 +116,12 @@ export function Semantics({
       <>
         <Button onClick={onBack}>
           <ArrowLeft size={16} />
-          Data sources
+          {t("Data sources")}
         </Button>
         <ErrorNote error={error} />
         {error ? (
           <Button onClick={() => action("reload", reload)}>
-            Retry loading semantics
+            {t("Retry loading semantics")}
           </Button>
         ) : (
           <Loading />
@@ -130,26 +167,40 @@ export function Semantics({
   };
   return (
     <>
-      <button
-        className="text-button semantic-back"
-        disabled={!!busy || unsavedOverview}
-        onClick={onBack}
-      >
-        <ArrowLeft size={14} />
-        Data sources
-      </button>
+      <div className="button-row semantic-navigation">
+        <button
+          className="text-button semantic-back"
+          disabled={!!busy || unsavedOverview}
+          onClick={onBack}
+        >
+          <ArrowLeft size={14} />
+          {t("Data sources")}
+        </button>
+        <Button disabled={!!busy || unsavedOverview} onClick={onWorkspace}>
+          {t("Query workspace")}
+        </Button>
+      </div>
       <div className="page-header">
         <div>
           <h1>
-            Semantics <span className="semantic-source">/ {source.name}</span>
+            {t("Semantics ")}
+            <span className="semantic-source">/ {source.name}</span>
           </h1>
-          <p>Business context and verified native queries for your Agents</p>
+          <p>
+            {t("Business context and verified native queries for your Agents")}
+          </p>
         </div>
-        <div className="row-actions">
+        <div className="button-row">
+          <Button
+            disabled={!!busy || unsavedOverview}
+            onClick={() => setDialog("history")}
+          >
+            {t("Publication history")}
+          </Button>
           <Button
             disabled={!!busy || unsavedOverview}
             onClick={() => action("reload", reload)}
-            aria-label="Refresh semantics"
+            aria-label={t("Refresh semantics")}
           >
             <RefreshCw size={16} />
           </Button>
@@ -162,63 +213,72 @@ export function Semantics({
                   body: "{}",
                 });
                 await reload();
-                notify("Structure and example parameters are valid.");
+                notify(t("Structure and example parameters are valid."));
               })
             }
           >
-            Validate draft
+            {t("Validate draft")}
           </Button>
           <Button
             primary
             disabled={!!busy || unsavedOverview}
             onClick={() => setDialog("publish")}
           >
-            Publish
+            {t("Publish")}
           </Button>
         </div>
       </div>
-      <div className="button-row">
+      <ErrorNote error={dialog ? "" : error} />
+      <div className="semantic-publication-bar">
+        <div className="semantic-status">
+          <span className={`status ${state.changed ? "amber" : "green"}`}>
+            {state.changed
+              ? t("Unpublished changes")
+              : t("Draft matches publication")}
+          </span>
+          <span>
+            {t("Draft revision ")}
+            {state.revision}
+          </span>
+          <span>
+            {state.published_version === "0"
+              ? t("Not published")
+              : t("Published version {published_version}", {
+                  published_version: state.published_version,
+                })}
+          </span>
+          <span>
+            {source.query_access_mode === "templates_only"
+              ? t("Templates only")
+              : t("Native queries and templates")}
+          </span>
+        </div>
         <Button
           disabled={!!busy || unsavedOverview}
           onClick={() => setDialog("visibility")}
         >
-          Preview Agent visibility
+          {t("Preview Agent visibility")}
         </Button>
-      </div>
-      <ErrorNote error={dialog ? "" : error} />
-      <div className="semantic-status">
-        <span className={`status ${state.changed ? "amber" : "green"}`}>
-          {state.changed ? "Unpublished changes" : "Draft matches publication"}
-        </span>
-        <span>Draft revision {state.revision}</span>
-        <span>
-          {state.published_version === "0"
-            ? "Not published"
-            : `Published version ${state.published_version}`}
-        </span>
-        <span>
-          {source.query_access_mode === "templates_only"
-            ? "Templates only"
-            : "Native queries and templates"}
-        </span>
       </div>
       <div
         className="semantic-tabs"
         role="tablist"
-        aria-label="Semantic sections"
+        aria-label={t("Semantic sections")}
       >
         {["Overview", "Catalog", "Query templates", "Ontology mapping"].map(
-          (t) => (
+          (section) => (
             <button
-              key={t}
+              key={section}
               role="tab"
-              aria-selected={tab === t}
-              tabIndex={tab === t ? 0 : -1}
+              aria-selected={tab === section}
+              tabIndex={tab === section ? 0 : -1}
               onKeyDown={(e) => {
                 if (e.key === "ArrowRight" || e.key === "ArrowLeft") {
                   if (unsavedOverview) {
                     setError(
-                      "Save or revert unsaved changes before switching sections.",
+                      t(
+                        "Save or revert unsaved changes before switching sections.",
+                      ),
                     );
                     return;
                   }
@@ -247,21 +307,23 @@ export function Semantics({
               onClick={() => {
                 if (unsavedOverview) {
                   setError(
-                    "Save or revert unsaved changes before switching sections.",
+                    t(
+                      "Save or revert unsaved changes before switching sections.",
+                    ),
                   );
                   return;
                 }
-                setTab(t);
+                setTab(section);
                 setKind("");
                 setPage(0);
               }}
             >
-              {t}
-              {(t === "Catalog" || t === "Query templates") && (
+              {t(section)}
+              {(section === "Catalog" || section === "Query templates") && (
                 <small>
                   {
                     entries.filter((en) =>
-                      t === "Catalog"
+                      section === "Catalog"
                         ? en.kind !== "template"
                         : en.kind === "template",
                     ).length
@@ -283,64 +345,99 @@ export function Semantics({
       ) : tab === "Overview" ? (
         <div className="semantic-overview" role="tabpanel">
           <section>
-            <h2>Data source context</h2>
+            <h2>{t("Data source context")}</h2>
             <p className="help">
-              Describe the business domain, source of truth, and conventions.
-              Context is descriptive and does not change database permissions.
+              {t(
+                "Describe the business domain, source of truth, and conventions. Context is descriptive and does not change database permissions.",
+              )}
             </p>
-            <Field label="Overview">
+            <Field label={t("Overview")}>
               <textarea
                 rows={8}
                 value={overview}
                 onChange={(e) => setOverview(e.target.value)}
               />
             </Field>
-            <Button
-              primary
-              disabled={!!busy || !unsavedOverview}
-              onClick={() =>
-                action("save", async () => {
-                  accept(
-                    await api<SemanticState>(endpoint, {
-                      method: "PUT",
-                      body: payload({
-                        revision: state.revision,
-                        snapshot: { ...state.draft, overview },
+            <div className="button-row">
+              <Button
+                primary
+                disabled={!!busy || !unsavedOverview}
+                onClick={() =>
+                  action("save", async () => {
+                    accept(
+                      await api<SemanticState>(endpoint, {
+                        method: "PUT",
+                        body: payload({
+                          revision: state.revision,
+                          snapshot: { ...state.draft, overview },
+                        }),
                       }),
-                    }),
-                  );
-                  notify("Overview saved to draft.");
-                })
-              }
-            >
-              Save overview draft
-            </Button>
-            <Button
-              disabled={!!busy || !unsavedOverview}
-              onClick={() => setOverview(state.draft.overview)}
-            >
-              Revert unsaved overview
-            </Button>
+                    );
+                    notify(t("Overview saved to draft."));
+                  })
+                }
+              >
+                {t("Save overview draft")}
+              </Button>
+              <Button
+                disabled={!!busy || !unsavedOverview}
+                onClick={() => setOverview(state.draft.overview)}
+              >
+                {t("Revert unsaved overview")}
+              </Button>
+            </div>
           </section>
           <section>
-            <h2>Publication readiness</h2>
+            <h2>{t("Publication readiness")}</h2>
             <p>
-              {entries.length} entries ·{" "}
-              {state.validation.filter((v) => v.valid).length} verified
-              templates · {trialRequired} requiring a trial
+              {entries.length}
+              {t(" entries ·")} {state.validation.filter((v) => v.valid).length}
+              {t(" verified templates · ")}
+              {trialRequired}
+              {t(" requiring a trial")}
             </p>
             <p className="help">
-              Enabled templates require a successful read-only trial against the
-              current connection before publication. Connection, credential, or
-              database version changes expire validation. Current source limits
-              always apply.
+              {t(
+                "Enabled templates require a successful read-only trial against the current connection before publication. Connection, credential, or database version changes expire validation. Current source limits always apply.",
+              )}
             </p>
             <div className="button-row">
+              <Button
+                busy={busy === "trial-all"}
+                disabled={
+                  !!busy ||
+                  unsavedOverview ||
+                  !state.validation.some((v) => v.status !== "disabled")
+                }
+                onClick={() =>
+                  action("trial-all", async () => {
+                    const result = await api<{ remaining: number }>(
+                      endpoint + "/trial-all",
+                      {
+                        method: "POST",
+                        body: payload({ revision: state.revision }),
+                      },
+                    );
+                    await reload();
+                    notify(
+                      result.remaining
+                        ? t(
+                            "Some templates were not run before the time limit. Run their trials individually.",
+                          )
+                        : t(
+                            "Trials finished. Review each template result before publishing.",
+                          ),
+                    );
+                  })
+                }
+              >
+                {t("Run all template checks")}
+              </Button>
               <Button
                 disabled={!!busy || unsavedOverview}
                 onClick={() => setDialog("structure")}
               >
-                Import structure
+                {t("Import structure")}
               </Button>
               <Button
                 disabled={!!busy || unsavedOverview}
@@ -350,7 +447,7 @@ export function Semantics({
                 }}
               >
                 <Upload size={15} />
-                Import JSON
+                {t("Import JSON")}
               </Button>
               <Button
                 onClick={() =>
@@ -372,14 +469,14 @@ export function Semantics({
                 }
               >
                 <Download size={15} />
-                Export draft
+                {t("Export draft")}
               </Button>
               <Button
                 disabled={!state.changed || !!busy || unsavedOverview}
                 className="danger"
                 onClick={() => setDialog("discard")}
               >
-                Discard draft
+                {t("Discard draft")}
               </Button>
             </div>
           </section>
@@ -390,8 +487,8 @@ export function Semantics({
             <div className="search-input">
               <Search size={16} />
               <input
-                aria-label="Search semantic entries"
-                placeholder="Search names, aliases and descriptions"
+                aria-label={t("Search semantic entries")}
+                placeholder={t("Search names, aliases and descriptions")}
                 value={search}
                 onChange={(e) => {
                   setSearch(e.target.value);
@@ -401,26 +498,28 @@ export function Semantics({
             </div>
             {tab === "Catalog" && (
               <select
-                aria-label="Filter entry kind"
+                aria-label={t("Filter entry kind")}
                 value={kind}
                 onChange={(e) => {
                   setKind(e.target.value);
                   setPage(0);
                 }}
               >
-                <option value="">All catalog entries</option>
+                <option value="">{t("All catalog entries")}</option>
                 {entryKinds.map((v) => (
-                  <option key={v}>{v}</option>
+                  <option key={v} value={v}>
+                    {t(v)}
+                  </option>
                 ))}
               </select>
             )}
             <Button disabled={!!busy} onClick={create}>
               <Plus size={16} />
-              {tab === "Catalog" ? "Add entry" : "Add template"}
+              {tab === "Catalog" ? t("Add entry") : t("Add template")}
             </Button>
             {tab === "Catalog" && (
               <Button onClick={() => setDialog("structure")}>
-                Import structure
+                {t("Import structure")}
               </Button>
             )}
           </div>
@@ -428,19 +527,23 @@ export function Semantics({
             <Empty
               title={
                 search || kind
-                  ? "No matching entries"
+                  ? t("No matching entries")
                   : tab === "Catalog"
-                    ? "Build your business catalog"
-                    : "No query templates yet"
+                    ? t("Build your business catalog")
+                    : t("No query templates yet")
               }
               description={
                 tab === "Catalog"
-                  ? "Import metadata or add a term, object, field, relationship, or metric."
-                  : "Create a native query with a parameter contract, then trial and publish it."
+                  ? t(
+                      "Import metadata or add a term, object, field, relationship, or metric.",
+                    )
+                  : t(
+                      "Create a native query with a parameter contract, then trial and publish it.",
+                    )
               }
               action={
                 <Button onClick={create}>
-                  {tab === "Catalog" ? "Add entry" : "Add template"}
+                  {tab === "Catalog" ? t("Add entry") : t("Add template")}
                 </Button>
               }
             />
@@ -449,12 +552,14 @@ export function Semantics({
               <table>
                 <thead>
                   <tr>
-                    <th>Name</th>
+                    <th>{t("Name")}</th>
                     <th>
-                      {tab === "Catalog" ? "Kind / reference" : "Validation"}
+                      {tab === "Catalog"
+                        ? t("Kind / reference")
+                        : t("Validation")}
                     </th>
-                    <th>Description</th>
-                    <th>Actions</th>
+                    <th>{t("Description")}</th>
+                    <th>{t("Actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -470,7 +575,7 @@ export function Semantics({
                             className="text-button name-link"
                             onClick={() => setEditing(en)}
                           >
-                            {en.name || "Untitled entry"}
+                            {en.name || t("Untitled entry")}
                           </button>
                           <small className="block">{en.id}</small>
                         </td>
@@ -480,23 +585,48 @@ export function Semantics({
                               <span
                                 className={`status ${v.valid ? "green" : "amber"}`}
                               >
-                                {v.status === "trial_required"
-                                  ? "Trial required"
-                                  : v.status === "expired"
-                                    ? "Validation expired"
-                                    : v.status === "disabled"
-                                      ? "Disabled"
-                                      : "Verified"}
+                                {v.status === "regression_failed"
+                                  ? t("Regression checks failed")
+                                  : v.status === "trial_required"
+                                    ? t("Trial required")
+                                    : v.status === "expired"
+                                      ? t("Validation expired")
+                                      : v.status === "disabled"
+                                        ? t("Disabled")
+                                        : t("Verified")}
                               </span>
                               <small className="block">
                                 {v.checked_at
                                   ? date(v.checked_at)
-                                  : "No successful trial"}
+                                  : t("No successful trial")}
                               </small>
+                              {v?.report && (
+                                <details
+                                  className="trial-report"
+                                  open={!v.report.passed}
+                                >
+                                  <summary>{t("Trial report")}</summary>
+                                  {v.report.cases.map((c) => (
+                                    <p key={c.name}>
+                                      {c.name} ·{" "}
+                                      {c.passed
+                                        ? t("Passed")
+                                        : t(
+                                            regressionLabels[
+                                              c.error_code || ""
+                                            ] ||
+                                              c.error_code ||
+                                              "Failed",
+                                          )}{" "}
+                                      · {t("{count} rows", { count: c.rows })}
+                                    </p>
+                                  ))}
+                                </details>
+                              )}
                             </>
                           ) : (
                             <>
-                              {en.kind}
+                              {t(en.kind)}
                               <small className="block">
                                 {en.reference &&
                                   [
@@ -511,7 +641,7 @@ export function Semantics({
                           )}
                         </td>
                         <td className="semantic-description">
-                          {en.description || "No description"}
+                          {en.description || t("No description")}
                         </td>
                         <td>
                           <div className="row-actions">
@@ -519,7 +649,7 @@ export function Semantics({
                               disabled={!!busy}
                               onClick={() => setEditing(en)}
                             >
-                              Edit
+                              {t("Edit")}
                             </Button>
                             {en.template && (
                               <Button
@@ -527,21 +657,26 @@ export function Semantics({
                                 disabled={!!busy || !en.template.enabled}
                                 onClick={() =>
                                   action(en.id, async () => {
-                                    await api(endpoint + "/trial", {
-                                      method: "POST",
-                                      body: payload({
-                                        revision: state.revision,
-                                        template_id: en.id,
-                                      }),
-                                    });
-                                    await reload();
+                                    try {
+                                      await api(endpoint + "/trial", {
+                                        method: "POST",
+                                        body: payload({
+                                          revision: state.revision,
+                                          template_id: en.id,
+                                        }),
+                                      });
+                                    } finally {
+                                      await reload();
+                                    }
                                     notify(
-                                      "Read-only trial passed. No results were saved.",
+                                      t(
+                                        "Read-only trial passed. No results were saved.",
+                                      ),
                                     );
                                   })
                                 }
                               >
-                                Trial
+                                {t("Trial")}
                               </Button>
                             )}
                             {published && (
@@ -551,7 +686,7 @@ export function Semantics({
                                   setDialog("preview");
                                 }}
                               >
-                                Preview published
+                                {t("Preview published")}
                               </Button>
                             )}
                             <button
@@ -562,7 +697,7 @@ export function Semantics({
                                 setDialog("delete");
                               }}
                             >
-                              Delete
+                              {t("Delete")}
                             </button>
                           </div>
                         </td>
@@ -574,20 +709,23 @@ export function Semantics({
             </div>
           )}
           <div className="pagination">
-            <span>{rows.length} entries</span>
+            <span>
+              {rows.length}
+              {t(" entries")}
+            </span>
             <div>
               <Button
                 disabled={current === 0}
                 onClick={() => setPage(current - 1)}
               >
-                Previous
+                {t("Previous")}
               </Button>
               <span>{current + 1}</span>
               <Button
                 disabled={(current + 1) * 20 >= rows.length}
                 onClick={() => setPage(current + 1)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           </div>
@@ -610,7 +748,7 @@ export function Semantics({
               ),
             );
             setEditing(null);
-            notify("Entry saved to draft.");
+            notify(t("Entry saved to draft."));
           }}
         />
       )}
@@ -627,9 +765,17 @@ export function Semantics({
             );
             setDialog("");
             notify(
-              "Structure imported without replacing existing descriptions.",
+              t("Structure imported without replacing existing descriptions."),
             );
           }}
+        />
+      )}
+      {dialog === "history" && (
+        <SemanticHistory
+          endpoint={endpoint}
+          state={state}
+          accept={accept}
+          onClose={() => setDialog("")}
         />
       )}
       {dialog === "visibility" && (
@@ -641,6 +787,7 @@ export function Semantics({
       )}
       {dialog === "preview" && selected && (
         <TemplatePreview
+          initialAgentID={initial.get("agent_id") || ""}
           source={source}
           entry={selected}
           agents={agents}
@@ -651,12 +798,12 @@ export function Semantics({
         <Drawer
           title={
             dialog === "publish"
-              ? "Publish semantic catalog"
+              ? t("Publish semantic catalog")
               : dialog === "discard"
-                ? "Discard unpublished changes"
+                ? t("Discard unpublished changes")
                 : dialog === "delete"
-                  ? "Delete draft entry"
-                  : "Import semantic JSON"
+                  ? t("Delete draft entry")
+                  : t("Import semantic JSON")
           }
           onClose={() => {
             if (!busy) setDialog("");
@@ -664,11 +811,17 @@ export function Semantics({
           footer={
             <>
               <Button disabled={!!busy} onClick={() => setDialog("")}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button
                 primary
                 busy={!!busy}
+                disabled={
+                  dialog === "publish" &&
+                  (trialRequired > 0 ||
+                    (!!state.draft.ontology &&
+                      state.mapping_validation?.status !== "checked"))
+                }
                 onClick={() =>
                   action(dialog, async () => {
                     let suffix = dialog;
@@ -693,19 +846,19 @@ export function Semantics({
                     setDialog("");
                     notify(
                       dialog === "publish"
-                        ? "Semantic catalog published."
-                        : "Draft updated.",
+                        ? t("Semantic catalog published.")
+                        : t("Draft updated."),
                     );
                   })
                 }
               >
                 {dialog === "publish"
-                  ? "Confirm publication"
+                  ? t("Confirm publication")
                   : dialog === "discard"
-                    ? "Discard draft"
+                    ? t("Discard draft")
                     : dialog === "delete"
-                      ? "Delete from draft"
-                      : "Replace draft with import"}
+                      ? t("Delete from draft")
+                      : t("Replace draft with import")}
               </Button>
             </>
           }
@@ -714,49 +867,81 @@ export function Semantics({
           {dialog === "publish" ? (
             <>
               <p>
-                Publish {entries.length} entries as version{" "}
-                {String(BigInt(state.published_version) + 1n)}. Agents will see
-                this snapshot immediately.
+                {t("Publish ")}
+                {entries.length}
+                {t(" entries as version")}{" "}
+                {String(BigInt(state.published_version) + 1n)}
+                {t(". Agents will see this snapshot immediately.")}
               </p>
               <p>
                 {trialRequired
-                  ? `${trialRequired} enabled templates still require successful trials. Publication will be blocked until they pass.`
-                  : "All enabled templates have current trial evidence. Publication will also validate the complete catalog."}
+                  ? t(
+                      "{trialRequired} enabled templates still require successful trials. Publication will be blocked until they pass.",
+                      { trialRequired: trialRequired },
+                    )
+                  : t(
+                      "All enabled templates have current trial evidence. Publication will also validate the complete catalog.",
+                    )}
               </p>
+              {trialRequired > 0 && (
+                <Button
+                  onClick={() => {
+                    setDialog("");
+                    setTab("Query templates");
+                  }}
+                >
+                  {t("Review templates")}
+                </Button>
+              )}
               {state.draft.ontology && (
                 <p>
-                  Adopt ontology <code>{state.draft.ontology.ontology_id}</code>{" "}
-                  version {state.draft.ontology.version} with{" "}
-                  {state.draft.ontology.entities.length} mapped entities.{" "}
+                  {t("Adopt ontology ")}
+                  <code>{state.draft.ontology.ontology_id}</code>{" "}
+                  {t("version ")}
+                  {state.draft.ontology.version}
+                  {t(" with")} {state.draft.ontology.entities.length}
+                  {t(" mapped entities.")}{" "}
                   {state.mapping_validation?.status === "checked"
-                    ? `${state.mapping_validation.checks?.filter((c) => c.status === "unverified").length || 0} fields remain administrator-declared and unverified.`
-                    : "Structure check is required before publication."}
+                    ? t(
+                        "{value1} fields remain administrator-declared and unverified.",
+                        {
+                          value1:
+                            state.mapping_validation.checks?.filter(
+                              (c) => c.status === "unverified",
+                            ).length || 0,
+                        },
+                      )
+                    : t("Structure check is required before publication.")}
                 </p>
               )}
               <p className="help">
-                Changed or removed executable templates cancel affected queries.
-                Description-only changes preserve running queries.
+                {t(
+                  "Changed or removed executable templates cancel affected queries. Description-only changes preserve running queries.",
+                )}
               </p>
             </>
           ) : dialog === "discard" ? (
             <p>
-              Replace the saved draft with the published snapshot. Unpublished
-              edits will be lost.
+              {t(
+                "Replace the saved draft with the published snapshot. Unpublished edits will be lost.",
+              )}
             </p>
           ) : dialog === "delete" ? (
             <p>
-              Remove {selected?.name} from the draft. It remains visible to
-              Agents until publication. Remove metric links to this template
-              before publishing.
+              {t("Remove ")}
+              {selected?.name}
+              {t(
+                " from the draft. It remains visible to Agents until publication. Remove metric links to this template before publishing.",
+              )}
             </p>
           ) : (
             <>
               <p>
-                Import versioned semantic and template configuration. This
-                replaces the draft; credentials and validation evidence are
-                never imported.
+                {t(
+                  "Import versioned semantic and template configuration. This replaces the draft; credentials and validation evidence are never imported.",
+                )}
               </p>
-              <Field label="JSON file">
+              <Field label={t("JSON file")}>
                 <input
                   type="file"
                   accept=".json,application/json"
@@ -764,7 +949,7 @@ export function Semantics({
                     const file = e.target.files?.[0];
                     if (file) {
                       if (file.size > 768 * 1024) {
-                        setError("File exceeds 768 KiB.");
+                        setError(t("File exceeds 768 KiB."));
                         return;
                       }
                       setImportJSON(await file.text());
@@ -772,7 +957,7 @@ export function Semantics({
                   }}
                 />
               </Field>
-              <Field label="Semantic JSON">
+              <Field label={t("Semantic JSON")}>
                 <textarea
                   className="query-editor"
                   rows={16}

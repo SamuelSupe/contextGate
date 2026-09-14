@@ -1,17 +1,23 @@
-# MCP DB Hub
+# ContextGate
 
-![MCP DB Hub — Your databases. Ready for agents.](docs/images/banner.svg)
+![ContextGate — Semantic Data Gateway for AI Agents](docs/images/banner.svg)
 
-[![Release](https://img.shields.io/github/v/release/SamuelSupe/mcpdbhub?color=438c91)](https://github.com/SamuelSupe/mcpdbhub/releases/latest)
-[![CI](https://github.com/SamuelSupe/mcpdbhub/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelSupe/mcpdbhub/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/SamuelSupe/contextGate?color=438c91)](https://github.com/SamuelSupe/contextGate/releases/latest)
+[![CI](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Databases](https://img.shields.io/badge/Databases-18_products-438c91)](docs/support-matrix.zh-CN.md)
 
-**让 Agent 通过原生查询读取数据库，并明确控制每个 Agent 可以访问的数据源。**
+**Agent 语义数据网关**
 
-用 Go 实现的自部署只读 MCP 服务。管理员通过内嵌 Web UI 配置连接和授权；Agent 使用数据库原生语言查询，所有入口共享只读保护、执行限制与审计。运行时无需 Node.js。
+让 Agent 理解业务，安全查询数据。
 
-[English](README.md) · [下载 v0.3.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
+ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查询访问真实数据。管理员定义业务术语、指标和共享本体，为各数据源建立映射，再发布经过真实试跑的原生查询模板。所有执行受授权、只读保护、查询限制和审计约束。Go 实现，内嵌管理 UI，运行时无需 Node.js；Agent 通过 MCP 的 HTTP 或 stdio 接入。
+
+**Context** 承载业务含义：术语、指标、本体、映射和模板。**Gate** 控制访问边界：授权、查询保护、验证和审计。查询结果保留原生结构；产品不提供知识图谱实例存储或事实推理引擎。
+
+产品原名 **MCP DB Hub**。仓库及 Go 模块已更名为 `SamuelSupe/contextGate`，历史提交和发行版继续保留。主命令为 `contextgate`，兼容 `mcpdbhub` 别名与已有 `MCPDBHUB_*` 配置键、遥测属性。详见[品牌说明](docs/brand/README.zh-CN.md)。
+
+[English](README.md) · [下载 v0.4.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -21,6 +27,8 @@
 
 | 能力 | 提供的行为 |
 |---|---|
+| 共享业务本体 | 复用实体、属性和关系定义；各数据源独立映射并固定采用版本 |
+| 语义目录与查询模板 | 维护业务术语和指标，发布经过真实试跑的模板，可启用仅模板访问 |
 | 原生读取 | SQL、MongoDB、Redis、Search DSL、Cypher、CQL、InfluxQL / Flux |
 | Agent 独立授权 | 数据源级授权、精确到期、暂停、轮换、永久撤销与 OAuth |
 | 实际只读保护 | 解析器和引擎分类、只读事务/文件、命令白名单与固定读取 API |
@@ -28,47 +36,64 @@
 | 无损结果 | 保留大整数、Decimal、二进制和原生文档/图/时序结构 |
 | 一体化管理 | 内嵌 UI、加密凭证、结构预览、调用审计与本地密码恢复 |
 
+## 配置 MCP
+
+在 **设置 → 配置 MCP** 为受信任的 Agent 创建短期专用 Token，即可配置所有数据源连接、语义草稿、模板试跑和共享本体／映射。数据源修改立即生效，草稿发布及查询 Agent 授权仍由管理员完成。详见[配置指南](docs/configuration-mcp.zh-CN.md)。
+
+## 运维与恢复
+
+**0.4.0** 包含管理变更记录、加密的语义发布历史与草稿恢复、可选定期健康检查、模板回归用例、PG 诊断及备份恢复回验。入口为“健康状态”“语义 → 发布历史”和“设置 → 部署诊断”。具体边界和恢复步骤见[运维指南](docs/operations.zh-CN.md)。
+
 ## 下载运行
 
-首版提供 Linux **arm64 / amd64** 发行包，包含程序、C++ 运行库、双语说明、依赖许可证与 `SHA256SUMS`，要求 glibc ≥ 2.36。解压后执行 `./mcpdbhub serve` 即可启动。完整下载、校验、Agent 接入和升级步骤见[安装指南](docs/install.zh-CN.md)。
+[**ContextGate 0.4.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
 
 ## 启动
 
 ```sh
+git clone https://github.com/SamuelSupe/contextGate.git
+cd contextGate
 mkdir -p databases
+umask 077
+printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
 docker compose up --build -d
 docker compose logs hub
 ```
 
 打开 `http://127.0.0.1:8080`，使用日志中的一次性设置码创建管理员密码。随后依次添加数据源、测试连接、创建 Agent 并选择允许访问的数据源。Token 仅显示一次。
 
-默认仅发布本机端口；容器内使用 UID 10001。数据库文件挂载目录只读，数据库文件本身需要对 UID 10001 可读。`hub-data` 保存配置与审计；不要在升级时删除该卷。
+Compose 在私有容器网络启动 PostgreSQL，健康后再启动 ContextGate，仅发布 ContextGate 的本机 HTTP 端口。ContextGate 使用 UID 10001，查询数据库文件只读挂载。`hub-postgres` 保存元数据，`hub-data` 保存独立加密主密钥；重启和升级时保留两个卷及已有 `.env`，只在首次安装生成 `.env`。
+
+**存储变更：** 当前源码仅使用 PostgreSQL 保存配置、会话、授权、语义和审计，不迁移旧 SQLite 元数据，需要重新初始化管理员和配置数据源。SQLite 查询数据源仍然支持。0.3.0 及更早版本使用 SQLite 元数据；切换前请阅读[升级说明](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier)。
 
 本地编译需要 Go 1.26、C/C++ 工具链、Node.js 24（仅用于构建前端）。DuckDB 和 SQLite 使用 CGO，不能以 `CGO_ENABLED=0` 构建。Linux arm64/amd64 使用各自平台原生编译。
 
 ```sh
 make build
-./bin/mcpdbhub serve --data-dir ./data --database-dir ./databases
+export MCPDBHUB_DATABASE_URL='postgres://mcpdbhub:REPLACE_ME@127.0.0.1:5432/mcpdbhub?sslmode=verify-full'
+./bin/contextgate serve --data-dir ./data --database-dir ./databases
 ```
 
-公司代理需要自定义 CA 时，可使用 `docker build --secret id=build_ca,src=/path/to/ca.pem -t mcpdbhub:local .`。该 CA 只用于构建依赖下载，不会写入最终镜像。数据库 CA 单独在 UI 中配置。
+预先创建 PostgreSQL 数据库，使用拥有建表及读写权限的独立账号；URL 中的特殊凭证字符需要编码。本机隔离实例没有 TLS 时可用 `sslmode=disable`，远程连接应验证服务器证书。也支持 `--database-url`，推荐环境变量以避免连接密钥出现在命令参数中。`--data-dir` 现在用于主密钥，不再保存元数据。
+
+公司代理需要自定义 CA 时，可使用 `docker build --secret id=build_ca,src=/path/to/ca.pem -t contextgate:local .`。该 CA 只用于构建依赖下载，不会写入最终镜像。数据库 CA 单独在 UI 中配置。
 
 ## Agent 接入
 
-![Native query preview with real sample data](docs/screenshots/query-preview.png)
+![经过验证的查询模板与真实样例结果](docs/screenshots/query-preview.png)
 
 支持 Streamable HTTP 和 stdio 桥接；二者使用同一个 HTTP 服务、同一套授权和审计。服务暴露 14 个 MCP 工具：4 个发现工具、7 个原生查询工具和 3 个语义目录/模板工具。
 
 HTTP 客户端配置示例（不同客户端的外层配置格式可能不同）：
 
 ```json
-{"mcpServers":{"mcpdbhub":{"url":"http://127.0.0.1:8080/mcp","headers":{"Authorization":"Bearer <AGENT_TOKEN>"}}}}
+{"mcpServers":{"contextgate":{"url":"http://127.0.0.1:8080/mcp","headers":{"Authorization":"Bearer <AGENT_TOKEN>"}}}}
 ```
 
 stdio 客户端配置：
 
 ```json
-{"mcpServers":{"mcpdbhub":{"command":"/absolute/path/mcpdbhub","args":["stdio","--url","http://127.0.0.1:8080/mcp"],"env":{"MCPDBHUB_TOKEN":"<AGENT_TOKEN>"}}}}
+{"mcpServers":{"contextgate":{"command":"/absolute/path/contextgate","args":["stdio","--url","http://127.0.0.1:8080/mcp"],"env":{"MCPDBHUB_TOKEN":"<AGENT_TOKEN>"}}}}
 ```
 
 先调用 `list_data_sources` 获取当前身份可访问的数据源、查询工具、示例与限制，再调用 `list_namespaces`、`list_objects`、`describe_object` 发现结构。
@@ -101,7 +126,7 @@ SQL 数据源的命名空间、表和字段发现支持 `next_cursor`，管理�
 
 连接成功与账号权限验证分别展示。显示“账号权限未验证”时必须根据数据库端授权确认访问范围。InfluxDB 3 Core 显示“查询 API 隔离”：其管理员 Token 仍有数据库管理权限，服务通过固定查询 API 限制 Agent。
 
-配置使用 SQLite；数据库凭证以 AES-256-GCM 加密，主密钥独立保存于 `master.key` 或 `MCPDBHUB_MASTER_KEY`（32 字节密钥的标准 Base64）。管理员密码使用 Argon2id，Agent Token 和会话 Token 使用散列。管理 Cookie 为 HttpOnly/SameSite，管理写接口验证 CSRF。审计保留 30 天，不保存查询结果、参数明文和完整查询文本。授权变化会取消相关执行任务。
+配置使用 PostgreSQL；数据库凭证以 AES-256-GCM 加密，主密钥独立保存于 `master.key` 或 `MCPDBHUB_MASTER_KEY`（32 字节密钥的标准 Base64）。管理员密码使用 Argon2id，Agent Token 和会话 Token 使用散列。管理 Cookie 为 HttpOnly/SameSite，管理写接口验证 CSRF。审计保留 30 天，不保存查询结果、参数明文和完整查询文本。授权变化会取消相关执行任务。
 
 ## 语义目录与查询模板
 
@@ -116,6 +141,8 @@ SQL 数据源的命名空间、表和字段发现支持 `next_cursor`，管理�
 v0.1.1 支持在 **Settings → Audit log export** 配置 OTLP Logs，通过 HTTP/protobuf 或 gRPC 上报到 OpenTelemetry Collector 或兼容接收端。支持认证 Header 加密、CA 证书、测试发送和状态查看；异步读取已有脱敏审计，持久化进度并重试，不发送完整查询、参数、结果或凭证。详见[配置、Collector 示例和发送语义](docs/audit-export.zh-CN.md)。
 
 ## 共享业务本体
+
+![共享本体与数据源、查询模板映射](docs/screenshots/ontology.png)
 
 0.3.0 新增 **Ontologies** 与 **Semantics → Ontology mapping**。Customer、Order 等定义可以跨源复用，各源独立映射表、集合和字段，并显式选择不可变本体版本。Agent 仅发现其已授权源中映射的概念，模板保持原生结果并附加 `ontology_context`。
 
@@ -135,18 +162,20 @@ v0.1.1 支持在 **Settings → Audit log export** 配置 OTLP Logs，通过 HTT
 |---|---|---|
 | `MCPDBHUB_LISTEN` | `127.0.0.1:8080` | 监听地址（镜像内为 `0.0.0.0:8080`） |
 | `MCPDBHUB_PUBLIC_URL` | `http://127.0.0.1:8080` | 固定公开 origin，远程地址必须为 HTTPS |
-| `MCPDBHUB_DATA_DIR` | `./data` | 配置、授权、审计目录 |
+| `MCPDBHUB_DATABASE_URL` | 必填 | PostgreSQL 元数据连接，启动和密码恢复均使用 |
+| `MCPDBHUB_DATA_DIR` | `./data` | 本地主密钥目录 |
 | `MCPDBHUB_DATABASE_DIR` | 数据目录下 `databases` | SQLite/DuckDB 文件许可目录 |
 | `MCPDBHUB_MASTER_KEY` | 独立密钥文件 | 可选的外部主密钥 |
 
 远程部署在 HTTPS 反向代理后运行，代理保留公开 Host 和 Authorization；设置准确的公开 URL。管理 UI 与 OAuth 同源。不要将服务置于会去掉认证头的公共代理后。健康检查为 `GET /healthz`。
 
-备份时停止服务，复制配置数据库与主密钥；分别保管密钥。恢复时二者必须匹配，缺失密钥会拒绝启动。首版为单实例、单管理员，不支持多实例共享 SQLite、RBAC、多租户、跨库联邦查询或自动修改用户数据库权限。
+备份时停止 ContextGate，用 `pg_dump` 备份 PostgreSQL 元数据库，另行备份并保护对应的 `master.key` 或外部主密钥。使用 `pg_restore` 恢复数据库并提供同一密钥，密钥缺失或不匹配会拒绝启动。仍为单实例、单管理员；更换 PG 不代表支持多实例协调、RBAC、多租户、跨库联邦查询或自动修改数据库权限。
 
 ## 验证
 
 ```sh
-# 在 OrbStack 的 Go 开发容器中执行
+# 在 OrbStack 的 Go 开发容器中执行，使用专用可丢弃的测试库
+export MCPDBHUB_TEST_DATABASE_URL='postgres://test:REPLACE_ME@postgres:5432/mcpdbhub_test?sslmode=disable'
 go test ./...
 go test -race ./internal/server ./internal/engine
 # 宿主机调度隔离容器；脚本要求 mcpdbhub-dev 和 mcpdbhub-test 网络
@@ -159,7 +188,9 @@ python3 scripts/matrix.py postgres mysql mongodb
 
 ![Per-Agent data source grants](docs/screenshots/agents.png)
 
-管理界面统一使用英文。在 **Data sources** 中明确选择认证方式。凭证留空表示保留该方式已有凭证；勾选 **Clear the stored credential** 表示删除；切换认证方式会移除原方式的凭证。连接状态表示最近一次完成的检查及其时间，不是实时健康监控。配置保存成功但连接检查失败时，配置页保留失败原因。
+管理界面默认英文。在 **Settings → Language（设置 → 语言）** 中选择 **English** 或 **简体中文**，立即生效并由当前浏览器记住。业务定义、查询文本、参数和结果保留原始内容。
+
+在 **Data sources（数据源）** 中明确选择认证方式。凭证留空表示保留该方式已有凭证；勾选 **Clear the stored credential（清除已存储的凭证）** 表示删除；切换认证方式会移除原方式的凭证。连接状态表示最近一次完成的检查及其时间，不是实时健康监控。配置保存成功但连接检查失败时，配置页保留失败原因。
 
 在 **Agents** 中，**Pause / Resume** 暂停、恢复访问并保留 Token；**Revoke** 永久撤销凭证并取消正在执行的查询；**Rotate token / Issue new token** 签发替换 Token，同时保留 Agent 身份、授权和审计历史。旧 Token 不会恢复有效，需保存新 Token 并更新客户端。首次升级会永久撤销旧版本中已停用、显示为“已撤销”的凭证；已有有效凭证不受影响。
 
@@ -169,7 +200,7 @@ python3 scripts/matrix.py postgres mysql mongodb
 
 ### 配置变更与 OAuth 客户端管理
 
-Agent 保存携带版本号。旧页面提交返回 HTTP 409，不会恢复旧授权或覆盖暂停状态；关闭并刷新当前授权后再编辑。删除数据源会在同一事务中移除相关授权，升级时也会清理历史遗留的已删除数据源引用。仅修改数据源名称时保留连接、正在执行的查询和分页游标；连接、启停和执行限制的变更仍会取消相关执行。
+Agent 保存携带版本号。旧页面提交返回 HTTP 409，不会恢复旧授权或覆盖暂停状态；关闭并刷新当前授权后再编辑。删除数据源会在同一事务中移除相关授权。仅修改数据源名称时保留连接、正在执行的查询和分页游标；连接、启停和执行限制的变更仍会取消相关执行。
 
 到期时间按浏览器本地时区编辑，可精确到秒；未修改该字段时完整保留原始到期时间。API 中省略或设为 `null` 的 `sources` 会规范为 `[]`，表示没有任何数据源权限。
 
@@ -179,7 +210,7 @@ InfluxDB 的发现结果与查询预览根据数据源配置的 1.x、2.x、3 Co
 
 ### 管理员忘记密码后的恢复
 
-恢复需要服务器本地访问权限、原配置目录及匹配的主密钥。先停止服务，再通过标准输入向命令提供 12–256 字节的新密码。命令不接受命令行密码参数；保留数据源、Agent 凭证和审计，注销所有管理员会话。
+恢复需要服务器本地访问权限、与服务相同的 `MCPDBHUB_DATABASE_URL`、原密钥目录及匹配的主密钥。先停止服务，再通过标准输入向命令提供 12–256 字节的新密码。命令不接受命令行密码参数；保留数据源、Agent 凭证和审计，注销所有管理员会话。
 
 Docker Compose 部署可在 Bash 或 Zsh 中执行以下命令。`read -s` 不回显密码，也不会把密码写入命令历史：
 
@@ -191,10 +222,12 @@ unset hub_new_password
 docker compose up -d hub
 ```
 
-独立二进制部署将密码通过管道传给 `mcpdbhub reset-password --data-dir /原配置目录 --password-stdin`，然后重启服务。若配置了 `MCPDBHUB_MASTER_KEY`，恢复命令必须使用相同环境配置。不要通过删除配置数据库或主密钥来恢复密码。
+独立二进制部署将密码通过管道传给 `contextgate reset-password --data-dir /原配置目录 --password-stdin`，然后重启服务。若配置了 `MCPDBHUB_MASTER_KEY`，恢复命令必须使用相同环境配置。不要通过删除配置数据库或主密钥来恢复密码。
 
 ## 参与项目
 
-[报告问题](https://github.com/SamuelSupe/mcpdbhub/issues/new/choose) · [贡献指南](CONTRIBUTING.md) · [安全反馈](SECURITY.md) · [更新记录](CHANGELOG.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
+[报告问题](https://github.com/SamuelSupe/contextGate/issues/new/choose) · [贡献指南](CONTRIBUTING.md) · [安全反馈](SECURITY.md) · [更新记录](CHANGELOG.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
 
 项目许可证尚未选定。第三方组件的许可证与声明已随源码和发行包保留。
+
+数据源 **Agent setup** 串联连接证据、模板、授权和真实调用，完成后转为 **Query workspace**，预览前明确展示所选 Agent。本体卡片展示源映射和可执行模板数量，可直接打开 **Queries and sources**。业务问题支持保存复用，评估指标与人工评分以加密历史记录持久保存。参见[工作流与效果验证](docs/agent-workflows.zh-CN.md)。

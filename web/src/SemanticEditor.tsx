@@ -1,3 +1,5 @@
+import { RegressionEditor } from "./RegressionEditor";
+import { t } from "./i18n";
 import { useState } from "react";
 import { Button, Drawer, ErrorNote, Field } from "./components";
 import { message } from "./api";
@@ -19,20 +21,20 @@ export function ReferenceFields({
 }) {
   return (
     <div className="field-grid semantic-reference">
-      <Field label={`${prefix} namespace`}>
+      <Field label={t("{prefix} namespace", { prefix: prefix })}>
         <input
           value={value.namespace}
           onChange={(e) => onChange({ ...value, namespace: e.target.value })}
         />
       </Field>
-      <Field label={`${prefix} object`} required>
+      <Field label={t("{prefix} object", { prefix: prefix })} required>
         <input
           required
           value={value.object}
           onChange={(e) => onChange({ ...value, object: e.target.value })}
         />
       </Field>
-      <Field label={`${prefix} field path`}>
+      <Field label={t("{prefix} field path", { prefix: prefix })}>
         <input
           value={value.field || ""}
           onChange={(e) => onChange({ ...value, field: e.target.value })}
@@ -58,14 +60,14 @@ function ParameterFields({
   return (
     <section className="semantic-parameter">
       <div className="field-grid">
-        <Field label="Parameter name" required>
+        <Field label={t("Parameter name")} required>
           <input
             required
             value={value.name}
             onChange={(e) => field("name", e.target.value)}
           />
         </Field>
-        <Field label="Parameter type">
+        <Field label={t("Parameter type")}>
           <select
             value={value.type}
             onChange={(e) => field("type", e.target.value)}
@@ -79,21 +81,25 @@ function ParameterFields({
               "array",
               "null",
             ].map((v) => (
-              <option key={v}>{v}</option>
+              <option key={v} value={v}>
+                {t(v)}
+              </option>
             ))}
           </select>
         </Field>
       </div>
-      <Field label="Parameter description">
+      <Field label={t("Parameter description")}>
         <input
           value={value.description || ""}
           onChange={(e) => field("description", e.target.value)}
         />
       </Field>
       <Field
-        label="JSON Pointer bindings"
+        label={t("JSON Pointer bindings")}
         required
-        hint="One existing value position per line, for example /params/0 or /filter/status. Query text and object names cannot be parameters."
+        hint={t(
+          "One existing value position per line, for example /params/0 or /filter/status. Query text and object names cannot be parameters.",
+        )}
       >
         <textarea
           required
@@ -108,32 +114,34 @@ function ParameterFields({
           checked={value.required}
           onChange={(e) => field("required", e.target.checked)}
         />{" "}
-        Required parameter
+        {t("Required parameter")}
       </label>
       <div className="field-grid">
         <Field
-          label="Default value (JSON)"
-          hint="Leave blank to use the template's fixed value for an optional parameter."
+          label={t("Default value (JSON)")}
+          hint={t(
+            "Leave blank to use the template's fixed value for an optional parameter.",
+          )}
         >
           <input
             value={value.default_json || ""}
             onChange={(e) => field("default_json", e.target.value)}
           />
         </Field>
-        <Field label="Allowed values (JSON array)">
+        <Field label={t("Allowed values (JSON array)")}>
           <input
             value={value.enum_json || ""}
             onChange={(e) => field("enum_json", e.target.value)}
           />
         </Field>
-        <Field label="Minimum">
+        <Field label={t("Minimum")}>
           <input
             inputMode="decimal"
             value={value.minimum || ""}
             onChange={(e) => field("minimum", e.target.value)}
           />
         </Field>
-        <Field label="Maximum">
+        <Field label={t("Maximum")}>
           <input
             inputMode="decimal"
             value={value.maximum || ""}
@@ -142,7 +150,7 @@ function ParameterFields({
         </Field>
       </div>
       <Button type="button" className="danger" onClick={remove}>
-        Remove parameter
+        {t("Remove parameter")}
       </Button>
     </section>
   );
@@ -178,18 +186,20 @@ export function SemanticEditor({
   return (
     <Drawer
       wide
-      title={template ? "Edit query template" : "Edit catalog entry"}
-      subtitle="Save changes to the draft. Agents only see published content."
+      title={template ? t("Edit query template") : t("Edit catalog entry")}
+      subtitle={t(
+        "Save changes to the draft. Agents only see published content.",
+      )}
       onClose={() => {
         if (!busy) onClose();
       }}
       footer={
         <>
           <Button type="button" disabled={busy} onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button primary form="semantic-entry-form" type="submit" busy={busy}>
-            Save draft entry
+            {t("Save draft entry")}
           </Button>
         </>
       }
@@ -210,7 +220,7 @@ export function SemanticEditor({
               Object.values(enums).some((v) => typeof v !== "string")
             )
               throw new Error(
-                "Enum meanings must be a JSON object with string values.",
+                t("Enum meanings must be a JSON object with string values."),
               );
             await onSave({ ...form, enums });
           } catch (e) {
@@ -221,11 +231,14 @@ export function SemanticEditor({
         }}
       >
         <div className="field-grid">
-          <Field label="Entry ID" hint="Stable reference used by Agents.">
+          <Field
+            label={t("Entry ID")}
+            hint={t("Stable reference used by Agents.")}
+          >
             <input value={form.id} readOnly />
           </Field>
           {!template && (
-            <Field label="Entry kind">
+            <Field label={t("Entry kind")}>
               <select
                 value={form.kind}
                 onChange={(e) => {
@@ -247,13 +260,15 @@ export function SemanticEditor({
                 }}
               >
                 {entryKinds.map((v) => (
-                  <option key={v}>{v}</option>
+                  <option key={v} value={v}>
+                    {t(v)}
+                  </option>
                 ))}
               </select>
             </Field>
           )}
         </div>
-        <Field label="Name" required>
+        <Field label={t("Name")} required>
           <input
             required
             maxLength={256}
@@ -262,8 +277,8 @@ export function SemanticEditor({
           />
         </Field>
         <Field
-          label="Aliases"
-          hint="One alias per line. Business content may use any language."
+          label={t("Aliases")}
+          hint={t("One alias per line. Business content may use any language.")}
         >
           <textarea
             rows={2}
@@ -271,7 +286,7 @@ export function SemanticEditor({
             onChange={(e) => update("aliases", e.target.value.split("\n"))}
           />
         </Field>
-        <Field label={template ? "Purpose" : "Definition"}>
+        <Field label={template ? t("Purpose") : t("Definition")}>
           <textarea
             rows={3}
             value={form.description || ""}
@@ -282,19 +297,19 @@ export function SemanticEditor({
           <ReferenceFields
             value={form.reference || { namespace: "", object: "" }}
             onChange={(v) => update("reference", v)}
-            prefix="Reference"
+            prefix={t("Reference")}
           />
         )}
         {!template && (
           <>
             <div className="field-grid">
-              <Field label="Data type">
+              <Field label={t("Data type")}>
                 <input
                   value={form.data_type || ""}
                   onChange={(e) => update("data_type", e.target.value)}
                 />
               </Field>
-              <Field label="Unit">
+              <Field label={t("Unit")}>
                 <input
                   value={form.unit || ""}
                   onChange={(e) => update("unit", e.target.value)}
@@ -302,8 +317,8 @@ export function SemanticEditor({
               </Field>
             </div>
             <Field
-              label="Enum meanings (JSON)"
-              hint={'For example {"paid":"Payment completed"}'}
+              label={t("Enum meanings (JSON)")}
+              hint={t('For example {"paid":"Payment completed"}')}
             >
               <textarea
                 rows={3}
@@ -311,7 +326,7 @@ export function SemanticEditor({
                 onChange={(e) => setEnumText(e.target.value)}
               />
             </Field>
-            <Field label="Time definition">
+            <Field label={t("Time definition")}>
               <textarea
                 rows={2}
                 value={form.time_definition || ""}
@@ -320,18 +335,18 @@ export function SemanticEditor({
             </Field>
             {form.kind === "metric" && (
               <>
-                <Field label="Grain">
+                <Field label={t("Grain")}>
                   <input
                     value={form.grain || ""}
                     onChange={(e) => update("grain", e.target.value)}
                   />
                 </Field>
-                <Field label="Query template">
+                <Field label={t("Query template")}>
                   <select
                     value={form.template_id || ""}
                     onChange={(e) => update("template_id", e.target.value)}
                   >
-                    <option value="">No linked template</option>
+                    <option value="">{t("No linked template")}</option>
                     {entries
                       .filter((v) => v.template)
                       .map((v) => (
@@ -345,11 +360,11 @@ export function SemanticEditor({
             )}
             {form.kind === "relationship" && (
               <section className="form-section">
-                <h3>Related objects in this data source</h3>
+                <h3>{t("Related objects in this data source")}</h3>
                 {(form.related || []).map((ref, i) => (
                   <div key={i}>
                     <ReferenceFields
-                      prefix={`Reference ${i + 1}`}
+                      prefix={t("Reference {value1}", { value1: i + 1 })}
                       value={ref}
                       onChange={(v) =>
                         update(
@@ -368,7 +383,8 @@ export function SemanticEditor({
                         )
                       }
                     >
-                      Remove reference {i + 1}
+                      {t("Remove reference ")}
+                      {i + 1}
                     </Button>
                   </div>
                 ))}
@@ -381,13 +397,13 @@ export function SemanticEditor({
                     ])
                   }
                 >
-                  Add reference
+                  {t("Add reference")}
                 </Button>
               </section>
             )}
           </>
         )}
-        <Field label="Caveats">
+        <Field label={t("Caveats")}>
           <textarea
             rows={2}
             value={form.caveats || ""}
@@ -398,7 +414,8 @@ export function SemanticEditor({
           <>
             <section className="form-section">
               <h3>
-                Executable definition · <code>{template.tool}</code>
+                {t("Executable definition · ")}
+                <code>{template.tool}</code>
               </h3>
               <label className="checkbox-row">
                 <input
@@ -406,12 +423,14 @@ export function SemanticEditor({
                   checked={template.enabled}
                   onChange={(e) => editTemplate({ enabled: e.target.checked })}
                 />{" "}
-                Enabled after publication
+                {t("Enabled after publication")}
               </label>
               <Field
-                label="Native query (JSON)"
+                label={t("Native query (JSON)")}
                 required
-                hint="Use the native tool's query structure. Do not include source_id, cursor or query limits."
+                hint={t(
+                  "Use the native tool's query structure. Do not include source_id, cursor or query limits.",
+                )}
               >
                 <textarea
                   className="query-editor"
@@ -422,41 +441,60 @@ export function SemanticEditor({
                   onChange={(e) => editTemplate({ query_json: e.target.value })}
                 />
               </Field>
-              <section className="form-section">
-                <h3>Ontology concepts</h3>
+              <details className="advanced semantic-concepts">
+                <summary>
+                  {t("Ontology concepts")}{" "}
+                  <small>
+                    {t("{count} selected", {
+                      count: (template.concept_refs || []).length,
+                    })}
+                  </small>
+                </summary>
                 <p className="help">
-                  Explicit associations are included in native results. Changing
-                  associations does not change the query or its trial evidence.
+                  {t(
+                    "Explicit associations are included in native results. Changing associations does not change the query or its trial evidence.",
+                  )}
                 </p>
-                {[
-                  ...new Set([...concepts, ...(template.concept_refs || [])]),
-                ].map((ref) => (
-                  <label className="checkbox-row" key={ref}>
-                    <input
-                      type="checkbox"
-                      checked={(template.concept_refs || []).includes(ref)}
-                      onChange={(e) =>
-                        editTemplate({
-                          concept_refs: e.target.checked
-                            ? [...(template.concept_refs || []), ref]
-                            : template.concept_refs?.filter((v) => v !== ref),
-                        })
-                      }
-                    />
-                    <code>{ref}</code>
-                    {!concepts.includes(ref)
-                      ? " (unmapped; remove before publishing)"
-                      : ""}
-                  </label>
-                ))}
+                <div
+                  className="checkbox-list semantic-concept-list"
+                  role="group"
+                  aria-label={t("Ontology concepts")}
+                >
+                  {[
+                    ...new Set([...concepts, ...(template.concept_refs || [])]),
+                  ].map((ref) => (
+                    <label className="checkbox-row" key={ref}>
+                      <input
+                        type="checkbox"
+                        checked={(template.concept_refs || []).includes(ref)}
+                        onChange={(e) =>
+                          editTemplate({
+                            concept_refs: e.target.checked
+                              ? [...(template.concept_refs || []), ref]
+                              : template.concept_refs?.filter((v) => v !== ref),
+                          })
+                        }
+                      />
+                      <span>
+                        <code>{ref}</code>
+                        {!concepts.includes(ref) && (
+                          <small>
+                            {t(" (unmapped; remove before publishing)")}
+                          </small>
+                        )}
+                      </span>
+                    </label>
+                  ))}
+                </div>
                 {concepts.length === 0 && (
                   <p className="help">
-                    Map ontology concepts in the Ontology mapping section to
-                    associate them here.
+                    {t(
+                      "Map ontology concepts in the Ontology mapping section to associate them here.",
+                    )}
                   </p>
                 )}
-              </section>
-              <h3>Parameters</h3>
+              </details>
+              <h3>{t("Parameters")}</h3>
               {(template.parameters || []).map((param, i) => (
                 <ParameterFields
                   key={i}
@@ -491,12 +529,14 @@ export function SemanticEditor({
                   })
                 }
               >
-                Add parameter
+                {t("Add parameter")}
               </Button>
               <Field
-                label="Example parameters (JSON)"
+                label={t("Example parameters (JSON)")}
                 required
-                hint="A real read-only trial uses these values. Successful trial evidence stores no result data."
+                hint={t(
+                  "A real read-only trial uses these values. Successful trial evidence stores no result data.",
+                )}
               >
                 <textarea
                   className="query-editor"
@@ -509,7 +549,7 @@ export function SemanticEditor({
                   }
                 />
               </Field>
-              <Field label="Result description">
+              <Field label={t("Result description")}>
                 <textarea
                   rows={3}
                   value={template.result_description || ""}
@@ -518,6 +558,10 @@ export function SemanticEditor({
                   }
                 />
               </Field>
+              <RegressionEditor
+                tests={template.tests || []}
+                update={(tests) => editTemplate({ tests })}
+              />
             </section>
           </>
         )}

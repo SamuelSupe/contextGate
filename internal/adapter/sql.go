@@ -9,7 +9,7 @@ import (
 	"errors"
 	"fmt"
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	duckdb "github.com/duckdb/duckdb-go/v2"
 	mysql "github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5"
@@ -65,7 +65,7 @@ func openSQL(ctx context.Context, s model.Source) (Connection, error) {
 		}
 		cfg.TLSConfig = tc
 		cfg.ConnectTimeout = 10 * time.Second
-		cfg.RuntimeParams["application_name"] = "mcpdbhub"
+		cfg.RuntimeParams["application_name"] = "contextgate"
 		db = stdlib.OpenDB(*cfg)
 	case "mysql", "mariadb", "tidb":
 		cfg := mysql.NewConfig()

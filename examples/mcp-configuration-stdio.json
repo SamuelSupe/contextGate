@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "contextgate-configuration": {
+      "command": "contextgate",
+      "args": [
+        "stdio",
+        "--url",
+        "http://127.0.0.1:8080/mcp/config"
+      ],
+      "env": {
+        "MCPDBHUB_TOKEN": "YOUR_CONFIGURATION_TOKEN"
+      }
+    }
+  }
+}

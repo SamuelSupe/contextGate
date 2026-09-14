@@ -2,7 +2,7 @@
 
 [简体中文](read-only-accounts.zh-CN.md)
 
-A database administrator runs these commands in the database. MCP DB Hub does not create accounts, modify grants or probe privileges by attempting writes. Replace the example database, username and password with your own values. Use dedicated accounts without inherited extra roles. Database permissions, views and RLS control table, column and row visibility.
+A database administrator runs these commands in the database. ContextGate does not create accounts, modify grants or probe privileges by attempting writes. Replace the example database, username and password with your own values. Use dedicated accounts without inherited extra roles. Database permissions, views and RLS control table, column and row visibility.
 
 ## PostgreSQL / TimescaleDB
 
@@ -26,7 +26,7 @@ GRANT SELECT, SHOW VIEW ON app.* TO 'hub_reader'@'%';
 SHOW GRANTS FOR 'hub_reader'@'%';
 ```
 
-Restrict `%` to the Hub network in an actual deployment. MySQL/MariaDB use a read-only transaction for each query. TiDB does not rely on a read-only transaction hint: SHOW GRANTS must explicitly contain only SELECT/SHOW VIEW/USAGE. Indirect roles, complex column grants and unrecognized grants are conservatively rejected; configure a dedicated account with direct grants.
+Restrict `%` to ContextGate network in an actual deployment. MySQL/MariaDB use a read-only transaction for each query. TiDB does not rely on a read-only transaction hint: SHOW GRANTS must explicitly contain only SELECT/SHOW VIEW/USAGE. Indirect roles, complex column grants and unrecognized grants are conservatively rejected; configure a dedicated account with direct grants.
 
 ## CockroachDB
 
@@ -61,7 +61,7 @@ db.createUser({user: "hub_reader", pwd: "REPLACE_WITH_RANDOM_PASSWORD",
                roles: [{role: "read", db: "app"}]})
 ```
 
-Set auth_source to the database where the user was created; replica sets can specify replica_set. Hub checks effective actions from connectionStatus and reports unverified privileges when evidence is incomplete.
+Set auth_source to the database where the user was created; replica sets can specify replica_set. ContextGate checks effective actions from connectionStatus and reports unverified privileges when evidence is incomplete.
 
 ## Redis / Valkey
 
@@ -69,13 +69,13 @@ Set auth_source to the database where the user was created; replica sets can spe
 ACL SETUSER hub_reader on >REPLACE_WITH_RANDOM_PASSWORD ~app:* -@all +@read +ping +info
 ```
 
-Use database ACLs to restrict key patterns. Hub applies a narrower command allowlist, so not every command in `@read` is available. Disabling INFO can prevent some version discovery. Cluster topologies and Sentinel failover are outside the tested matrix.
+Use database ACLs to restrict key patterns. ContextGate applies a narrower command allowlist, so not every command in `@read` is available. Disabling INFO can prevent some version discovery. Cluster topologies and Sentinel failover are outside the tested matrix.
 
 ## Elasticsearch / OpenSearch
 
 For Elasticsearch, grant a dedicated role `read` and `view_index_metadata` on the target indexes; version discovery may require minimal cluster-monitor privileges. For OpenSearch Security, grant the `read` action group on the target index pattern and the metadata privileges needed for mapping/version discovery. Do not grant write, manage or arbitrary proxy-path privileges.
 
-Configure a username/password or a product-supported bearer token, enable TLS and provide the CA in the UI. Both products were tested with security plugins and HTTPS. Dedicated reader roles passed queries, discovery and MCP calls; direct writes returned HTTP 403, and connections with an untrusted CA failed. This fixture evidence does not imply that Hub can enumerate every effective production-account privilege, so generic UI probes retain an account-permissions-unverified status. Multi-node and other authorization-plugin combinations were not validated.
+Configure a username/password or a product-supported bearer token, enable TLS and provide the CA in the UI. Both products were tested with security plugins and HTTPS. Dedicated reader roles passed queries, discovery and MCP calls; direct writes returned HTTP 403, and connections with an untrusted CA failed. This fixture evidence does not imply that ContextGate can enumerate every effective production-account privilege, so generic UI probes retain an account-permissions-unverified status. Multi-node and other authorization-plugin combinations were not validated.
 
 ## Neo4j
 
@@ -103,8 +103,8 @@ An administrator must enable HTTP authentication before configuring this user. N
 
 ## InfluxDB 2.x
 
-Create an API token in the InfluxDB UI with read permission only for the required bucket. Configure token, org and bucket in Hub. Do not use an all-access token. Flux supports a read-only subset with native literal parameters; imports, network access and writes are disabled.
+Create an API token in the InfluxDB UI with read permission only for the required bucket. Configure token, org and bucket in ContextGate. Do not use an all-access token. Flux supports a read-only subset with native literal parameters; imports, network access and writes are disabled.
 
 ## InfluxDB 3 Core
 
-Under the explicit Core exception, configure an available Core token. Hub exposes only fixed read endpoints such as `/api/v3/query_sql` and `/api/v3/query_influxql`. **An administrator token retains administration/write privileges; the UI labels this query API isolation.** This status is not equivalent to a read-only database account. See the [InfluxDB 3 query API](https://docs.influxdata.com/influxdb3/core/api/query-data/).
+Under the explicit Core exception, configure an available Core token. ContextGate exposes only fixed read endpoints such as `/api/v3/query_sql` and `/api/v3/query_influxql`. **An administrator token retains administration/write privileges; the UI labels this query API isolation.** This status is not equivalent to a read-only database account. See the [InfluxDB 3 query API](https://docs.influxdata.com/influxdb3/core/api/query-data/).

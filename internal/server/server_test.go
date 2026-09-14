@@ -7,11 +7,13 @@ import (
 	"database/sql"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	collectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
@@ -76,12 +78,14 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 		}
 		h.json("PUT", path, input, 400)
 	}
+	configuration := h.json("POST", "/api/configuration-agents", map[string]any{"name": "Audited configuration"}, 200)
+	configurationID := configuration["id"].(string)
 	received := make(chan *collectorpb.ExportLogsServiceRequest, 16)
 	auth := make(chan string, 16)
 	testAuth := make(chan string, 16)
 	receiver := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, _ := io.ReadAll(r.Body)
-		for _, secret := range []string{"secret-query-text", "db-secret-never-echo", "export-secret", token, "SELECT note", "DELETE FROM"} {
+		for _, secret := range []string{"secret-query-text", "db-secret-never-echo", "export-secret", token, configuration["token"].(string), "SELECT note", "DELETE FROM"} {
 			if bytes.Contains(body, []byte(secret)) {
 				t.Error("sensitive data in OTLP payload")
 			}
@@ -125,21 +129,38 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 	call(t, session, "query_sql", map[string]any{"source_id": id, "query": "SELECT note FROM events WHERE note = ?", "params": []string{"secret-query-text"}}, false)
 	call(t, session, "query_sql", map[string]any{"source_id": id, "query": "DELETE FROM events"}, true)
 	call(t, session, "execute_query_template", semantic.Execution{SourceID: id, TemplateID: "amount", ExecutionVersion: "1", Parameters: map[string]any{"id": 1}}, false)
+	configurationDraft, _ := h.s.Store.Semantics(id)
+	configurationValue(t, configurationClient(t, h, configuration["token"].(string)), "trial_query_template", map[string]any{"source_id": id, "revision": strconv.FormatInt(configurationDraft.Revision, 10), "template_id": "amount"}, false)
+	configurationManagementSeen, configurationTrialSeen := false, false
 	templateSeen := false
 	seen := map[logspb.SeverityNumber]bool{}
 	deadline := time.After(8 * time.Second)
-	for len(seen) < 2 || !templateSeen {
+	for len(seen) < 2 || !templateSeen || !configurationManagementSeen || !configurationTrialSeen {
 		select {
 		case request := <-received:
 			if <-auth != "Bearer export-secret" {
 				t.Fatal("export authentication missing")
 			}
 			for _, record := range request.ResourceLogs[0].ScopeLogs[0].LogRecords {
-				seen[record.SeverityNumber] = true
 				attrs := map[string]string{}
 				for _, a := range record.Attributes {
 					attrs[a.Key] = a.Value.GetStringValue()
 				}
+				if attrs["mcpdbhub.audit.agent_id"] == configurationID {
+					if attrs["mcpdbhub.audit.operation"] == "configuration.trial_query_template" {
+						configurationManagementSeen = true
+					}
+					if attrs["mcpdbhub.audit.operation"] == "query_sql" && attrs["mcpdbhub.audit.template_id"] == "amount" {
+						configurationTrialSeen = true
+					}
+				}
+				if attrs["mcpdbhub.audit.event_kind"] == "management" {
+					if attrs["mcpdbhub.audit.request_id"] == "" {
+						t.Fatal("management audit request ID missing")
+					}
+					continue
+				}
+				seen[record.SeverityNumber] = true
 				if attrs["mcpdbhub.audit.operation"] == "execute_query_template" {
 					if attrs["mcpdbhub.audit.template_id"] != "amount" || attrs["mcpdbhub.audit.template_version"] != "1" {
 						t.Fatal("OTLP template correlation missing")
@@ -292,7 +313,7 @@ func TestDatabaseMCPMatrix(t *testing.T) {
 			call(t, other, "list_objects", map[string]any{"source_id": id}, true)
 			call(t, other, capability.Tool, f.Baseline, true)
 			var auditCount int
-			if err := h.s.Store.DB.QueryRow("SELECT count(*) FROM audit WHERE source_id=?", id).Scan(&auditCount); err != nil || auditCount < len(f.Queries) {
+			if err := h.s.Store.DB.QueryRow("SELECT count(*) FROM audit WHERE source_id=$1", id).Scan(&auditCount); err != nil || auditCount < len(f.Queries) {
 				t.Fatal("MCP audit missing", err)
 			}
 			agentID := a["agent"].(map[string]any)["id"].(string)
@@ -351,10 +372,83 @@ type hubTest struct {
 	dir    string
 }
 
+func TestAdminPasswordChangeRollsBackIfSessionRevocationFails(t *testing.T) {
+	h := newHub(t)
+	previous, err := h.s.Store.Get("admin_password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Reproduce a storage failure between updating the password and revoking
+	// sessions. The security change must either commit completely or roll back.
+	if _, err = h.s.Store.DB.Exec(`CREATE FUNCTION fail_revocation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'simulated revocation failure'; END $$; CREATE TRIGGER fail_session_revocation BEFORE DELETE ON sessions FOR EACH STATEMENT EXECUTE FUNCTION fail_revocation()`); err != nil {
+		t.Fatal(err)
+	}
+	h.json("POST", "/api/password", map[string]any{"current_password": "test-password-123456", "password": "replacement-password-123456"}, 500)
+	current, err := h.s.Store.Get("admin_password")
+	if err != nil || current != previous {
+		t.Fatal("failed password change left a new password with unrevoked sessions", err)
+	}
+	if h.json("GET", "/api/session", nil, 200)["authenticated"] != true {
+		t.Fatal("rollback did not retain the existing session")
+	}
+}
+
+func TestAdminPasswordChangeRejectsStaleAuthentication(t *testing.T) {
+	h := newHub(t)
+	source := h.source()
+	agent := h.json("POST", "/api/agents", map[string]any{"name": "Retained reader", "sources": []string{source}, "enabled": true}, 200)
+	oldHash, err := h.s.Store.Get("admin_password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	u, _ := url.Parse(h.http.URL)
+	oldCookies := h.client.Jar.Cookies(u)
+	changed := h.json("POST", "/api/password", map[string]any{"current_password": "test-password-123456", "password": "replacement-password-123456"}, 200)
+	h.csrf = changed["csrf"].(string)
+	for _, cookie := range oldCookies {
+		if cookie.Name == "hub_session" {
+			if _, err := h.s.Store.CheckSession(cookie.Value); err == nil {
+				t.Fatal("old administrator session survived password change")
+			}
+		}
+	}
+	if h.json("GET", "/api/session", nil, 200)["authenticated"] != true {
+		t.Fatal("password change did not issue a valid replacement session")
+	}
+
+	// Pause at the verification/issuance boundary deterministically: this login
+	// verified the former hash before the concurrent password change committed.
+	w := httptest.NewRecorder()
+	h.s.createSession(w, httptest.NewRequest("POST", "/api/login", nil), oldHash)
+	if w.Code != http.StatusUnauthorized || w.Header().Get("Set-Cookie") != "" {
+		t.Fatal("stale login issued an administrator session", w.Code)
+	}
+	currentHash, err := h.s.Store.Get("admin_password")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = h.s.Store.ChangeAdminPassword(oldHash, oldHash); model.ErrorCode(err) != "conflict" {
+		t.Fatal("stale password edit was not rejected", err)
+	}
+	fresh, err := h.s.Store.Get("admin_password")
+	if err != nil || fresh != currentHash || h.json("GET", "/api/session", nil, 200)["authenticated"] != true {
+		t.Fatal("stale password edit modified current credentials or sessions", err)
+	}
+	h.json("POST", "/api/login", map[string]any{"password": "test-password-123456"}, 401)
+	login := h.json("POST", "/api/login", map[string]any{"password": "replacement-password-123456"}, 200)
+	h.csrf = login["csrf"].(string)
+	if _, err := h.s.Store.TokenAgent(agent["token"].(string)); err != nil {
+		t.Fatal("password change affected the Agent credential", err)
+	}
+	if stored, err := h.s.Store.Source(source); err != nil || stored.Password != "db-secret-never-echo" {
+		t.Fatal("password change affected database credentials", err)
+	}
+}
+
 func newHub(t *testing.T) *hubTest {
 	t.Helper()
 	dir := t.TempDir()
-	st, err := store.Open(filepath.Join(dir, "config"))
+	st, err := store.Open(filepath.Join(dir, "config"), testpg.DSN(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -504,7 +598,7 @@ func TestLifecycleAuthorizationReadOnlyAndPersistence(t *testing.T) {
 	empty := h.json("POST", "/api/agents", map[string]any{"name": "No grants", "sources": []string{}, "enabled": true}, 200)
 	other := h.mcp(empty["token"].(string))
 	call(t, other, "list_objects", map[string]any{"source_id": id}, true)
-	fresh, e := store.Open(filepath.Join(h.dir, "config"))
+	fresh, e := store.Open(filepath.Join(h.dir, "config"), testpg.DSN(t, h.dir))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -514,11 +608,11 @@ func TestLifecycleAuthorizationReadOnlyAndPersistence(t *testing.T) {
 		t.Fatalf("restart persistence: %v", e)
 	}
 	var rows int
-	if e = h.s.Store.DB.QueryRow("SELECT count(*) FROM audit WHERE agent_id=?", agent["id"]).Scan(&rows); e != nil || rows < 8 {
+	if e = h.s.Store.DB.QueryRow("SELECT count(*) FROM audit WHERE agent_id=$1", agent["id"]).Scan(&rows); e != nil || rows < 8 {
 		t.Fatalf("audit not persisted: %d %v", rows, e)
 	}
 	var raw string
-	h.s.Store.DB.QueryRow("SELECT value FROM sources WHERE id=?", id).Scan(&raw)
+	h.s.Store.DB.QueryRow("SELECT value FROM sources WHERE id=$1", id).Scan(&raw)
 	if strings.Contains(raw, "db-secret") {
 		t.Fatal("plaintext source stored")
 	}
@@ -627,7 +721,7 @@ func TestOAuthPKCERotationReplayAndRevocation(t *testing.T) {
 	}
 	v.Set("code", authorize(true))
 	expired := h.form("/oauth/token", v, 200)
-	if _, e := h.s.Store.DB.Exec("UPDATE oauth SET expires=? WHERE kind IN ('access','refresh')", time.Now().Add(-time.Minute).Unix()); e != nil {
+	if _, e := h.s.Store.DB.Exec("UPDATE oauth SET expires=$1 WHERE kind IN ('access','refresh')", time.Now().Add(-time.Minute).Unix()); e != nil {
 		t.Fatal(e)
 	}
 	if _, e := h.s.OAuth.Principal(ctx, expired["access_token"].(string)); e == nil {
@@ -830,7 +924,7 @@ func TestAgentEmptyGrantsRemainEditable(t *testing.T) {
 		// Simulate an existing row from a version that persisted omitted grants as null.
 		a["sources"] = nil
 		legacy, _ := json.Marshal(a)
-		if _, err := h.s.Store.DB.Exec("UPDATE agents SET value=? WHERE id=?", string(legacy), id); err != nil {
+		if _, err := h.s.Store.DB.Exec("UPDATE agents SET value=$1 WHERE id=$2", string(legacy), id); err != nil {
 			t.Fatal(err)
 		}
 		response := h.req("GET", "/api/agents", nil, "application/json", 200)
@@ -1139,5 +1233,391 @@ func TestOAuthClientManagementRevokesCredentialsAndPreservesOtherClients(t *test
 	}
 	if _, err := h.s.principal(ctx, otherTokens["access_token"].(string)); err != nil {
 		t.Fatal("unrelated client revoked", err)
+	}
+}
+
+func TestEvaluationActivityIsolationAndReadiness(t *testing.T) {
+	h := newHub(t)
+	source := h.source()
+	a := h.json("POST", "/api/agents", map[string]any{"name": "Evaluation reader", "sources": []string{source}, "enabled": true}, 200)
+	agent := a["agent"].(map[string]any)["id"].(string)
+	now := time.Now().Add(-time.Minute)
+	for _, row := range []model.Audit{
+		{AgentID: agent, SourceID: source, Operation: "query_sql", ElapsedMS: 12},
+		{AgentID: agent, SourceID: source, Operation: "execute_query_template", ElapsedMS: 18, ErrorCode: "template_changed"},
+		{AgentID: agent, SourceID: source, Operation: "namespaces", ElapsedMS: 2},
+		{AgentID: agent, SourceID: source, Operation: "query_sql", ElapsedMS: 999, Preview: true},
+		{AgentID: "another-agent", SourceID: source, Operation: "query_sql", ElapsedMS: 999},
+		{AgentID: agent, SourceID: "another-source", Operation: "query_sql", ElapsedMS: 999},
+	} {
+		row.At = now
+		if err := h.s.Store.Audit(row); err != nil {
+			t.Fatal(err)
+		}
+	}
+	path := "/api/sources/" + source + "/evaluation?agent_id=" + agent
+	capture := h.json("GET", path+"&from="+now.Add(-time.Second).UTC().Format(time.RFC3339), nil, 200)
+	stats := capture["stats"].(map[string]any)
+	if stats["calls"] != float64(3) || stats["queries"] != float64(2) || stats["successful_queries"] != float64(1) || stats["errors"] != float64(1) || stats["elapsed_ms"] != float64(32) {
+		t.Fatal(stats)
+	}
+	empty := h.json("GET", path, nil, 200)["stats"].(map[string]any)
+	if empty["calls"] != float64(0) {
+		t.Fatal("new capture includes prior activity", empty)
+	}
+	h.json("GET", path+"&from=invalid", nil, 400)
+	h.json("GET", path+"&from="+now.Add(-25*time.Hour).UTC().Format(time.RFC3339), nil, 400)
+	ready := h.json("GET", "/api/sources/"+source+"/readiness", nil, 200)
+	if ready["last_query"] == nil || len(ready["active_agents"].([]any)) != 1 {
+		t.Fatal(ready)
+	}
+	// Query success is not inferred from previews or metadata discovery.
+	if _, err := h.s.Store.DB.Exec("DELETE FROM audit WHERE preview=FALSE AND operation IN ('query_sql','execute_query_template')"); err != nil {
+		t.Fatal(err)
+	}
+	ready = h.json("GET", "/api/sources/"+source+"/readiness", nil, 200)
+	if ready["last_query"] != nil {
+		t.Fatal("preview/discovery counted as a real query", ready)
+	}
+	for _, endpoint := range []string{path, "/api/sources/" + source + "/readiness"} {
+		req, _ := http.NewRequest("GET", h.http.URL+endpoint, nil)
+		req.Header.Set("Authorization", "Bearer "+a["token"].(string))
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != 401 {
+			t.Fatalf("Agent accessed administrator workflow: %d", res.StatusCode)
+		}
+	}
+}
+
+func TestEvaluationHistoryLifecycle(t *testing.T) {
+	h := newHub(t)
+	source, otherSource := h.source(), h.source()
+	base := "/api/sources/" + source + "/evaluation"
+	a := h.json("POST", "/api/agents", map[string]any{"name": "Dedicated evaluator", "sources": []string{source}, "enabled": true}, 200)
+	agent := a["agent"].(map[string]any)["id"].(string)
+	question := map[string]any{"name": "Revenue 业务", "question": "private-business-question", "criteria": "private-acceptance-criteria", "client": "test client"}
+	saved := h.json("POST", base+"/questions", question, 200)
+	questionPath := base + "/questions/" + saved["id"].(string)
+	input := map[string]any{"name": question["name"], "question": question["question"], "criteria": question["criteria"], "client": question["client"], "case_id": saved["id"], "case_revision": saved["revision"], "agent_id": agent, "kind": "baseline"}
+	input["stats"] = map[string]any{"queries": 99}
+	h.json("POST", base+"/history", input, 400)
+	delete(input, "stats")
+	input["agent_id"] = "admin"
+	h.json("POST", base+"/history", input, 404)
+	input["agent_id"] = agent
+	v := h.json("POST", base+"/history", input, 200)
+	id := v["id"].(string)
+	path := base + "/history/" + id
+	h.json("GET", "/api/sources/"+otherSource+"/evaluation/history/"+id, nil, 404)
+	h.json("DELETE", path, map[string]any{"revision": v["revision"]}, 409)
+	h.json("POST", path+"/capture", map[string]any{"revision": v["revision"], "kind": "guided", "action": "start"}, 409)
+	h.json("PUT", path+"/review", map[string]any{"revision": v["revision"], "reviews": map[string]any{"baseline": map[string]any{"verdict": "correct"}}}, 400)
+
+	question["revision"] = saved["revision"]
+	question["question"] = "changed business question"
+	updated := h.json("PUT", questionPath, question, 200)
+	h.json("PUT", questionPath, question, 409)
+	h.json("POST", base+"/history", input, 409)
+	retained := h.json("GET", path, nil, 200)
+	if retained["question"] != input["question"] || retained["case_revision"] != saved["revision"] {
+		t.Fatal("editing a reusable question rewrote history", retained)
+	}
+
+	client := h.mcp(a["token"].(string))
+	call(t, client, "query_sql", map[string]any{"source_id": source, "query": "SELECT amount FROM events WHERE id=?", "params": []any{1}}, false)
+	for _, row := range []model.Audit{
+		{AgentID: agent, SourceID: source, Operation: "query_sql", Preview: true},
+		{AgentID: "another-agent", SourceID: source, Operation: "query_sql"},
+		{AgentID: agent, SourceID: otherSource, Operation: "query_sql"},
+	} {
+		row.At = time.Now()
+		if err := h.s.Store.Audit(row); err != nil {
+			t.Fatal(err)
+		}
+	}
+	time.Sleep(2 * time.Millisecond)
+	v = h.json("POST", path+"/capture", map[string]any{"revision": v["revision"], "kind": "baseline", "action": "collect"}, 200)
+	baseline := v["runs"].(map[string]any)["baseline"].(map[string]any)
+	stats := baseline["stats"].(map[string]any)
+	if stats["calls"] != float64(1) || stats["successful_queries"] != float64(1) {
+		t.Fatal("capture includes calls from another identity, source or preview", stats)
+	}
+	oldRevision := v["revision"]
+	review := map[string]any{"baseline": map[string]any{"verdict": "correct", "notes": "private-review-notes"}}
+	v = h.json("PUT", path+"/review", map[string]any{"revision": v["revision"], "reviews": review}, 200)
+	h.json("PUT", path+"/review", map[string]any{"revision": oldRevision, "reviews": review}, 409)
+	h.json("PUT", path+"/review", map[string]any{"revision": v["revision"], "reviews": map[string]any{"baseline": map[string]any{"verdict": "correct", "stats": stats}}}, 400)
+	v = h.json("POST", path+"/capture", map[string]any{"revision": v["revision"], "kind": "guided", "action": "start"}, 200)
+	h.json("DELETE", "/api/agents/"+agent, map[string]any{"revision": a["agent"].(map[string]any)["revision"]}, 200)
+	v = h.json("POST", path+"/capture", map[string]any{"revision": v["revision"], "kind": "guided", "action": "collect"}, 200)
+	if !v["runs"].(map[string]any)["guided"].(map[string]any)["configuration_changed"].(bool) {
+		t.Fatal("grant revocation did not mark the changed evaluation conditions")
+	}
+	delete(input, "case_id")
+	delete(input, "case_revision")
+	h.json("POST", base+"/history", input, 404)
+	h.json("DELETE", questionPath, map[string]any{"revision": updated["revision"]}, 200)
+	if _, err := h.s.Store.DB.Exec("DELETE FROM audit"); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := store.Open(filepath.Join(h.dir, "config"), testpg.DSN(t, h.dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	recovered, err := reopened.Evaluation(source, id)
+	reopened.Close()
+	if err != nil || recovered.Runs["baseline"].Stats.SuccessfulQueries != 1 || recovered.Runs["baseline"].Notes != "private-review-notes" || recovered.Question != input["question"] {
+		t.Fatal("history did not survive reopening, case deletion and audit retention", recovered, err)
+	}
+	var sealed string
+	if err := h.s.Store.DB.QueryRow("SELECT value FROM evaluations WHERE source_id=$1 AND id=$2", source, id).Scan(&sealed); err != nil {
+		t.Fatal(err)
+	}
+	for _, secret := range []string{"private-business-question", "private-acceptance-criteria", "private-review-notes"} {
+		if strings.Contains(sealed, secret) {
+			t.Fatal("evaluation persisted in plaintext", secret)
+		}
+	}
+
+	for _, route := range []string{base + "/questions", base + "/history", path, path + "/capture", path + "/review"} {
+		method := "GET"
+		if strings.HasSuffix(route, "/capture") {
+			method = "POST"
+		}
+		if strings.HasSuffix(route, "/review") {
+			method = "PUT"
+		}
+		req, _ := http.NewRequest(method, h.http.URL+route, strings.NewReader("{}"))
+		req.Header.Set("Authorization", "Bearer "+a["token"].(string))
+		res, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		res.Body.Close()
+		if res.StatusCode != 401 {
+			t.Fatal("Agent accessed evaluation administration", route, res.StatusCode)
+		}
+	}
+	csrf := h.csrf
+	h.csrf = "invalid"
+	h.json("POST", base+"/questions", question, 403)
+	h.csrf = csrf
+	if err := h.s.Store.DeleteSource(source); err != nil {
+		t.Fatal(err)
+	}
+	h.json("GET", path, nil, 404)
+	for _, table := range []string{"evaluation_questions", "evaluations"} {
+		var count int
+		if err := h.s.Store.DB.QueryRow("SELECT count(*) FROM "+table+" WHERE source_id=$1", source).Scan(&count); err != nil || count != 0 {
+			t.Fatal("source deletion retained evaluation data", table, count, err)
+		}
+	}
+}
+
+func TestEvaluationPagingAndExpiredCapture(t *testing.T) {
+	h := newHub(t)
+	source := h.source()
+	base := "/api/sources/" + source + "/evaluation"
+	for n := range 21 {
+		q := model.EvaluationQuestion{ID: fmt.Sprint(n), Revision: 1, Name: "Question", Question: "Q", Criteria: "C", Created: time.Now()}
+		if err := h.s.Store.SaveEvaluationQuestion(source, q, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	page := h.json("GET", base+"/questions", nil, 200)
+	if len(page["items"].([]any)) != 20 || page["next_cursor"] == "" {
+		t.Fatal(page)
+	}
+	next := h.json("GET", base+"/questions?cursor="+page["next_cursor"].(string), nil, 200)
+	if len(next["items"].([]any)) != 1 || next["next_cursor"] != "" || next["items"].([]any)[0].(map[string]any)["id"] != "0" {
+		t.Fatal(next)
+	}
+	h.json("GET", base+"/questions?cursor=-1", nil, 400)
+	a := h.json("POST", "/api/agents", map[string]any{"name": "Expired evaluation", "sources": []string{source}, "enabled": true}, 200)
+	v := h.json("POST", base+"/history", map[string]any{"name": "Expired", "question": "Q", "criteria": "C", "agent_id": a["agent"].(map[string]any)["id"], "kind": "baseline"}, 200)
+	id := v["id"].(string)
+	record, err := h.s.Store.Evaluation(source, id)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record.Runs["baseline"].Started = time.Now().Add(-25 * time.Hour)
+	record.Revision++
+	if err := h.s.Store.SaveEvaluation(record, record.Revision-1); err != nil {
+		t.Fatal(err)
+	}
+	action := map[string]any{"revision": strconv.FormatInt(record.Revision, 10), "kind": "baseline", "action": "collect"}
+	h.json("POST", base+"/history/"+id+"/capture", action, 400)
+	action["action"] = "abandon"
+	v = h.json("POST", base+"/history/"+id+"/capture", action, 200)
+	h.json("DELETE", base+"/history/"+id, map[string]any{"revision": v["revision"]}, 200)
+	if err := h.s.Store.DeleteSource(source); err != nil {
+		t.Fatal(err)
+	}
+	var count int
+	if err := h.s.Store.DB.QueryRow("SELECT count(*) FROM evaluation_questions WHERE source_id=$1", source).Scan(&count); err != nil || count != 0 {
+		t.Fatal("question cleanup failed", count, err)
+	}
+}
+
+func TestEvaluationHistoryFiltersAndSummary(t *testing.T) {
+	h := newHub(t)
+	source, other := h.source(), h.source()
+	created := time.Date(2026, 9, 12, 12, 0, 0, 0, time.UTC)
+	for n := range 26 {
+		v := model.Evaluation{ID: fmt.Sprint(n), SourceID: source, Revision: 1, Name: "Customer orders 客户", Question: "Question", AgentID: "agent-a", AgentName: "Reader", Created: created, Runs: map[string]*model.EvaluationCapture{}}
+		for _, kind := range []string{"baseline", "guided"} {
+			v.Runs[kind] = &model.EvaluationCapture{State: "completed", Verdict: "correct", Stats: &model.EvaluationStats{Queries: 1}}
+		}
+		switch n {
+		case 0:
+			v.Runs["guided"].ConfigurationChanged = true
+		case 1:
+			v.Runs["guided"].Stats.Queries = 0
+		case 2:
+			v.Runs["guided"].Verdict = "unrated"
+		case 3:
+			v.Runs["guided"].Verdict = "incorrect"
+		case 22:
+			v.SourceID = other
+		case 23:
+			v.AgentID = "agent-b"
+		case 24:
+			v.Created = created.Add(-48 * time.Hour)
+		case 25:
+			v.Question, v.Name = "Unrelated", "Other question"
+		}
+		if err := h.s.Store.SaveEvaluation(v, 0); err != nil {
+			t.Fatal(err)
+		}
+	}
+	base := "/api/sources/" + source + "/evaluation/history"
+	query := "?search=customer&agent=agent-a&from=2026-09-12T00:00:00Z&until=2026-09-13T00:00:00Z"
+	page := h.json("GET", base+query, nil, 200)
+	summary := page["summary"].(map[string]any)
+	if summary["total"] != float64(22) || summary["completed_pairs"] != float64(22) || summary["reviewed_pairs"] != float64(19) || summary["baseline_correct"] != float64(19) || summary["guided_correct"] != float64(18) || summary["changed_pairs"] != float64(1) {
+		t.Fatal(summary)
+	}
+	if len(page["items"].([]any)) != 20 || page["next_cursor"] == "" {
+		t.Fatal(page)
+	}
+	next := h.json("GET", base+query+"&cursor="+page["next_cursor"].(string), nil, 200)
+	if len(next["items"].([]any)) != 2 || next["next_cursor"] != "" || next["summary"].(map[string]any)["total"] != float64(22) {
+		t.Fatal(next)
+	}
+	if len(h.json("GET", base+"?search="+url.QueryEscape("客户")+"&agent=agent-b", nil, 200)["items"].([]any)) != 1 {
+		t.Fatal("Unicode or Agent filtering failed")
+	}
+	if len(h.json("GET", base+"?search=no-match", nil, 200)["items"].([]any)) != 0 {
+		t.Fatal("Unmatched records returned")
+	}
+	for _, q := range []string{"?from=bad", "?until=2026-01-01", "?from=2026-09-13T00:00:00Z&until=2026-09-12T00:00:00Z"} {
+		h.json("GET", base+q, nil, 400)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if _, err := h.s.Store.SearchEvaluations(ctx, source, false, 0, store.EvaluationFilter{}); err == nil {
+		t.Fatal("Cancelled search continued")
+	}
+}
+
+func TestHealthDriftDiagnosticsAndManagementAudit(t *testing.T) {
+	h := newHub(t)
+	id := h.source()
+	path := "/api/sources/" + id + "/semantics"
+	draft := semantic.Snapshot{FormatVersion: semantic.FormatVersion, Entries: []semantic.Entry{{ID: "events", Kind: "object", Name: "Events", Reference: &semantic.Reference{Object: "events"}}}}
+	saved := h.json("PUT", path, semanticInput{Snapshot: draft}, 200)
+	h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
+	cfg := h.json("GET", "/api/settings/health", nil, 200)
+	if cfg["enabled"] != false {
+		t.Fatal("periodic checks must be opt-in")
+	}
+	cfg["enabled"], cfg["interval_minutes"] = true, 5
+	h.json("PUT", "/api/settings/health", cfg, 200)
+	h.json("PUT", "/api/settings/health", cfg, 409)
+	initial := h.json("POST", "/api/health/"+id+"/check", nil, 200)
+	if initial["structure"].([]any)[0].(map[string]any)["status"] != "baseline" {
+		t.Fatal(initial)
+	}
+	db, err := sql.Open("sqlite3", filepath.Join(h.dir, "fixture.sqlite"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer db.Close()
+	if _, err = db.Exec("ALTER TABLE events ADD COLUMN extra TEXT"); err != nil {
+		t.Fatal(err)
+	}
+	changed := h.json("POST", "/api/health/"+id+"/check", nil, 200)
+	if changed["structure"].([]any)[0].(map[string]any)["status"] != "changed" {
+		t.Fatal(changed)
+	}
+	changes := changed["structure"].([]any)[0].(map[string]any)["changes"].([]any)
+	if len(changes) != 1 || changes[0].(map[string]any)["column"] != "extra" {
+		t.Fatal("field-level difference missing", changed)
+	}
+	h.json("POST", "/api/health/"+id+"/baseline", map[string]any{"checked_at": initial["checked_at"]}, 409)
+	accepted := h.json("POST", "/api/health/"+id+"/baseline", map[string]any{"checked_at": changed["checked_at"]}, 200)
+	if accepted["structure"].([]any)[0].(map[string]any)["status"] != "unchanged" {
+		t.Fatal(accepted)
+	}
+	src, _ := h.s.Store.Source(id)
+	view := publicSource(src)
+	view.Password = "rotated-private-credential"
+	h.json("PUT", "/api/sources/"+id, view, 200)
+	status := h.json("GET", "/api/health", nil, 200)
+	if status["sources"].([]any)[0].(map[string]any)["status"] != "stale" {
+		t.Fatal(status)
+	}
+	diagnostics := h.json("GET", "/api/settings/diagnostics", nil, 200)
+	if diagnostics["checks"].([]any)[1].(map[string]any)["status"] != "passed" {
+		t.Fatal(diagnostics)
+	}
+	audits, err := h.s.Store.Audits(store.AuditFilter{EventKind: "management"}, 100)
+	if err != nil {
+		t.Fatal(err)
+	}
+	operations := map[string]bool{}
+	for _, audit := range audits {
+		operations[audit.Operation] = true
+		if audit.Operation == "health.accept_baseline" && audit.SourceID != id {
+			t.Fatal("baseline audit lost its source", audit)
+		}
+		if audit.RequestID == "" || audit.ErrorCode == "operation_pending" {
+			t.Fatal("completed change was not correlated", audit)
+		}
+	}
+	if !operations["source.create"] || !operations["source.update"] || !operations["health.accept_baseline"] {
+		t.Fatal("management change not audited", operations)
+	}
+	raw, _ := json.Marshal(struct {
+		Audits      []model.Audit
+		Diagnostics any
+	}{audits, diagnostics})
+	for _, secret := range []string{"rotated-private-credential", "db-secret-never-echo", "secret-query-text", "SELECT", h.dir} {
+		if bytes.Contains(raw, []byte(secret)) {
+			t.Fatal("private input leaked to audit or diagnostics")
+		}
+	}
+	var count int
+	if err := db.QueryRow("SELECT count(*) FROM events").Scan(&count); err != nil || count != 3 {
+		t.Fatal("health check modified source data", count, err)
+	}
+	// A missing audit sink must prevent the configuration change itself.
+	if _, err := h.s.Store.DB.Exec("ALTER TABLE audit RENAME TO audit_unavailable"); err != nil {
+		t.Fatal(err)
+	}
+	h.json("DELETE", "/api/sources/"+id, nil, 503)
+	if _, err := h.s.Store.Source(id); err != nil {
+		t.Fatal("source changed without audit", err)
+	}
+	if _, err := h.s.Store.DB.Exec("ALTER TABLE audit_unavailable RENAME TO audit"); err != nil {
+		t.Fatal(err)
+	}
+	h.json("DELETE", "/api/sources/"+id, nil, 200)
+	if _, err := h.s.Store.SourceHealth(id); !errors.Is(err, sql.ErrNoRows) {
+		t.Fatal("source health was not deleted", err)
 	}
 }

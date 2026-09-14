@@ -1,17 +1,70 @@
 # Validation and reproduction
 
+## ContextGate 0.4.0 release candidate — 2026-09-14
+
+The current implementation passed the full **18-product / 20-version** OrbStack Linux arm64 matrix: **135 native query/error cases and 104 denied operations**, including HTTP MCP discovery/limits, seven-family native/template equivalence, real template trials/publication and pinned ontology mapping discovery. Fixture data remained unchanged. [Current implementation-bound matrix](verification/matrix.json).
+
+The complete Go suite and `go test -race ./...` passed using isolated PostgreSQL metadata schemas. Eight UI workflow tests, two lossless request tests, and the TypeScript/Vite production build passed. Configuration MCP integration covers separate credentials, real PostgreSQL lossless template trials, semantic/ontology drafts and mapping, revocation, HTTP/stdio and OTLP identity preservation. Source branding and module paths now use ContextGate/contextGate.
+
+Dual-architecture CI and independently downloaded archive results are attached to the [0.4.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0). Those reports identify the exact source commit and archive hashes; local amd64 execution uses OrbStack emulation. Existing Chrome UI records below describe the specific workflows they tested, not every external MCP client.
+
+
 [简体中文](validation.zh-CN.md)
 
-The records below describe checks performed on 2026-09-11 and 2026-09-12. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
+The records below describe checks performed from 2026-09-11 through 2026-09-14. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
+
+## Unreleased PostgreSQL metadata — 2026-09-14
+
+- PostgreSQL 17.11 replaced internal SQLite storage. OrbStack `go test -race ./...` passed with isolated PostgreSQL schemas, including HTTP/stdio, OAuth, semantic/ontology publication, encrypted recovery, cascade cleanup, evaluation history and OTLP. New transaction regressions protect login/password revocation and audit commit order; missing or incorrect master keys block reopening.
+- Actual PostgreSQL, MongoDB, SQLite and DuckDB adapter/MCP/template checks passed using PostgreSQL metadata, including denied operations and unchanged query fixture data. The eight frontend tests, TypeScript/Vite build and Docker image build passed. The build used the existing trusted build CA; certificate verification remained enabled.
+- The non-root image passed initialization, queries, token revocation, password recovery, ContextGate restart persistence, ontology/template execution, and OTLP HTTP/protobuf and gRPC against a real Collector. Pending audit delivery survived receiver failure and ContextGate restart. [Machine-readable record](verification/postgres-metadata.json).
+- Local port 19843 now uses a fresh PostgreSQL store. Health checks and database inspection confirmed an empty source/Agent store; local Chrome displayed administrator initialization. Old SQLite metadata was not imported. This round did not run the full 18-product matrix, native amd64/remote CI or a new dist release.
+
+## Unreleased UI languages — 2026-09-14
+
+- All eight frontend tests and the TypeScript/Vite production build passed; the embedded Go executable built in OrbStack. Focused regressions cover translation placeholders, opaque business values, preference persistence input, unavailable browser storage and lossless query parameters. Vite reports its existing single-bundle size advisory.
+- Local Chrome verified English/Simplified Chinese switching, persistence after reload, preservation of unsaved settings, translated navigation and ontology/template editing, and desktop/390×844 layouts. An isolated SQLite template was edited, trialled, published and executed as an authorized Agent in Chinese. Parameter types remained native enum values; the exact integer `9007199254740993` and business value `Settings` were unchanged. Browser warning/error logs were empty.
+- This UI change did not repeat the full external database matrix, Go race suite or release packaging. Existing administrator credentials, grants and database configuration were not changed.
+
+## Unreleased product workflows — 2026-09-12
+
+### OAuth availability and SQL locking review
+
+- Reproduced global OAuth mutation blocking with incomplete, unauthenticated token/revocation request bodies. Focused regressions failed before repair and passed afterward for these endpoints, multipart revocation, client update/secret rotation/deletion, and consent-body reparsing. Bodies now parse before mutation locks; consent reconstructs authorization from its stored form. Client revision checks and token replay protection remain inside the locks.
+- On the updated local HTTP service, an independent token request with a valid resource and an unknown client completed in approximately 2–6 ms while token/revocation uploads remained incomplete, for both URL-encoded and multipart forms. The old service blocked independent requests beyond the one-second observation window. These requests created no grants or tokens.
+- Reproduced a successful `FOR SHARE` query in a MySQL 8.4.11 read-only transaction using a SELECT-only account; an independent fixture writer then hit its one-second lock timeout. The SQL guard now checks every SELECT node, including subqueries and CTEs. Regressions reject shared-lock variants and retain ordinary CTEs containing the same words in string literals.
+- Real adapter and MCP/template matrices passed against isolated MySQL 8.4.11, MariaDB 10.11.18 and TiDB 8.5.1 instances, including native/template equivalence, denied operations and unchanged fixture data. OrbStack `go test -race ./...` passed after the final fixes. The three temporary database containers were removed.
+- The existing local service at port 19843 was rebuilt and restarted successfully. Administrator credentials and grants were preserved. This focused backend review did not repeat the complete 18-product matrix or Chrome UI interactions and did not publish a release.
+
+### Administrator authentication review
+
+The review reproduced a partial password change with a SQLite trigger that rejected session deletion: the former handler stored the new password while leaving old sessions active. Password replacement and revocation now share a transaction. Compare-and-swap rejects outdated password edits, and atomic conditional session insertion rejects a login whose verified password hash was replaced before issuance.
+
+Focused HTTP/SQLite regressions verified failure rollback, old-session rejection, replacement login, stale verification rejection and preservation of Agent/database credentials. OrbStack `go test -race ./...` and all six frontend tests passed. Password tests used temporary configuration directories; the existing local administrator password and grants were not changed. This backend review did not repeat browser interactions or the external database matrix.
+
+### Setup and UI clarity follow-up
+
+- OrbStack server, store and engine suites passed. Evaluation-history checks cover source isolation, combined filters, full-history summaries across pagination, exclusion of incomplete or changed-configuration pairs, invalid dates and cancellation. All six frontend tests passed, including exact integer/Decimal parameter handling and graph layout. The TypeScript/Vite production build passed.
+- Local Chrome exercised the client presets, parameter forms and JSON fallback, denied Agent state, empty query results, results-first evaluation, saved-review navigation protection, persistent history filters, source/semantic/ontology navigation, search recovery, settings and invalid routes. Desktop and 390×844 views were inspected; keyboard navigation and hidden-menu focus isolation passed. OTLP edits were discarded without changing the destination or credentials.
+- Real PostgreSQL and MongoDB MCP checks again matched native and template results and kept administrator previews outside client-activity metrics. Chrome also ran the SQLite template as its authorized Agent, displaying the exact integer `9007199254740993`. No database adapter behavior changed in this follow-up.
+- Codex, Cursor and VS Code presets were checked against official configuration documentation and their rendered UI. The three external clients were not each installed and connected in this round. The full database matrix, password changes and new OAuth grants were not repeated; these checks do not measure LLM answer quality or constitute a release.
+
+### Earlier workflow verification
+
+Agent setup, concept usage and paired query evaluation passed the server/engine suites, the TypeScript/Vite build and the existing graph layout tests. Real MCP calls against OrbStack PostgreSQL and MongoDB produced equivalent native/template results; administrator previews were excluded from evaluation metrics and Agent tokens were rejected by the new management APIs.
+
+Local Chrome verified setup and connection links, source-prefilled Agent creation without granting access, concept navigation using each source's pinned version, and two separate evaluation captures. The downloaded JSON contained one native query in the baseline and one template query in the guided run. Unsaved navigation protection, Escape and 390×844 setup/evaluation layouts passed; final browser warning/error logs were empty. See the [workflow record](verification/workflows.json) and [usage guide](agent-workflows.md).
+
+These checks validate workflow behavior and measurement accuracy. They do not measure LLM answer quality, repeat the full adapter matrix or establish a new release.
 
 ## v0.3.0 shared business ontologies — 2026-09-12
 
-- The final **18-product / 20-version** OrbStack matrix passed with the ontology implementation: 132 native query/error cases, 89 denied operations, and seven-family template/native equivalence plus mapped concept discovery. Target data remained unchanged. [Matrix](verification/matrix.json).
+- The final **18-product / 20-version** OrbStack matrix passed with the ontology implementation: 132 native query/error cases, 89 denied operations, and seven-family template/native equivalence plus mapped concept discovery. Target data remained unchanged. [Historical matrix](https://github.com/SamuelSupe/contextGate/blob/v0.3.0/docs/verification/matrix.json).
 - The shared Customer/Order scenario uses real PostgreSQL tables and MongoDB collections with different physical structures. It verified joins/aggregation, exact decimals, empty results, parameter rejection, mapped-only visibility, immutable version adoption, conflicts, reference deletion protection, archive behavior and encrypted restart recovery. Controlled engine tests verify request-start context and old-cursor rejection during publication. [Business and lifecycle record](verification/ontology.json).
 - OrbStack full Go race checks and the TypeScript/Vite build passed. Existing numeric request tests passed. Definition validation covers inheritance cycles, inherited property conflicts, invalid identities, missing endpoints, cardinality/range conflicts and declared versus discovered fields.
 - Local Chrome created and edited multilingual definitions, rejected and repaired invalid cardinality, imported both source mappings, trialled and published templates, inspected Agent visibility and denied an ungranted Agent. PostgreSQL and MongoDB returned native results with the correct ontology references. Publishing v3 left both sources on v2; explicitly adopting v3 for PostgreSQL left MongoDB on v2 and retained template execution version 1 without a new trial.
 - Chrome downloaded ontology and semantic v2 JSON files, verified discard/import errors, and exercised arrow-key tabs, Escape, mobile navigation and mapping forms at 390×844. A tab overflow found during validation was fixed; document width remained 390 pixels. Final browser warning/error logs were empty. [UI record](verification/ontology-ui.json).
-- Dual-architecture CI, independently extracted archives and GitHub download verification are attached to the [0.3.0 release](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0). Local amd64 archive execution uses OrbStack emulation; the external database matrix runs on Linux arm64.
+- Dual-architecture CI, independently extracted archives and GitHub download verification are attached to the [0.3.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.3.0). Local amd64 archive execution uses OrbStack emulation; the external database matrix runs on Linux arm64.
 
 ## v0.2.0 semantic catalogs and templates (historical draft)
 
@@ -22,19 +75,19 @@ The records below describe checks performed on 2026-09-11 and 2026-09-12. Databa
 - A real HTTP/API follow-up with the Chrome-created Agent token verified semantic discovery, template execution after service restart, native-query denial, JSON export/import round-trip and discard. These are API checks, not a substitute for the remaining browser interactions. [Detailed semantic record](verification/semantics.json).
 - Remaining Chrome checks (Agent preview, JSON round-trip, keyboard/narrow viewport and final console inspection) are pending because the Mac became locked. They are not reported as passed. That 0.2.0 release remained a draft. The new 0.3.0 browser checks above cover the current implementation; they do not relabel the older build as tested.
 
-Historical sections below refer to their original versions. The current matrix files now describe 0.3.0; v0.1.0 matrix evidence remains available [at its immutable tag](https://github.com/SamuelSupe/mcpdbhub/blob/v0.1.0/docs/verification/matrix.json).
+Historical sections below refer to their original versions. The current matrix files now describe 0.3.0; v0.1.0 matrix evidence remains available [at its immutable tag](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json).
 
 ## v0.1.1 release scope
 
-v0.1.1 adds OTLP audit log export. The [OTLP checks below](#otlp-audit-export--2026-09-11-after-v010) cover real Collector delivery, failure recovery, administrator boundaries and the English UI. Release-specific native CI and independently unpacked archive results are attached as [VALIDATION.json](https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.1/VALIDATION.json). PostgreSQL adapter/MCP checks were rerun for package validation; the full 18-product/20-version matrix remains the historical v0.1.0 evidence and was not rerun for this export-only change.
+v0.1.1 adds OTLP audit log export. The [OTLP checks below](#otlp-audit-export--2026-09-11-after-v010) cover real Collector delivery, failure recovery, administrator boundaries and the English UI. Release-specific native CI and independently unpacked archive results are attached as [VALIDATION.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.1.1/VALIDATION.json). PostgreSQL adapter/MCP checks were rerun for package validation; the full 18-product/20-version matrix remains the historical v0.1.0 evidence and was not rerun for this export-only change.
 
 ## v0.1.0 release verification
 
 All **18 products / 20 version combinations** passed, with **132 query/error cases and 89 rejected-operation cases**. Network databases were exercised through their native adapters and MCP HTTP; SQLite/DuckDB used real file engines and MCP. The [machine-readable matrix](verification/matrix.json) identifies the implementation digest and individual reports.
 
-The published release also passed native Linux amd64 and arm64 [GitHub CI](https://github.com/SamuelSupe/mcpdbhub/actions/runs/34586762536). Both actual Linux distribution archives were independently extracted and run in clean Debian containers. After upload, all four assets were downloaded from GitHub and matched their local hashes; both downloaded archives passed the 16-check installation workflow. Local amd64 archive execution used OrbStack emulation on arm64. Native amd64 CI did not repeat the full external database matrix.
+The published release also passed native Linux amd64 and arm64 [GitHub CI](https://github.com/SamuelSupe/contextGate/actions/runs/34586762536). Both actual Linux distribution archives were independently extracted and run in clean Debian containers. After upload, all four assets were downloaded from GitHub and matched their local hashes; both downloaded archives passed the 16-check installation workflow. Local amd64 archive execution used OrbStack emulation on arm64. Native amd64 CI did not repeat the full external database matrix.
 
-The [release validation report](https://github.com/SamuelSupe/mcpdbhub/releases/download/v0.1.0/VALIDATION.json) includes the source commit, matrix, CI results and final archive checks. See [releasing](releasing.md) for packaging and publication steps. This English documentation update does not constitute a new database test run.
+The [release validation report](https://github.com/SamuelSupe/contextGate/releases/download/v0.1.0/VALIDATION.json) includes the source commit, matrix, CI results and final archive checks. See [releasing](releasing.md) for packaging and publication steps. This English documentation update does not constitute a new database test run.
 
 ## Checks performed
 
@@ -75,8 +128,10 @@ docker run -d --name mcpdbhub-dev --network mcpdbhub-test \
 npm --prefix web ci
 npm --prefix web run build
 docker exec mcpdbhub-dev go mod download
-docker exec mcpdbhub-dev go test ./...
-docker exec mcpdbhub-dev go test -race ./internal/server ./internal/engine ./internal/oauth ./internal/adapter
+# Point this URL at a disposable PostgreSQL reachable from mcpdbhub-dev.
+export MCPDBHUB_TEST_DATABASE_URL='postgres://test:REPLACE_ME@postgres:5432/mcpdbhub_test?sslmode=disable'
+docker exec -e MCPDBHUB_TEST_DATABASE_URL mcpdbhub-dev go test ./...
+docker exec -e MCPDBHUB_TEST_DATABASE_URL mcpdbhub-dev go test -race ./internal/server ./internal/engine ./internal/oauth ./internal/adapter
 ```
 
 Build the frontend before `go:embed` compilation. The Go image provides the CGO toolchain. Fixture scripts also need curl inside the development container to reach isolated HTTP database APIs; the full Bookworm Go image includes it.
@@ -100,7 +155,7 @@ Publication checks the implementation digest and MCP verification marker; stale 
 
 ## Live-service timeout and recovery
 
-Start Hub and retain a PostgreSQL fixture in the isolated environment:
+Start ContextGate and retain a PostgreSQL fixture in the isolated environment:
 
 ```sh
 MCPDBHUB_KEEP_FIXTURES=1 python3 scripts/matrix.py postgres
@@ -175,7 +230,7 @@ This round used isolated configuration/database files and did not alter the orig
 
 - `go test -race ./...` passed in the OrbStack Go 1.26 build container. Export regressions use real HTTP, TLS and gRPC receivers plus SQLite: protobuf requests, authentication headers, retry hints, partial/permanent rejection, trusted/untrusted certificates, redirects, invalid/oversized responses, bounded caller fields, in-flight cancellation and pending records across restart.
 - An administrator/API/MCP integration test verified default-off behavior, Agent exclusion from all export administration routes, CSRF, stale revisions, invalid destinations/headers, one-way credential handling and real successful/rejected SQLite query logs without query text, values, results or credentials.
-- An isolated OrbStack Hub and official `otel/opentelemetry-collector:0.160.0` exercised HTTP/protobuf and gRPC. Chrome sent a synthetic log and saved each protocol. The Collector decoded INFO/ERROR audit events with the expected resource, correlation and typed count/duration fields.
-- Stopping the Collector left database queries working (approximately 4 ms in this small local fixture). Three pending events survived Hub restart and were exported after Collector recovery. The receiver ultimately held consecutive audit IDs 1–7 with one stable service instance ID, while pending returned to zero and accepted reached seven. These timings demonstrate isolation in this fixture, not a throughput benchmark.
+- An isolated OrbStack ContextGate and official `otel/opentelemetry-collector:0.160.0` exercised HTTP/protobuf and gRPC. Chrome sent a synthetic log and saved each protocol. The Collector decoded INFO/ERROR audit events with the expected resource, correlation and typed count/duration fields.
+- Stopping the Collector left database queries working (approximately 4 ms in this small local fixture). Three pending events survived ContextGate restart and were exported after Collector recovery. The receiver ultimately held consecutive audit IDs 1–7 with one stable service instance ID, while pending returned to zero and accepted reached seven. These timings demonstrate isolation in this fixture, not a throughput benchmark.
 - Local Chrome verified sign-in, the English Settings form, invalid header feedback, HTTP 404 test feedback, save/reload, clearing stored headers, live delivery status, keyboard focus, and desktop/390×844 layout without horizontal overflow. Stored header values disappeared after saving. No application warnings or errors were recorded in the browser console.
 - TypeScript/Vite production build passed. Database adapters were unchanged; this feature round did not rerun the 20-version database compatibility matrix or build a new release archive. The [OTLP guide](audit-export.md) describes at-least-once retries, rejection behavior and the shared 30-day retention limit.

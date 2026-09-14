@@ -20,7 +20,7 @@ def run(*args):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--version', default='0.3.0')
+    parser.add_argument('--version', required=True)
     parser.add_argument('--arch', action='append', choices=['arm64', 'amd64'])
     parser.add_argument('--build-ca', help='Optional trusted dependency-download CA')
     args = parser.parse_args()
@@ -37,43 +37,47 @@ def main():
     output = ROOT/'dist'
     output.mkdir(exist_ok=True)
     for arch in args.arch or ['arm64', 'amd64']:
-        image = f'mcpdbhub:{args.version}-{arch}'
+        image = f'contextgate:{args.version}-{arch}'
         build = ['docker', 'build', '--platform', f'linux/{arch}', '--build-arg', f'VCS_REF={commit}', '-t', image]
         if args.build_ca:
             build += ['--secret', 'id=build_ca,src='+str(pathlib.Path(args.build_ca).resolve())]
         subprocess.run([*build, '.'], cwd=ROOT, check=True)
         version = run('docker', 'run', '--rm', '--platform', f'linux/{arch}', image, 'version')
-        if version != f'mcpdbhub {args.version} (commit {commit})':
+        if version != f'ContextGate {args.version} (commit {commit})':
             raise RuntimeError('image version does not match source commit')
-        name = f'mcpdbhub-{args.version}-linux-{arch}'
-        with tempfile.TemporaryDirectory(prefix='mcpdbhub-dist-') as temporary:
+        name = f'contextgate-{args.version}-linux-{arch}'
+        with tempfile.TemporaryDirectory(prefix='contextgate-dist-') as temporary:
             package = pathlib.Path(temporary)/name
             package.mkdir()
             for directory in ('lib', 'libexec', 'licenses'):
                 (package/directory).mkdir()
-            container = 'mcpdbhub-extract-'+uuid.uuid4().hex[:10]
+            container = 'contextgate-extract-'+uuid.uuid4().hex[:10]
             run('docker', 'create', '--name', container, '--platform', f'linux/{arch}', image)
             try:
-                for source, target in [('/usr/local/bin/mcpdbhub', 'libexec/mcpdbhub'),
+                for source, target in [('/usr/local/bin/contextgate', 'libexec/contextgate'),
                                        ('/usr/local/lib/libstdc++.so.6', 'lib/libstdc++.so.6'),
                                        ('/usr/local/lib/libgcc_s.so.1', 'lib/libgcc_s.so.1'),
-                                       ('/usr/share/doc/mcpdbhub-runtime', 'licenses/gcc-runtime')]:
+                                       ('/usr/share/doc/contextgate-runtime', 'licenses/gcc-runtime')]:
                     run('docker', 'cp', container+':'+source, str(package/target))
             finally:
                 run('docker', 'rm', container)
-            launcher = package/'mcpdbhub'
-            launcher.write_text('#!/bin/sh\nset -eu\nhub_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport LD_LIBRARY_PATH="$hub_root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$hub_root/libexec/mcpdbhub" "$@"\n')
+            launcher = package/'contextgate'
+            launcher.write_text('#!/bin/sh\nset -eu\nhub_root=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)\nexport LD_LIBRARY_PATH="$hub_root/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"\nexec "$hub_root/libexec/contextgate" "$@"\n')
             launcher.chmod(0o755)
-            (package/'libexec/mcpdbhub').chmod(0o755)
+            shutil.copy2(launcher, package/'mcpdbhub')
+            (package/'libexec/contextgate').chmod(0o755)
             for filename in ('README.md', 'README.en.md', 'README.zh-CN.md',
                              'CONTRIBUTING.md', 'CHANGELOG.md', 'SECURITY.md',
                              'THIRD_PARTY_NOTICES.md', 'LICENSE', 'go.mod'):
                 if (ROOT/filename).is_file():
                     shutil.copy2(ROOT/filename, package/filename)
+            (package/'scripts').mkdir()
+            for script in ('backup-metadata.sh', 'verify-backup.sh'):
+                shutil.copy2(ROOT/'scripts'/script, package/'scripts'/script)
             for directory in ('docs', 'examples', 'third_party'):
                 shutil.copytree(ROOT/directory, package/directory)
-            binary_sha = hashlib.sha256((package/'libexec/mcpdbhub').read_bytes()).hexdigest()
-            manifest = {'version': args.version, 'commit': commit, 'os': 'linux', 'arch': arch,
+            binary_sha = hashlib.sha256((package/'libexec/contextgate').read_bytes()).hexdigest()
+            manifest = {'product': 'ContextGate', 'version': args.version, 'commit': commit, 'os': 'linux', 'arch': arch,
                         'minimum_glibc': '2.36', 'binary_sha256': binary_sha,
                         'image_id': run('docker', 'image', 'inspect', '--format', '{{.Id}}', image)}
             (package/'BUILD.json').write_text(json.dumps(manifest, indent=2)+'\n')
@@ -82,7 +86,7 @@ def main():
             with tarfile.open(archive, 'w:gz') as tar:
                 tar.add(package, arcname=name, filter=portable_metadata)
             print(archive, flush=True)
-    archives = sorted(output.glob(f'mcpdbhub-{args.version}-linux-*.tar.gz'))
+    archives = sorted(output.glob(f'contextgate-{args.version}-linux-*.tar.gz'))
     (output/'SHA256SUMS').write_text(''.join(hashlib.sha256(p.read_bytes()).hexdigest()+'  '+p.name+'\n' for p in archives))
 
 

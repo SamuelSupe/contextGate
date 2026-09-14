@@ -39,12 +39,12 @@
       "Only fixed read endpoints are exposed; database account grants are not inferred"
     ],
     "server_version": "8.19.17",
-    "checked_at": "2026-09-12T02:24:27.678958589Z"
+    "checked_at": "2026-09-14T09:22:33.931628567Z"
   },
   "query_cases": 10,
-  "verified_at": "2026-09-12T02:24:27.848820743Z",
+  "verified_at": "2026-09-14T09:22:34.09015941Z",
   "version": "8.19.17",
   "image_id": "sha256:aa6ee0ea2d708cea22a24ed44a420c5bbde9853d58a872e1e870f2086d04f652",
-  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
+  "implementation_sha256": "852303d31393378fd7d7699c09a4349b3aa454b0d01604673ff7f0cbffdf5c14",
   "environment": "OrbStack Linux arm64"
 }

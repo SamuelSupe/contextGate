@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useCallback, useEffect, useState } from "react";
 import { api, date, message, payload } from "./api";
 import {
@@ -60,7 +61,7 @@ export function OAuthClient({
             }
           : result,
       );
-    else notify("OAuth client updated");
+    else notify(t("OAuth client updated"));
     await refresh();
     try {
       await reloadAgents();
@@ -79,18 +80,19 @@ export function OAuthClient({
         .toLowerCase()
         .includes(search.toLowerCase()),
     ) || [];
-  const actionLabel =
+  const actionLabel = t(
     action?.kind === "delete"
       ? "Delete client"
       : action?.kind === "rotate"
         ? "Rotate client secret"
         : action?.client.enabled
           ? "Disable client"
-          : "Enable client";
+          : "Enable client",
+  );
   return (
     <Drawer
-      title="OAuth clients"
-      subtitle="Manage registered clients and their credentials"
+      title={t("OAuth clients")}
+      subtitle={t("Manage registered clients and their credentials")}
       wide
       onClose={() => {
         if (busy) return;
@@ -105,17 +107,19 @@ export function OAuthClient({
       <ErrorNote error={error} />
       {credential ? (
         <section className="form-section">
-          <h3>Client configuration</h3>
+          <h3>{t("Client configuration")}</h3>
           <p className="notice success">
             {credential.client_secret
-              ? "Save this client secret now. It is shown only once."
-              : "Client registered. Copy the configuration to your MCP client."}
+              ? t("Save this client secret now. It is shown only once.")
+              : t(
+                  "Client registered. Copy the configuration to your MCP client.",
+                )}
           </p>
           <pre>{JSON.stringify(credential, null, 2)}</pre>
           <div className="button-row">
             <CopyButton
               text={JSON.stringify(credential, null, 2)}
-              onCopied={() => notify("Client configuration copied")}
+              onCopied={() => notify(t("Client configuration copied"))}
             />
             <Button
               primary
@@ -124,19 +128,21 @@ export function OAuthClient({
                 setConfirmClose(false);
               }}
             >
-              I saved the configuration
+              {t("I saved the configuration")}
             </Button>
           </div>
           {confirmClose ? (
             <div className="notice warning">
-              <p>The secret cannot be shown again. Save it before closing.</p>
+              <p>
+                {t("The secret cannot be shown again. Save it before closing.")}
+              </p>
               <Button
                 onClick={() => {
                   setCredential(null);
                   onClose();
                 }}
               >
-                Close without saving
+                {t("Close without saving")}
               </Button>
             </div>
           ) : null}
@@ -147,25 +153,30 @@ export function OAuthClient({
           <strong>{action.client.client_name}</strong>
           <p>
             {action.kind === "toggle" && !action.client.enabled
-              ? "Allow new authorizations. Previously revoked credentials remain invalid; clients must authorize again."
-              : "Existing access tokens, refresh tokens and pending authorizations will be revoked. Running queries will be cancelled; Agent identities and audit history are retained."}
+              ? t(
+                  "Allow new authorizations. Previously revoked credentials remain invalid; clients must authorize again.",
+                )
+              : t(
+                  "Existing access tokens, refresh tokens and pending authorizations will be revoked. Running queries will be cancelled; Agent identities and audit history are retained.",
+                )}
           </p>
           {action.kind === "rotate" ? (
             <p>
-              The old secret stops working immediately. Save the replacement
-              secret and update your client.
+              {t(
+                "The old secret stops working immediately. Save the replacement secret and update your client.",
+              )}
             </p>
           ) : null}
           {action.kind === "delete" ? (
             <p>
-              Registration capacity is released. A client can register again and
-              request new consent. Use Disable to keep a metadata document
-              client blocked.
+              {t(
+                "Registration capacity is released. A client can register again and request new consent. Use Disable to keep a metadata document client blocked.",
+              )}
             </p>
           ) : null}
           <div className="button-row">
             <Button disabled={busy} onClick={back}>
-              Cancel
+              {t("Cancel")}
             </Button>
             <Button
               primary
@@ -199,7 +210,9 @@ export function OAuthClient({
                   );
                   setAction(null);
                   await saved(result);
-                  notify(`${actionLabel} completed`);
+                  notify(
+                    t("{actionLabel} completed", { actionLabel: actionLabel }),
+                  );
                 } catch (e) {
                   setError(message(e));
                 } finally {
@@ -224,12 +237,14 @@ export function OAuthClient({
         <>
           <div className="filters">
             <input
-              aria-label="Search OAuth clients"
-              placeholder="Search OAuth clients"
+              aria-label={t("Search OAuth clients")}
+              placeholder={t("Search OAuth clients")}
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
-            <Button onClick={() => void refresh()}>Refresh clients</Button>
+            <Button onClick={() => void refresh()}>
+              {t("Refresh clients")}
+            </Button>
             <Button
               primary
               onClick={() => {
@@ -237,7 +252,7 @@ export function OAuthClient({
                 setEditing(null);
               }}
             >
-              Register client
+              {t("Register client")}
             </Button>
           </div>
           {clients === null ? (
@@ -247,19 +262,23 @@ export function OAuthClient({
           ) : !shown.length ? (
             <Empty
               title={
-                clients?.length ? "No matching clients" : "No OAuth clients"
+                clients?.length
+                  ? t("No matching clients")
+                  : t("No OAuth clients")
               }
-              description="Register a client or connect an MCP client that supports OAuth discovery."
+              description={t(
+                "Register a client or connect an MCP client that supports OAuth discovery.",
+              )}
             />
           ) : (
             <div className="table-scroll">
               <table className="oauth-clients-table">
                 <thead>
                   <tr>
-                    <th>Client</th>
-                    <th>Authentication</th>
-                    <th>Status</th>
-                    <th>Actions</th>
+                    <th>{t("Client")}</th>
+                    <th>{t("Authentication")}</th>
+                    <th>{t("Status")}</th>
+                    <th>{t("Actions")}</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -271,27 +290,27 @@ export function OAuthClient({
                         <CopyButton text={c.client_id} />
                         <small className="block">
                           {c.metadata_document
-                            ? "Metadata document"
-                            : "Registered client"}{" "}
+                            ? t("Metadata document")
+                            : t("Registered client")}{" "}
                           ·{" "}
                           {c.created_at.startsWith("0001-")
-                            ? "Registration date unavailable"
+                            ? t("Registration date unavailable")
                             : date(c.created_at)}
                         </small>
                       </td>
                       <td>
                         {c.token_endpoint_auth_method === "none"
-                          ? "Public · PKCE"
+                          ? t("Public · PKCE")
                           : c.token_endpoint_auth_method ===
                               "client_secret_basic"
-                            ? "Secret · Basic"
-                            : "Secret · POST"}
+                            ? t("Secret · Basic")
+                            : t("Secret · POST")}
                       </td>
                       <td>
                         <span
                           className={`status ${c.enabled ? "green" : "muted"}`}
                         >
-                          {c.enabled ? "Enabled" : "Disabled"}
+                          {c.enabled ? t("Enabled") : t("Disabled")}
                         </span>
                       </td>
                       <td>
@@ -303,7 +322,7 @@ export function OAuthClient({
                               setEditing(c);
                             }}
                           >
-                            Edit client
+                            {t("Edit client")}
                           </button>
                           <button
                             className="text-button"
@@ -312,7 +331,7 @@ export function OAuthClient({
                               setAction({ client: c, kind: "toggle" });
                             }}
                           >
-                            {c.enabled ? "Disable" : "Enable"}
+                            {c.enabled ? t("Disable") : t("Enable")}
                           </button>
                           {c.token_endpoint_auth_method !== "none" ? (
                             <button
@@ -322,7 +341,7 @@ export function OAuthClient({
                                 setAction({ client: c, kind: "rotate" });
                               }}
                             >
-                              Rotate secret
+                              {t("Rotate secret")}
                             </button>
                           ) : null}
                           <button
@@ -332,7 +351,7 @@ export function OAuthClient({
                               setAction({ client: c, kind: "delete" });
                             }}
                           >
-                            Delete
+                            {t("Delete")}
                           </button>
                         </div>
                       </td>

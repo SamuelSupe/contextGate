@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { api, message, payload } from "./api";
 import { Button, ErrorNote, Field } from "./components";
@@ -55,21 +56,23 @@ export function OAuthClientForm({
         }
       }}
     >
-      <h3>{client ? "Edit client" : "Register a client"}</h3>
+      <h3>{client ? t("Edit client") : t("Register a client")}</h3>
       <ErrorNote error={error} />
       {client ? (
         <p className="help">
-          Changing redirect URIs revokes existing OAuth credentials and cancels
-          running queries. Clients must authorize again.
+          {t(
+            "Changing redirect URIs revokes existing OAuth credentials and cancels running queries. Clients must authorize again.",
+          )}
         </p>
       ) : null}
       {client?.metadata_document ? (
         <p className="notice neutral">
-          Name and redirect URIs come from the client metadata document.
+          {t("Name and redirect URIs come from the client metadata document.")}
         </p>
       ) : null}
-      <Field label="Client name" required>
+      <Field label={t("Client name")} required>
         <input
+          autoFocus
           required
           maxLength={120}
           value={name}
@@ -78,9 +81,11 @@ export function OAuthClientForm({
         />
       </Field>
       <Field
-        label="Redirect URIs"
+        label={t("Redirect URIs")}
         required
-        hint="One URI per line. HTTPS, loopback IP HTTP, and reverse-domain native app schemes are supported."
+        hint={t(
+          "One URI per line. HTTPS, loopback IP HTTP, and reverse-domain native app schemes are supported.",
+        )}
       >
         <textarea
           required
@@ -90,23 +95,27 @@ export function OAuthClientForm({
           onChange={(e) => setRedirect(e.target.value)}
         />
       </Field>
-      <Field label="Client authentication">
+      <Field label={t("Client authentication")}>
         <select
           value={method}
           disabled={busy || !!client}
           onChange={(e) => setMethod(e.target.value)}
         >
-          <option value="none">Public client — PKCE</option>
-          <option value="client_secret_basic">Client secret — Basic</option>
-          <option value="client_secret_post">Client secret — POST</option>
+          <option value="none">{t("Public client — PKCE")}</option>
+          <option value="client_secret_basic">
+            {t("Client secret — Basic")}
+          </option>
+          <option value="client_secret_post">
+            {t("Client secret — POST")}
+          </option>
         </select>
       </Field>
       <div className="button-row">
         <Button type="button" disabled={busy} onClick={cancel}>
-          Back to clients
+          {t("Back to clients")}
         </Button>
         <Button primary busy={busy} type="submit">
-          {client ? "Save client" : "Register client"}
+          {client ? t("Save client") : t("Register client")}
         </Button>
       </div>
     </form>

@@ -7,10 +7,10 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/engine"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/engine"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 )
 
 func (s *Server) ontologyRoutes(mux *http.ServeMux) {
@@ -18,6 +18,7 @@ func (s *Server) ontologyRoutes(mux *http.ServeMux) {
 		"GET /api/ontologies":                                    s.ontologies,
 		"POST /api/ontologies":                                   s.createOntology,
 		"GET /api/ontologies/{ontology}":                         s.getOntology,
+		"GET /api/ontologies/{ontology}/usage-summary":           s.ontologyUsageSummary,
 		"PUT /api/ontologies/{ontology}":                         s.changeOntology,
 		"DELETE /api/ontologies/{ontology}":                      s.changeOntology,
 		"POST /api/ontologies/{ontology}/import":                 s.changeOntology,
@@ -73,6 +74,10 @@ func (s *Server) createOntology(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	st := ontology.State{ID: in.ID, Draft: in.Definition}
 	if err := s.Store.WriteOntology(st, 0, false); err != nil {
 		semanticFailure(w, err)
@@ -118,6 +123,10 @@ func (s *Server) changeOntology(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	id := r.PathValue("ontology")
 	st, err := s.Store.Ontology(id)
 	if err != nil {

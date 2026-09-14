@@ -1,3 +1,5 @@
+import { getLocale, t, translate } from "./i18n";
+
 export const errorLabels: Record<string, string> = {
   consent_expired:
     "Authorization request expired. Start again from your client.",
@@ -15,18 +17,23 @@ export interface Diagnostic {
   request_id?: string;
   native_code?: string;
 }
-export function diagnostic(error: Diagnostic) {
+export function diagnostic(error: Diagnostic, localized = true) {
+  const text = localized
+    ? t
+    : (value: string, args?: Record<string, string>) =>
+        translate("en", value, args);
   return [
-    errorLabels[error.code] || error.message,
-    error.native_code && `Database code: ${error.native_code}.`,
-    error.request_id && `Request ID: ${error.request_id}`,
+    text(errorLabels[error.code] || error.message),
+    error.native_code &&
+      text("Database code: {code}.", { code: error.native_code }),
+    error.request_id && text("Request ID: {id}", { id: error.request_id }),
   ]
     .filter(Boolean)
     .join(" ");
 }
 export class APIError extends Error {
   constructor(public detail: Diagnostic) {
-    super(diagnostic(detail));
+    super(diagnostic(detail, false));
   }
 }
 let csrf = "";
@@ -73,6 +80,9 @@ export function message(error: unknown) {
 }
 export function date(value?: string) {
   return value
-    ? new Date(value).toLocaleString("en-GB", { hour12: false })
-    : "Never";
+    ? new Date(value).toLocaleString(
+        getLocale() === "zh-CN" ? "zh-CN" : "en-GB",
+        { hour12: false },
+      )
+    : t("Never");
 }

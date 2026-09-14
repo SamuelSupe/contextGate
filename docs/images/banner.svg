@@ -1,40 +1,20 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="380" viewBox="0 0 1280 380" role="img" aria-labelledby="title description">
-  <title id="title">MCP DB Hub</title>
-  <desc id="description">Native read-only database access for agents. Eighteen database products, eleven MCP tools, one self-hosted service.</desc>
-  <rect width="1280" height="380" rx="20" fill="#10252d"/>
-  <path d="M776 0v380M896 0v380M1016 0v380M1136 0v380M736 70h544M736 190h544M736 310h544" stroke="#1d3741"/>
-  <g font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif">
-    <rect x="54" y="44" width="40" height="40" rx="10" fill="#91d1c4"/>
-    <g fill="none" stroke="#10252d" stroke-width="2.5">
-      <ellipse cx="74" cy="56" rx="10" ry="4"/>
-      <path d="M64 56v16c0 5 20 5 20 0V56M64 64c0 5 20 5 20 0"/>
-    </g>
-    <text x="110" y="73" fill="#eef6f4" font-size="29" font-weight="700">MCP DB Hub</text>
-    <text x="54" y="161" fill="#f5f9f8" font-size="48" font-weight="700" letter-spacing="-1.5">Your databases.</text>
-    <text x="54" y="220" fill="#91d1c4" font-size="48" font-weight="700" letter-spacing="-1.5">Ready for agents.</text>
-    <text x="56" y="262" fill="#adc0c5" font-size="18">Native queries. Explicit access. Read-only execution.</text>
-    <text x="56" y="326" fill="#e1edea" font-size="15" font-weight="600">18 DATABASE PRODUCTS</text>
-    <circle cx="275" cy="321" r="2" fill="#91d1c4"/>
-    <text x="294" y="326" fill="#e1edea" font-size="15" font-weight="600">11 MCP TOOLS</text>
-    <circle cx="441" cy="321" r="2" fill="#91d1c4"/>
-    <text x="460" y="326" fill="#e1edea" font-size="15" font-weight="600">SELF-HOSTED · GO</text>
-    <path d="M810 190h71M982 190h50M1032 86v208M1032 86h31M1032 190h31M1032 294h31" fill="none" stroke="#588b8b" stroke-width="2"/>
-    <rect x="712" y="159" width="100" height="62" rx="10" fill="#19353e" stroke="#3c5f68"/>
-    <text x="762" y="185" text-anchor="middle" fill="#f0f7f5" font-size="16" font-weight="600">Agent</text>
-    <text x="762" y="205" text-anchor="middle" fill="#adc0c5" font-size="11">MCP CLIENT</text>
-    <rect x="880" y="140" width="102" height="100" rx="14" fill="#91d1c4"/>
-    <text x="931" y="180" text-anchor="middle" fill="#10252d" font-size="23" font-weight="700">Hub</text>
-    <text x="931" y="207" text-anchor="middle" fill="#264b50" font-size="11" font-weight="600">READ ONLY</text>
-    <g fill="#19353e" stroke="#3c5f68">
-      <rect x="1063" y="60" width="158" height="52" rx="9"/>
-      <rect x="1063" y="164" width="158" height="52" rx="9"/>
-      <rect x="1063" y="268" width="158" height="52" rx="9"/>
-    </g>
-    <g fill="#e1edea" font-size="15" text-anchor="middle">
-      <text x="1142" y="92">SQL &amp; analytics</text>
-      <text x="1142" y="196">Documents &amp; keys</text>
-      <text x="1142" y="300">Search, graph, time</text>
-    </g>
-    <g fill="#91d1c4"><circle cx="844" cy="190" r="4"/><circle cx="1032" cy="86" r="4"/><circle cx="1032" cy="190" r="4"/><circle cx="1032" cy="294" r="4"/></g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 390" role="img" aria-labelledby="title description">
+  <title id="title">ContextGate</title>
+  <desc id="description">Semantic Data Gateway for AI Agents. Understand your business. Query data safely.</desc>
+  <rect width="1200" height="390" rx="20" fill="#f3f8f6"/>
+  <g transform="translate(64 51)">  <path d="M51 19 32 8 12 20v24l20 12 19-11" stroke="#183f43" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33 32h25" stroke="#32b6a0" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="6.5" fill="#32b6a0"/>
+</g>
+  <g font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="145" y="92" fill="#183f43" font-size="39" font-weight="700" letter-spacing="-1.2">ContextGate</text>
+    <text x="64" y="162" fill="#506b6e" font-size="21">Semantic Data Gateway for AI Agents</text>
+    <text x="61" y="229" fill="#183f43" font-size="43" font-weight="650" letter-spacing="-1">Understand your business.</text>
+    <text x="61" y="286" fill="#167d71" font-size="43" font-weight="650" letter-spacing="-1">Query data safely.</text>
+    <text x="64" y="346" fill="#506b6e" font-size="16">Business context · Verified queries · Controlled access</text>
   </g>
+  <g transform="translate(850 94) scale(3.15)">  <path d="M51 19 32 8 12 20v24l20 12 19-11" stroke="#183f43" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33 32h25" stroke="#32b6a0" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="6.5" fill="#32b6a0"/>
+</g>
 </svg>

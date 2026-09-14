@@ -4,15 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/auditexport"
-	"github.com/SamuelSupe/mcpdbhub/internal/engine"
-	"github.com/SamuelSupe/mcpdbhub/internal/mcpserver"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/oauth"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
-	"github.com/SamuelSupe/mcpdbhub/internal/ui"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/auditexport"
+	"github.com/SamuelSupe/contextGate/internal/engine"
+	"github.com/SamuelSupe/contextGate/internal/mcpserver"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/oauth"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/ui"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"golang.org/x/time/rate"
 	"net"
@@ -24,6 +24,11 @@ import (
 )
 
 type Server struct {
+	configurationMu     sync.Mutex
+	configurationJobs   map[string]configurationJob
+	healthMu            sync.Mutex
+	healthCancel        context.CancelFunc
+	healthDone          chan struct{}
 	Store               *store.Store
 	AuditExport         *auditexport.Manager
 	Engine              *engine.Engine
@@ -51,9 +56,19 @@ func New(st *store.Store, publicURL, fileRoot string) (*Server, error) {
 		en.Close()
 		return nil, e
 	}
+	healthContext, cancelHealth := context.WithCancel(context.Background())
+	s.healthCancel, s.healthDone = cancelHealth, make(chan struct{})
+	go s.runHealth(healthContext)
 	return s, nil
 }
 func (s *Server) Close() {
+	s.configurationMu.Lock()
+	for _, job := range s.configurationJobs {
+		job.cancel()
+	}
+	s.configurationMu.Unlock()
+	s.healthCancel()
+	<-s.healthDone
 	s.Engine.Close()
 	s.AuditExport.Close()
 }
@@ -92,7 +107,7 @@ func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 			fail(w, 403, model.Fail("csrf_failed", "invalid CSRF token"))
 			return
 		}
-		next(w, r)
+		s.adminChange(next, w, r)
 	}
 }
 func (s *Server) limited(next http.HandlerFunc) http.HandlerFunc {
@@ -120,6 +135,8 @@ func (s *Server) limited(next http.HandlerFunc) http.HandlerFunc {
 }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.configurationRoutes(mux)
+	s.healthRoutes(mux)
 	s.semanticRoutes(mux)
 	s.ontologyRoutes(mux)
 	mux.HandleFunc("GET /healthz", func(w http.ResponseWriter, r *http.Request) {
@@ -135,6 +152,9 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/setup", s.limited(s.setup))
 	mux.HandleFunc("POST /api/login", s.limited(s.login))
 	mux.HandleFunc("POST /api/logout", s.requireAdmin(s.logout))
+	mux.HandleFunc("GET /api/sources/{id}/readiness", s.requireAdmin(s.sourceReadiness))
+	mux.HandleFunc("GET /api/sources/{id}/evaluation", s.requireAdmin(s.evaluationActivity))
+	s.evaluationRoutes(mux)
 	mux.HandleFunc("GET /api/sources", s.requireAdmin(s.sources))
 	mux.HandleFunc("POST /api/sources", s.requireAdmin(s.saveSource))
 	mux.HandleFunc("PUT /api/sources/{id}", s.requireAdmin(s.saveSource))

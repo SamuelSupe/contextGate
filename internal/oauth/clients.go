@@ -5,7 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 	"github.com/ory/fosite"
 	"golang.org/x/crypto/bcrypt"
 	"io"
@@ -52,7 +52,7 @@ func (s *Server) Register(ctx context.Context, in Registration, cimd bool) (map[
 	s.clientMu.Lock()
 	defer s.clientMu.Unlock()
 	var n int
-	if e := s.Store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM oauth WHERE kind='client' AND id<>?", in.ClientID).Scan(&n); e != nil {
+	if e := s.Store.DB.QueryRowContext(ctx, "SELECT COUNT(*) FROM oauth WHERE kind='client' AND id<>$1", in.ClientID).Scan(&n); e != nil {
 		return nil, e
 	}
 	if n >= 1000 {

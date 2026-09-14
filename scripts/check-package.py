@@ -18,7 +18,7 @@ import uuid
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--image', default='mcpdbhub:local')
+parser.add_argument('--image', default='contextgate:local')
 parser.add_argument('--archive', type=pathlib.Path, help='Verify an independently unpacked Linux dist instead of an image')
 parser.add_argument('--otlp', action='store_true', help='Verify audit delivery through an isolated OpenTelemetry Collector')
 parser.add_argument('--report', type=pathlib.Path, default=ROOT/'docs/verification/package.json')
@@ -33,7 +33,7 @@ def docker(*args, check=True):
 
 
 def source_digest():
-    paths = {p for base in ("cmd", "internal") for p in (ROOT/base).rglob("*.go") if not p.name.endswith("_test.go")}
+    paths = {p for base in ("cmd", "internal") for p in (ROOT/base).rglob("*") if p.suffix in (".go", ".sql") and not p.name.endswith("_test.go")}
     paths.update(p for p in (ROOT/"web/src").rglob("*") if p.is_file())
     paths.update(ROOT/p for p in ("go.mod", "go.sum", "web/package-lock.json", "Dockerfile", "internal/adapter/verified.json"))
     digest = hashlib.sha256()
@@ -82,9 +82,10 @@ def ready():
 created = False
 unpacked = None
 runtime = []
-binary = 'mcpdbhub'
+binary = 'contextgate'
 manifest = None
 collector = None
+metadata = None
 
 
 def export_view():
@@ -116,15 +117,28 @@ try:
         package = roots[0]
         manifest = json.loads((package/'BUILD.json').read_text())
         assert manifest['arch'] in ('arm64', 'amd64') and manifest['os'] == 'linux'
-        assert hashlib.sha256((package/'libexec/mcpdbhub').read_bytes()).hexdigest() == manifest['binary_sha256']
+        assert hashlib.sha256((package/'libexec/contextgate').read_bytes()).hexdigest() == manifest['binary_sha256']
         assert all((package/p).exists() for p in ('README.md', 'README.en.md', 'docs/install.md', 'docs/install.en.md', 'third_party/licenses'))
         assert all((package/p).exists() for p in ('docs/semantics.md', 'docs/semantics.zh-CN.md', 'examples/semantics/sql-postgres.json', 'docs/ontologies.md', 'docs/ontologies.zh-CN.md', 'examples/ontologies/commerce.json'))
         IMAGE = 'debian:bookworm-slim'
-        binary = '/opt/mcpdbhub/mcpdbhub'
+        binary = '/opt/contextgate/contextgate'
         runtime = ['--platform', 'linux/'+manifest['arch'], '--user', '10001:10001',
-                   '-v', str(package)+':/opt/mcpdbhub:ro', '--entrypoint', binary,
+                   '-v', str(package)+':/opt/contextgate:ro', '--entrypoint', binary,
                    '-e', 'MCPDBHUB_DATA_DIR=/data', '-e', 'MCPDBHUB_LISTEN=0.0.0.0:8080']
         docker('run', '--rm', '--platform', 'linux/'+manifest['arch'], '-v', volume+':/data', IMAGE, 'chown', '10001:10001', '/data')
+    metadata_name = name+'-postgres'
+    metadata_password = uuid.uuid4().hex
+    docker('run', '-d', '--name', metadata_name, '--network', 'mcpdbhub-test', '--cpus', '1', '--memory', '512m',
+           '-e', 'POSTGRES_USER=mcpdbhub', '-e', 'POSTGRES_PASSWORD='+metadata_password,
+           '-e', 'POSTGRES_DB=mcpdbhub', 'postgres:17.11')
+    metadata = metadata_name
+    for _ in range(80):
+        if docker('exec', metadata, 'pg_isready', '-h', '127.0.0.1', '-U', 'mcpdbhub', '-d', 'mcpdbhub', check=False).returncode == 0:
+            break
+        time.sleep(.25)
+    else:
+        raise RuntimeError('Metadata PostgreSQL did not become ready')
+    runtime += ['-e', 'MCPDBHUB_DATABASE_URL=postgres://mcpdbhub:'+metadata_password+'@'+metadata+':5432/mcpdbhub?sslmode=disable']
     docker("run", "-d", "--name", name, "--label", "com.mcpdbhub.fixture=true", "--network", "mcpdbhub-test",
            "--read-only", "--tmpfs", "/tmp:rw,noexec,nosuid,size=64m", "--cap-drop", "ALL",
            "--security-opt", "no-new-privileges", "-v", volume+":/data", "-p", "127.0.0.1::8080", *runtime, IMAGE, 'serve')
@@ -138,10 +152,12 @@ try:
     assert docker("exec", name, "id", "-u").stdout.strip() == "10001"
     assert docker("exec", name, "sh", "-c", "command -v node", check=False).returncode != 0
     version_output = docker('exec', name, binary, 'version').stdout.strip()
-    runtime_version = re.fullmatch(r'mcpdbhub (\d+\.\d+\.\d+) \(commit ([^)]+)\)', version_output)
+    runtime_version = re.fullmatch(r'ContextGate (\d+\.\d+\.\d+(?:-[A-Za-z0-9.-]+)?) \(commit ([^)]+)\)', version_output)
     assert runtime_version, 'missing runtime version'
+    legacy_binary = str(pathlib.PurePosixPath(binary).with_name('mcpdbhub'))
+    assert docker('exec', name, legacy_binary, 'version').stdout.strip() == version_output
     if manifest:
-        assert version_output == 'mcpdbhub '+manifest['version']+' (commit '+manifest['commit']+')'
+        assert version_output == 'ContextGate '+manifest['version']+' (commit '+manifest['commit']+')'
     fixture = json.loads((ROOT/"artifacts/matrix/postgres-fixture.json").read_text())[0]["source"]
     fixture.update(name="Package PostgreSQL fixture", enabled=True)
     source = request("POST", "/api/sources", fixture)
@@ -168,12 +184,16 @@ try:
     result = request("POST", "/mcp", query, agent["token"])
     assert result["result"]["structuredContent"]["data"] == [["3"]], result
     if args.otlp:
-        config = await_export(lambda status: status['accepted'] == 1 and status['pending'] == 0)['config']
+        exported = await_export(lambda status: status['accepted'] >= 1 and status['pending'] == 0)
+        http_accepted = exported['status']['accepted']
+        config = exported['config']
         config.update(protocol='grpc', endpoint='http://'+collector+':4317')
         assert request('POST', '/api/settings/audit-export/test', config)['accepted'] is True
         request('PUT', '/api/settings/audit-export', config)
         assert request('POST', '/mcp', query, agent['token'])['result']['structuredContent']['data'] == [['3']]
-        await_export(lambda status: status['accepted'] == 2 and status['pending'] == 0)
+        # Configuration changes also emit management audit records.
+        exported = await_export(lambda status: status['accepted'] > http_accepted and status['pending'] == 0)
+        grpc_accepted = exported['status']['accepted']
         docker('stop', collector)
         assert request('POST', '/mcp', query, agent['token'])['result']['structuredContent']['data'] == [['3']]
         await_export(lambda status: status['state'] == 'retrying' and status['pending'] == 1)
@@ -190,6 +210,7 @@ try:
         initialized = bridge_call({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
             'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'dist-verification', 'version': '1'}}})
         assert initialized['result']['serverInfo']['version'] == runtime_version.group(1)
+        assert initialized['result']['serverInfo']['name'] == 'contextgate'
         bridge.stdin.write(json.dumps({'jsonrpc': '2.0', 'method': 'notifications/initialized'})+'\n')
         tools = bridge_call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'})
         assert len(tools['result']['tools']) == 14
@@ -215,13 +236,27 @@ try:
     if args.otlp:
         saved = export_view()
         assert saved['config']['protocol'] == 'grpc' and saved['headers_configured'] is True
-        assert saved['status']['pending'] == 3 and saved['status']['accepted'] == 2
+        assert saved['status']['pending'] == 3 and saved['status']['accepted'] == grpc_accepted
         docker('start', collector)
-        await_export(lambda status: status['pending'] == 0 and status['accepted'] == 5)
+        await_export(lambda status: status['pending'] == 0 and status['accepted'] == grpc_accepted + 3)
         logs = docker('logs', collector)
         wire = logs.stdout+logs.stderr
         assert source['id'] in wire and 'event.name: Str(mcpdbhub.audit)' in wire
         assert 'package-test-only' not in wire and 'SELECT count(*)' not in wire and agent['token'] not in wire
+    configuration = request('POST', '/api/configuration-agents', {'name': 'Distribution setup Agent'})
+    configuration_token = configuration['token']
+    def configure(tool, arguments):
+        reply = request('POST', '/mcp/config', {'jsonrpc': '2.0', 'id': 100, 'method': 'tools/call',
+                        'params': {'name': tool, 'arguments': arguments}}, configuration_token)['result']
+        assert not reply.get('isError'), 'Configuration MCP tool failed: '+tool
+        return reply['structuredContent']
+    config_tools = request('POST', '/mcp/config', {'jsonrpc': '2.0', 'id': 101, 'method': 'tools/list'}, configuration_token)
+    assert len(config_tools['result']['tools']) == 22
+    assert configure('get_configuration_guide', {})['publication'] == 'administrator_only'
+    editable = configure('get_source_configuration', {'source_id': source['id']})
+    assert fixture['password'] not in json.dumps(editable)
+    request('POST', '/mcp/config', query, agent['token'], expected=401)
+    request('POST', '/mcp', query, configuration_token, expected=401)
     semantic_path = '/api/sources/'+source['id']+'/semantics'
     snapshot = {'format_version': 1, 'overview': 'Release package semantics', 'entries': [{
         'id': 'event-count', 'kind': 'template', 'name': 'Event count', 'template': {
@@ -229,11 +264,11 @@ try:
             'query_json': json.dumps({'query': 'SELECT count(*) FROM events WHERE id >= $1', 'params': [0]}),
             'parameters': [{'name': 'minimum_id', 'type': 'integer', 'required': True, 'pointers': ['/params/0'], 'minimum': '1'}],
             'example_json': '{"minimum_id":1}'}}]}
-    draft = request('PUT', semantic_path, {'revision': '0', 'snapshot': snapshot})
+    draft = configure('save_semantic_draft', {'source_id': source['id'], 'revision': '0', 'snapshot': snapshot})
     request('POST', semantic_path+'/publish', {'revision': draft['revision']}, expected=400)
-    request('POST', semantic_path+'/trial', {'revision': draft['revision'], 'template_id': 'event-count'})
+    configure('trial_query_template', {'source_id': source['id'], 'revision': draft['revision'], 'template_id': 'event-count'})
     published = request('POST', semantic_path+'/publish', {'revision': draft['revision']})
-    ontology = request('POST', '/api/ontologies', {'definition': {
+    ontology = configure('create_ontology', {'definition': {
         'format_version': 1, 'name': 'Package business ontology',
         'entities': [{'id': 'Event', 'name': 'Event'}], 'properties': [], 'relations': []}})
     request('POST', '/api/ontologies/'+ontology['id']+'/publish', {'revision': ontology['revision']})
@@ -243,7 +278,7 @@ try:
         'properties': [], 'relations': []}
     snapshot['entries'][0]['template']['concept_refs'] = ['ontology:entity_type:Event']
     draft = request('PUT', semantic_path, {'revision': published['revision'], 'snapshot': snapshot})
-    request('POST', semantic_path+'/check-mapping', {'revision': draft['revision']})
+    configure('check_ontology_mapping', {'source_id': source['id'], 'revision': draft['revision']})
     published = request('POST', semantic_path+'/publish', {'revision': draft['revision']})
     assert published['published']['entries'][0]['template']['execution_version'] == '1'
     preview = request('POST', semantic_path+'/preview', {'agent_id': agent['agent']['id'], 'kind': 'entity_type'})
@@ -289,9 +324,37 @@ try:
         assert 'mcpdbhub.audit.ontology_version: Str(1)' in wire
         assert 'Package business ontology' not in wire
         assert 'minimum_id' not in wire and 'SELECT count(*)' not in wire
+    bridge = subprocess.Popen(['docker', 'exec', '-i', '-e', 'MCPDBHUB_TOKEN', name, binary,
+                               'stdio', '--url', 'http://127.0.0.1:8080/mcp/config'],
+                              stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                              text=True, env={**os.environ, 'MCPDBHUB_TOKEN': configuration_token})
+    try:
+        initialized = bridge_call({'jsonrpc': '2.0', 'id': 1, 'method': 'initialize', 'params': {
+            'protocolVersion': '2025-11-25', 'capabilities': {}, 'clientInfo': {'name': 'config-dist-verification', 'version': '1'}}})
+        assert initialized['result']['serverInfo']['name'] == 'contextgate-configuration'
+        bridge.stdin.write(json.dumps({'jsonrpc': '2.0', 'method': 'notifications/initialized'})+'\n')
+        reply = bridge_call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/call', 'params': {
+            'name': 'get_semantic_draft', 'arguments': {'source_id': source['id']}}})['result']
+        assert not reply.get('isError')
+        assert reply['structuredContent']['published']['entries'][0]['id'] == 'event-count'
+    finally:
+        bridge.stdin.close()
+        try:
+            bridge.wait(timeout=10)
+        except subprocess.TimeoutExpired:
+            bridge.kill()
+            bridge.wait()
+        bridge.stdout.close()
+        bridge.stderr.close()
+    if args.otlp:
+        await_export(lambda status: status['pending'] == 0)
+        logs = docker('logs', collector)
+        wire = logs.stdout+logs.stderr
+        assert configuration['id'] in wire and 'configuration.trial_query_template' in wire
+        assert configuration_token not in wire and 'minimum_id' not in wire
     docker("stop", name)
     replacement_password = uuid.uuid4().hex
-    recovery = subprocess.run(["docker", "run", "--rm", "-i", "--read-only", "--cap-drop", "ALL",
+    recovery = subprocess.run(["docker", "run", "--rm", "-i", "--network", "mcpdbhub-test", "--read-only", "--cap-drop", "ALL",
                                "-v", volume+":/data", *runtime, IMAGE, "reset-password", "--password-stdin"],
                               input=replacement_password, text=True, capture_output=True, check=True)
     assert replacement_password not in recovery.stdout + recovery.stderr
@@ -306,19 +369,27 @@ try:
     recovered = request("POST", "/mcp", query, agent["token"])["result"]["structuredContent"]
     assert recovered["data"] == [["3"]] and recovered["ontology_context"] == content["ontology_context"]
     assert request('POST', '/mcp', native_query, agent['token'])['result']['isError'] is True
+    assert configure('get_configuration_guide', {})['publication'] == 'administrator_only'
+    request('DELETE', '/api/configuration-agents/'+configuration['id'])
+    request('POST', '/mcp/config', query, configuration_token, expected=401)
     request("DELETE", "/api/agents/"+agent["agent"]["id"])
     request("POST", "/mcp", query, agent["token"], expected=401)
     image = json.loads(docker("image", "inspect", IMAGE).stdout)[0]
-    result = {"result": "passed", "image_id": image["Id"], "architecture": image["Architecture"],
+    result = {"product": "ContextGate", "result": "passed", "image_id": image["Id"], "architecture": image["Architecture"],
               "version": runtime_version.group(1),
               "source_sha256": source_digest(), "verified_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-              "checks": ["nonroot_uid_10001", "readonly_root_filesystem", "no_node_runtime", "bootstrap",
+              "metadata_store": "PostgreSQL 17.11",
+              "checks": ["contextgate_cli_and_legacy_alias", "contextgate_stdio_server_identity", "postgres_metadata_initialization", "nonroot_uid_10001", "readonly_root_filesystem", "no_node_runtime", "bootstrap",
                          "source_persistence", "HTTP_MCP_query", "stdio_initialize_discovery_and_query", "restart_session_agent_and_source_recovery", "revoked_agent_denied",
                          "password_recovery_cli", "old_password_and_admin_sessions_rejected", "recovery_preserves_database_credentials_and_agent_token"]}
     result['checks'].extend(['template_trial_required_for_publication', 'HTTP_and_stdio_template_query',
                              'HTTP_and_stdio_templates_only_native_denial', 'published_template_and_evidence_restart_recovery', 'ontology_mapping_and_agent_projection',
                              'ontology_publication_preserves_template_evidence', 'HTTP_and_stdio_ontology_context', 'ontology_restart_recovery'])
+    result['checks'].extend(['configuration_MCP_typed_discovery', 'configuration_MCP_credential_isolation',
+                             'configuration_MCP_semantic_trial_and_ontology_workflow', 'configuration_MCP_stdio',
+                             'configuration_MCP_restart_and_revocation'])
     if args.otlp:
+        result['checks'].append('OTLP_configuration_MCP_correlation_and_redaction')
         result['collector_version'] = '0.160.0'
         result['checks'].extend(['OTLP_HTTP_protobuf', 'OTLP_gRPC', 'OTLP_header_and_payload_redaction',
                                  'OTLP_receiver_outage_query_isolation', 'OTLP_pending_restart_and_recovery'])
@@ -329,6 +400,8 @@ try:
                       archive_sha256=hashlib.sha256(args.archive.read_bytes()).hexdigest())
         result['checks'].extend(['independent_archive_extraction', 'private_runtime_libraries', 'version_matches_source', 'bilingual_installation_guides'])
         result['checks'].extend(['bilingual_semantics_guides_and_examples', 'bilingual_ontology_guides_and_examples'])
+        assert all((package/p).exists() for p in ('docs/README.md', 'docs/README.zh-CN.md', 'docs/getting-started.md', 'docs/configuration-mcp.md', 'docs/configuration-mcp.zh-CN.md', 'docs/operations.md', 'docs/releases/0.4.0.md'))
+        result['checks'].append('bundled_configuration_and_operations_help')
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(result, indent=2)+"\n")
     print(json.dumps(result))
@@ -341,6 +414,8 @@ except Exception:
 finally:
     if created:
         docker("rm", "-f", name, check=False)
+    if metadata:
+        docker("rm", "-fv", metadata, check=False)
     if collector:
         docker('rm', '-f', collector, check=False)
     docker("volume", "rm", volume, check=False)

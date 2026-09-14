@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useCallback, useState } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { api, date, message, payload } from "./api";
@@ -13,16 +14,25 @@ export function Agents({
   settings,
   reload,
   notify,
+  navigate,
+  initialQuery = "",
 }: {
   agents: Agent[];
   sources: Source[];
   settings: Settings | null;
   reload: () => Promise<void>;
   notify: (s: string) => void;
+  navigate: (url: string) => void;
+  initialQuery?: string;
 }) {
-  const [editing, setEditing] = useState<Agent | null | undefined>();
+  const entry = new URLSearchParams(initialQuery);
+  const [editing, setEditing] = useState<Agent | null | undefined>(
+    entry.get("create") === "1" ? null : undefined,
+  );
   const [oauth, setOAuth] = useState(false);
-  const [connection, setConnection] = useState<Agent | null>(null);
+  const [connection, setConnection] = useState<Agent | null>(
+    agents.find((a) => a.id === entry.get("connect")) || null,
+  );
   const [token, setToken] = useState("");
   const [confirm, setConfirm] = useState<{
     agent: Agent;
@@ -36,7 +46,7 @@ export function Agents({
     try {
       await reload();
     } catch (e) {
-      setError(`Refresh failed. ${message(e)}`);
+      setError(t("Refresh failed. {value1}", { value1: message(e) }));
     }
   }
   async function showCredential(result: { agent: Agent; token?: string }) {
@@ -44,7 +54,7 @@ export function Agents({
     if (result.token) {
       setToken(result.token);
       setConnection(result.agent);
-    } else notify("Agent grants updated");
+    } else notify(t("Agent grants updated"));
     await refresh();
   }
   async function pause(a: Agent) {
@@ -63,7 +73,9 @@ export function Agents({
       });
       await reload();
       notify(
-        a.enabled ? "Agent paused. Its token is retained." : "Agent resumed.",
+        a.enabled
+          ? t("Agent paused. Its token is retained.")
+          : t("Agent resumed."),
       );
     } catch (e) {
       setError(message(e));
@@ -75,15 +87,15 @@ export function Agents({
     <>
       <div className="page-header">
         <div>
-          <h1>Agents</h1>
-          <p>Credentials, data source grants and client connections</p>
+          <h1>{t("Agents")}</h1>
+          <p>{t("Credentials, data source grants and client connections")}</p>
         </div>
         <div className="button-row">
           <Button disabled={busy} onClick={() => void refresh()}>
             <RefreshCw size={15} />
-            Refresh
+            {t("Refresh")}
           </Button>
-          <Button onClick={() => setOAuth(true)}>OAuth clients</Button>
+          <Button onClick={() => setOAuth(true)}>{t("OAuth clients")}</Button>
           <Button
             primary
             onClick={() => {
@@ -92,23 +104,25 @@ export function Agents({
             }}
           >
             <Plus size={17} />
-            Create Agent
+            {t("Create Agent")}
           </Button>
         </div>
       </div>
       <div className="connection-strip">
-        <span>MCP endpoint</span>
+        <span>{t("MCP endpoint")}</span>
         <code>{settings?.mcp_url}</code>
         <CopyButton text={settings?.mcp_url || ""} />
       </div>
       <ErrorNote error={error} />
       {!agents.length ? (
         <Empty
-          title="No Agents yet"
-          description="Create a token and grant data source access, or connect an OAuth client."
+          title={t("No Agents yet")}
+          description={t(
+            "Create a token and grant data source access, or connect an OAuth client.",
+          )}
           action={
             <Button primary onClick={() => setEditing(null)}>
-              Create Agent
+              {t("Create Agent")}
             </Button>
           }
         />
@@ -117,11 +131,11 @@ export function Agents({
           <table className="agents-table">
             <thead>
               <tr>
-                <th>Agent</th>
-                <th>Data source grants</th>
-                <th>Credential</th>
-                <th>Client activity · 30 days</th>
-                <th>Actions</th>
+                <th>{t("Agent")}</th>
+                <th>{t("Data source grants")}</th>
+                <th>{t("Credential")}</th>
+                <th>{t("Client activity · 30 days")}</th>
+                <th>{t("Actions")}</th>
               </tr>
             </thead>
             <tbody>
@@ -136,7 +150,7 @@ export function Agents({
                     <td>
                       <strong>{a.name}</strong>
                       <small className="block">
-                        {a.auth_type === "oauth" ? "OAuth" : "Token"}
+                        {a.auth_type === "oauth" ? "OAuth" : t("Token")}
                       </small>
                     </td>
                     <td>
@@ -144,11 +158,12 @@ export function Agents({
                         .map(
                           (id) =>
                             sources.find((s) => s.id === id)?.name ||
-                            "Deleted data source",
+                            t("Deleted data source"),
                         )
-                        .join(", ") || "No grants"}
+                        .join(", ") || t("No grants")}
                       <small className={usable ? "block" : "block amber"}>
-                        {usable} enabled data sources
+                        {usable}
+                        {t(" enabled data sources")}
                       </small>
                     </td>
                     <td>
@@ -156,15 +171,16 @@ export function Agents({
                         className={`status ${a.revoked_at || !a.enabled || expired ? "muted" : "green"}`}
                       >
                         {a.revoked_at
-                          ? "Permanently revoked"
+                          ? t("Permanently revoked")
                           : !a.enabled
-                            ? "Paused"
+                            ? t("Paused")
                             : expired
-                              ? "Expired"
-                              : "Active"}
+                              ? t("Expired")
+                              : t("Active")}
                       </span>
                       <small className="block">
-                        Expires {date(a.expires_at)}
+                        {t("Expires ")}
+                        {date(a.expires_at)}
                       </small>
                     </td>
                     <td>
@@ -174,18 +190,19 @@ export function Agents({
                             className={`status ${a.activity.error_code ? "amber" : "green"}`}
                           >
                             {a.activity.error_code
-                              ? "Last call failed"
-                              : "Last call succeeded"}
+                              ? t("Last call failed")
+                              : t("Last call succeeded")}
                           </span>
                           <small className="block">
                             {date(a.activity.last_call)}
                           </small>
                           <small className="block">
-                            Last success: {date(a.activity.last_success)}
+                            {t("Last success: ")}
+                            {date(a.activity.last_success)}
                           </small>
                         </>
                       ) : (
-                        <span className="muted">No recorded calls</span>
+                        <span className="muted">{t("No recorded calls")}</span>
                       )}
                     </td>
                     <td>
@@ -198,44 +215,59 @@ export function Agents({
                             setConnection(a);
                           }}
                         >
-                          Connect
+                          {t("Connect")}
                         </button>
                         <button
                           className="text-button"
                           onClick={() => setEditing(a)}
                         >
-                          Edit grants
+                          {t("Edit grants")}
                         </button>
-                        {!a.revoked_at ? (
-                          <button
-                            className="text-button"
-                            disabled={busy || expired}
-                            onClick={() => void pause(a)}
-                          >
-                            {a.enabled ? "Pause" : "Resume"}
-                          </button>
-                        ) : null}
-                        {a.auth_type === "token" ? (
-                          <button
-                            className="text-button"
-                            onClick={() => {
-                              setError("");
-                              setConfirm({ agent: a, action: "rotate" });
-                            }}
-                          >
-                            {a.revoked_at ? "Issue new token" : "Rotate token"}
-                          </button>
-                        ) : null}
-                        {!a.revoked_at ? (
-                          <button
-                            className="text-button danger"
-                            onClick={() => {
-                              setError("");
-                              setConfirm({ agent: a, action: "revoke" });
-                            }}
-                          >
-                            Revoke
-                          </button>
+                        {!a.revoked_at || a.auth_type === "token" ? (
+                          <details className="agent-secondary-actions">
+                            <summary
+                              aria-label={t("More actions for {name}", {
+                                name: a.name,
+                              })}
+                            >
+                              {t("More")}
+                            </summary>
+                            <div className="button-row">
+                              {!a.revoked_at ? (
+                                <button
+                                  className="text-button"
+                                  disabled={busy || expired}
+                                  onClick={() => void pause(a)}
+                                >
+                                  {a.enabled ? t("Pause") : t("Resume")}
+                                </button>
+                              ) : null}
+                              {a.auth_type === "token" ? (
+                                <button
+                                  className="text-button"
+                                  onClick={() => {
+                                    setError("");
+                                    setConfirm({ agent: a, action: "rotate" });
+                                  }}
+                                >
+                                  {a.revoked_at
+                                    ? t("Issue new token")
+                                    : t("Rotate token")}
+                                </button>
+                              ) : null}
+                              {!a.revoked_at ? (
+                                <button
+                                  className="text-button danger"
+                                  onClick={() => {
+                                    setError("");
+                                    setConfirm({ agent: a, action: "revoke" });
+                                  }}
+                                >
+                                  {t("Revoke")}
+                                </button>
+                              ) : null}
+                            </div>
+                          </details>
                         ) : null}
                       </div>
                     </td>
@@ -248,6 +280,9 @@ export function Agents({
       )}
       {editing !== undefined ? (
         <AgentEditor
+          initialSources={sources
+            .filter((s) => s.id === entry.get("source_id"))
+            .map((s) => s.id)}
           reload={reload}
           agent={editing}
           sources={sources}
@@ -257,6 +292,8 @@ export function Agents({
       ) : null}
       {connection ? (
         <AgentConnection
+          sources={sources}
+          navigate={navigate}
           agent={
             token
               ? {
@@ -288,8 +325,8 @@ export function Agents({
         <Drawer
           title={
             confirm.action === "revoke"
-              ? "Permanently revoke credential"
-              : "Issue a replacement token"
+              ? t("Permanently revoke credential")
+              : t("Issue a replacement token")
           }
           onClose={() => {
             if (!busy) setConfirm(null);
@@ -297,7 +334,7 @@ export function Agents({
           footer={
             <>
               <Button disabled={busy} onClick={() => setConfirm(null)}>
-                Cancel
+                {t("Cancel")}
               </Button>
               <Button
                 primary
@@ -312,7 +349,7 @@ export function Agents({
                       });
                       setConfirm(null);
                       await reload();
-                      notify("Credential permanently revoked.");
+                      notify(t("Credential permanently revoked."));
                     } else {
                       const result = await api<{ agent: Agent; token: string }>(
                         `/api/agents/${confirm.agent.id}/token`,
@@ -329,8 +366,8 @@ export function Agents({
                 }}
               >
                 {confirm.action === "revoke"
-                  ? "Revoke permanently"
-                  : "Generate replacement token"}
+                  ? t("Revoke permanently")
+                  : t("Generate replacement token")}
               </Button>
             </>
           }
@@ -338,8 +375,12 @@ export function Agents({
           <ErrorNote error={error} />
           <p>
             {confirm.action === "revoke"
-              ? "The current credential will stop working permanently. Running queries will be cancelled. Pausing is available if you only need to suspend access temporarily."
-              : "The previous token will stop working immediately and running queries will be cancelled. Save the replacement token and update your client. Agent identity, grants and audit history are retained."}
+              ? t(
+                  "The current credential will stop working permanently. Running queries will be cancelled. Pausing is available if you only need to suspend access temporarily.",
+                )
+              : t(
+                  "The previous token will stop working immediately and running queries will be cancelled. Save the replacement token and update your client. Agent identity, grants and audit history are retained.",
+                )}
           </p>
           <strong>{confirm.agent.name}</strong>
         </Drawer>

@@ -2,7 +2,7 @@ package adapter
 
 import (
 	"encoding/json"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	"math"
 	"regexp"
 	"sort"

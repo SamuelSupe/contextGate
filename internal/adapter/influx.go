@@ -5,7 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	"io"
 	"net/http"
 	"net/url"

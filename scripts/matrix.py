@@ -45,7 +45,7 @@ def search_certificates(kind, name):
  directory.mkdir(parents=True, exist_ok=True)
  target = "/work/artifacts/matrix/tls/" + kind
  docker("exec", "mcpdbhub-dev", "openssl", "req", "-x509", "-newkey", "rsa:2048", "-nodes",
-        "-keyout", target+"/ca.key", "-out", target+"/ca.crt", "-days", "2", "-subj", "/CN=MCP DB Hub fixture CA")
+        "-keyout", target+"/ca.key", "-out", target+"/ca.crt", "-days", "2", "-subj", "/CN=ContextGate fixture CA")
  docker("exec", "mcpdbhub-dev", "openssl", "req", "-newkey", "rsa:2048", "-nodes",
         "-keyout", target+"/server.key", "-out", target+"/server.csr", "-subj", "/CN="+name)
  (directory/"extensions.cnf").write_text("subjectAltName=DNS:"+name+"\nextendedKeyUsage=serverAuth\n")
@@ -68,6 +68,9 @@ def sql_manifest(kind,host):
   manifest["queries"].append(query({"query":"SELECT replace('abc','a','x') AS value"},1,"xbc"))
   statement="SELECT format('%s','ok') AS value" if pg else "SELECT format(1234.5,1) AS value"
   manifest["queries"].append(query({"query":statement},1,"ok" if pg else "1,234.5"))
+ if kind in ("mysql", "mariadb", "tidb"):
+  manifest["queries"].append(query({"query":"WITH totals AS (SELECT id FROM events) SELECT id, 'FOR SHARE' AS note FROM totals ORDER BY id"},3,"FOR SHARE"))
+  manifest["denied"].extend({"query":q} for q in ["SELECT * FROM events FOR SHARE", "SELECT * FROM events FOR SHARE NOWAIT", "SELECT * FROM events FOR SHARE SKIP LOCKED", "SELECT * FROM events WHERE id IN (SELECT id FROM events FOR SHARE)", "WITH locked AS (SELECT * FROM events FOR SHARE) SELECT * FROM locked"])
  return manifest
 
 def provision(kind,name):
@@ -245,7 +248,7 @@ def seed(kind,name):
   return {"name":kind,"source":source,"namespace":"hubtest","object":"events","baseline":baseline,"queries":checks,"denied":denied}
  raise RuntimeError("unknown fixture "+kind)
 def implementation_digest():
- paths = [p for base in (ROOT/"cmd", ROOT/"internal") for p in base.rglob("*.go") if not p.name.endswith("_test.go")]
+ paths = [p for base in (ROOT/"cmd", ROOT/"internal") for p in base.rglob("*") if p.suffix in (".go", ".sql") and not p.name.endswith("_test.go")]
  paths.extend([ROOT/"go.mod", ROOT/"go.sum"])
  digest = hashlib.sha256()
  for path in sorted(paths):
@@ -268,6 +271,8 @@ def main():
         print("Testing", kind, flush=True)
         try:
             environment = ["-e", "MCPDBHUB_MATRIX_REPORT=/work/artifacts/matrix/results"]
+            if os.getenv("MCPDBHUB_TEST_DATABASE_URL"):
+                environment += ["-e", "MCPDBHUB_TEST_DATABASE_URL="+os.environ["MCPDBHUB_TEST_DATABASE_URL"]]
             if local:
                 adapter_test = "TestLocalDatabaseReadOnly/"+kind+"$"
                 server_test = "TestDuckDBMCPReadOnly$" if kind == "duckdb" else "TestLifecycleAuthorizationReadOnlyAndPersistence$"

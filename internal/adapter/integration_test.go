@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"encoding/pem"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	"io"
 	"net"
 	"net/http"
@@ -281,6 +281,22 @@ func TestLocalDatabaseReadOnly(t *testing.T) {
 }
 
 func TestQueryGuards(t *testing.T) {
+	for _, kind := range []string{"mysql", "mariadb", "tidb"} {
+		if err := guardSQL(kind, "WITH totals AS (SELECT id FROM events) SELECT id, 'FOR SHARE' AS note FROM totals"); err != nil {
+			t.Errorf("%s rejected a non-locking CTE: %v", kind, err)
+		}
+		for _, query := range []string{
+			"SELECT * FROM events FOR SHARE",
+			"SELECT * FROM events FOR SHARE NOWAIT",
+			"SELECT * FROM events FOR SHARE SKIP LOCKED",
+			"SELECT * FROM events WHERE id IN (SELECT id FROM events FOR SHARE)",
+			"WITH locked AS (SELECT * FROM events FOR SHARE) SELECT * FROM locked",
+		} {
+			if err := guardSQL(kind, query); err == nil {
+				t.Errorf("%s accepted a locking read: %s", kind, query)
+			}
+		}
+	}
 	for _, kind := range []string{"postgres", "mysql", "clickhouse", "sqlite", "duckdb"} {
 		for _, query := range []string{"SELECT replace('abc','a','x')", "SELECT format('%s','ok')", "SELECT truncate(1.25,1)"} {
 			if err := guardSQL(kind, query); err != nil {

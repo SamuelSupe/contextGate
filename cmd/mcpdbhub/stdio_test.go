@@ -4,9 +4,10 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/server"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/server"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"net/http/httptest"
 	"os"
@@ -27,7 +28,7 @@ func TestStdioBridgeUsesHTTPAuthorization(t *testing.T) {
 	if out, e := cmd.CombinedOutput(); e != nil {
 		t.Fatalf("build: %v %s", e, out)
 	}
-	st, e := store.Open(filepath.Join(dir, "config"))
+	st, e := store.Open(filepath.Join(dir, "config"), testpg.DSN(t, dir))
 	if e != nil {
 		t.Fatal(e)
 	}
@@ -80,5 +81,34 @@ func TestStdioBridgeUsesHTTPAuthorization(t *testing.T) {
 	r, e = session.CallTool(ctx, &mcp.CallToolParams{Name: "list_data_sources", Arguments: map[string]any{}})
 	if e == nil && !r.IsError {
 		t.Fatal("stdio bridge bypassed HTTP revocation")
+	}
+	configurationAgent, configurationToken, e := st.CreateConfigurationAgent("stdio configuration", time.Now().Add(time.Hour))
+	if e != nil {
+		t.Fatal(e)
+	}
+	configurationChild := exec.Command(binary, "stdio", "--url", base+"/mcp/config")
+	configurationChild.Env = append(os.Environ(), "MCPDBHUB_TOKEN="+configurationToken)
+	configurationClient := mcp.NewClient(&mcp.Implementation{Name: "stdio-configuration-test", Version: "1"}, nil)
+	configurationSession, e := configurationClient.Connect(ctx, &mcp.CommandTransport{Command: configurationChild}, nil)
+	if e != nil {
+		t.Fatal(e)
+	}
+	defer configurationSession.Close()
+	r, e = configurationSession.CallTool(ctx, &mcp.CallToolParams{Name: "create_ontology", Arguments: map[string]any{"id": "stdio-created", "definition": map[string]any{"format_version": 1, "name": "Stdio ontology", "entities": []any{}, "properties": []any{}, "relations": []any{}}}})
+	if e != nil || r.IsError {
+		t.Fatalf("stdio configuration edit failed: %v %v", e, r)
+	}
+	if created, e := st.Ontology("stdio-created"); e != nil || created.Draft.Name != "Stdio ontology" || created.LatestVersion != 0 {
+		t.Fatal("stdio configuration did not save a draft", e)
+	}
+	st.Mutations.Lock()
+	e = st.RevokeConfigurationAgent(configurationAgent.ID)
+	st.Mutations.Unlock()
+	if e != nil {
+		t.Fatal(e)
+	}
+	r, e = configurationSession.CallTool(ctx, &mcp.CallToolParams{Name: "get_configuration_guide", Arguments: map[string]any{}})
+	if e == nil && !r.IsError {
+		t.Fatal("stdio configuration bypassed revocation")
 	}
 }

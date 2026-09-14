@@ -33,7 +33,7 @@ func normalize(c Config) (Config, error) {
 	c.Endpoint = strings.TrimSpace(c.Endpoint)
 	c.ServiceName = strings.TrimSpace(c.ServiceName)
 	if c.ServiceName == "" {
-		c.ServiceName = "mcpdbhub"
+		c.ServiceName = "contextgate"
 	}
 	if c.Protocol == "" {
 		c.Protocol = "http/protobuf"

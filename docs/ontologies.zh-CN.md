@@ -6,15 +6,33 @@
 
 本功能提供定义与查询指导，不存储实体实例、不进行事实推理、不生成查询、不做跨源关联、不输出统一实体模型，也不宣称完整符合 OWL 2 或 SHACL。
 
+默认进入 **Model** 编辑台：选择一个实体即可维护它的属性和关系，继承属性会标明来源。**Add property** 与 **Add relationship** 自动选中当前实体；**Save & add another** 支持连续添加。名称会自动生成唯一引用 ID，中文名称也可直接使用；已有定义改名时保留原 ID。**Reference ID & aliases** 提供首次保存前自定义 ID 和别名编辑。
+
+关系数量可以选择 **Exactly one**、**Optional one**、**Zero or more**、**One or more** 或自定义范围；关系图中的实体和关系都可以点击。**Definitions** 提供完整列表检索，**Settings** 集中本体信息、JSON 导入导出、丢弃草稿与归档。关闭未保存的表单会提示保留或丢弃修改，未保存的设置也不能直接切换到其他区域。
+
 ## 定义与发布
 
 1. 在 **Ontologies → Create ontology** 创建本体。界面默认英文，业务名称、别名和说明支持中文等语言。
-2. 在 **Entities / Properties / Relations** 编辑实体、属性和关系。ID 为稳定引用；实体采用单继承，校验拒绝继承环和与继承属性重名的定义。
+2. 在 **Model** 按实体维护属性和关系，也可在 **Definitions** 检索完整定义。ID 自动生成且在改名时保持稳定；实体采用单继承，校验拒绝继承环和与继承属性重名的定义。
 3. 添加属性后，为实体选择身份属性组合。身份属性必须属于该实体的有效定义、必填且单值。属性还支持逻辑类型、单位、枚举、范围、唯一性声明和时间口径。
-4. 关系指定两端实体、方向及基数。**Origins per target** 表示每个终点对应的起点数量；**Targets per origin** 表示每个起点对应的终点数量。最大值留空表示不限。
-5. **Validate → Publish version** 生成不可变版本。保存只修改草稿，**Discard draft** 恢复最新发布内容。
+4. 关系指定两端实体、方向及数量预设。例如 **Customer per Order (origin)** 表示每个 Order 对应的 Customer 数量。需要精确上下限时选择 **Custom range**，最大值留空表示不限。
+5. **Validate → Publish version** 生成不可变版本。保存只修改草稿，**Settings → Discard draft** 恢复最新发布内容。
 
 校验只证明定义内部一致，不代表数据库所有数据满足身份、必填、唯一性、范围或基数约束。数值范围使用不带指数的十进制字符串；基数为 0 至 2,147,483,647 的整数。
+
+## 图形编辑
+
+**Model → Graph** 默认显示实体画布，**List** 保留实体导航和完整属性、关系表格。
+
+- 拖动卡片标题调整布局，拖动画布空白处平移；通过缩放按钮、**Fit**、**Auto layout** 和 **Find entity on graph** 定位实体。
+- 从实体的 **+** 连接点拖到另一个实体，或依次点击起点与终点的连接点，即可打开已选好两端的关系表单。点击 **Save to draft** 才会保存定义；**Esc** 取消尚未完成的连线。
+- 点击关系线或标签编辑关系；平行关系和自关联分别绘制曲线。虚线表示继承，点击标签可修改子实体的父类型。
+- 卡片提供 **Edit entity**、**Property** 和前三个自有属性的直接编辑入口。点击 **Details** 后，右侧面板展示完整属性、继承来源和 Relationship map，图模式下方不再堆放详情。
+- 键盘操作：聚焦卡片标题后用方向键移动，**Shift** 加大步长，**Enter** 选择；连接点也支持 **Enter**。聚焦画布后可用方向键平移、**+ / −** 缩放、**0** 适配。列表模式支持不使用画布手势完成定义编辑。
+
+卡片位置按本体分别保存在当前浏览器，不进入 JSON 导出或发布版本，拖动布局不改变草稿修订。定义修改仍采用并发冲突检查、校验与显式发布流程，数据源继续固定到已采用的版本。
+
+详情面板内可跳转关联实体并编辑定义，保存或取消编辑后会返回面板。点击 **Back to canvas**、关闭按钮或按 **Esc** 返回画布，保留画布位置；窄屏时面板占满屏幕宽度。选择已经可见的卡片不会改变画布位置。设置或表单存在未保存修改时，须先保存、恢复或明确丢弃，才能离开页面；保存期间输入框暂时锁定。输入框中的 **Enter** 保存并关闭当前条目，连续新增须明确选择 **Save & add another**。其他标签页更新草稿导致冲突时，当前编辑仍会保留，可先用 **Export unsaved entry** 导出 JSON 副本，再选择 **Reload latest draft** 并确认丢弃本地编辑，加载最新修订。
 
 ## 数据源映射
 
@@ -68,7 +86,7 @@ ontology:relation_type:places
 
 管理接口包括 `/api/ontologies` 下的创建、编辑、校验、发布、丢弃、归档、版本、差异及 JSON 导入导出；映射检查与 Agent 预览位于 `/api/sources/{id}/semantics/check-mapping` 和 `/preview`。完整路由及请求格式见[英文 API 表](ontologies.md#import-apis-and-storage)。管理接口复用管理员 Cookie 和 CSRF；修订与版本用 JSON 字符串表示，旧修订返回 409。
 
-本体草稿及不可变版本使用现有独立主密钥加密后保存在 SQLite。映射随源语义事务保存。上限为 200 份本体，每份 500 条定义、512 KiB；源语义保持 500 条目录项、768 KiB 上限。审计及 OTLP Logs 增加 `ontology_id` 和 `ontology_version`，不记录定义全文、查询文本、参数或结果。
+本体草稿及不可变版本使用现有独立主密钥加密后保存在 PostgreSQL。映射随源语义事务保存。上限为 200 份本体，每份 500 条定义、512 KiB；源语义保持 500 条目录项、768 KiB 上限。审计及 OTLP Logs 增加 `ontology_id` 和 `ontology_version`，不记录定义全文、查询文本、参数或结果。
 
 ## 验证示例
 
@@ -81,4 +99,6 @@ python3 scripts/verify-ontology.py --reuse
 MCPDBHUB_REUSE_FIXTURES=postgres,mongodb python3 scripts/matrix.py
 ```
 
-脚本只向明确的隔离实例写入 fixture；Hub 使用只读账号执行。验证原生关联查询、聚合、精确 Decimal、空结果、参数拒绝、可见子集、版本生命周期、游标拒绝及请求开始时的上下文，并输出[本体验证记录](verification/ontology.json)。[完整矩阵](verification/matrix.json)另行覆盖七类原生查询工具。
+脚本只向明确的隔离实例写入 fixture；ContextGate 使用只读账号执行。验证原生关联查询、聚合、精确 Decimal、空结果、参数拒绝、可见子集、版本生命周期、游标拒绝及请求开始时的上下文，并输出[本体验证记录](verification/ontology.json)。[完整矩阵](verification/matrix.json)另行覆盖七类原生查询工具。
+
+需要可直接导入的四实体图、组合身份键、金额口径和真实查询示例，可查看[零售业务本体示例](../examples/ontologies/retail-demo/README.zh-CN.md)。

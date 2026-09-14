@@ -15,7 +15,16 @@ export interface SemanticParameter {
   minimum?: string;
   maximum?: string;
 }
+export interface RegressionCase {
+  name: string;
+  parameters_json: string;
+  min_rows?: number;
+  max_rows?: number;
+  columns?: { name: string; type: string }[];
+  values?: { pointer: string; expected_json: string }[];
+}
 export interface QueryTemplate {
+  tests?: RegressionCase[];
   concept_refs?: string[];
   enabled: boolean;
   tool: string;
@@ -65,6 +74,16 @@ export interface SemanticState {
     status: string;
     checked_at?: string;
     server_version?: string;
+    report?: {
+      passed: boolean;
+      cases: {
+        name: string;
+        passed: boolean;
+        error_code?: string;
+        rows: number;
+        elapsed_ms: number;
+      }[];
+    };
   }[];
 }
 export const entryKinds = ["term", "object", "field", "relationship", "metric"];

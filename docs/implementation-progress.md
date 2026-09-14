@@ -1,7 +1,7 @@
 # Implementation tracking
 
-Approved scope: 18 products; Go MCP HTTP + stdio bridge; encrypted SQLite configuration;
-single administrator; per-Agent datasource grants; Fosite OAuth; compact English React UI.
+Approved scope: 18 products; Go MCP HTTP + stdio bridge; encrypted PostgreSQL configuration;
+single administrator; per-Agent datasource grants; Fosite OAuth; compact bilingual React UI (English default).
 InfluxDB 3 Core explicitly permits query-API isolation instead of a read-only account.
 
 ## Work

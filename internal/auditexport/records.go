@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/version"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/version"
 	collectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	commonpb "go.opentelemetry.io/proto/otlp/common/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
@@ -28,7 +28,7 @@ func envelope(config Config, instance string, records []*logspb.LogRecord) *coll
 		Resource: &resourcepb.Resource{Attributes: []*commonpb.KeyValue{
 			textAttribute("service.name", config.ServiceName), textAttribute("service.version", version.Version), textAttribute("service.instance.id", instance),
 		}},
-		ScopeLogs: []*logspb.ScopeLogs{{Scope: &commonpb.InstrumentationScope{Name: "github.com/SamuelSupe/mcpdbhub/audit", Version: version.Version}, LogRecords: records}},
+		ScopeLogs: []*logspb.ScopeLogs{{Scope: &commonpb.InstrumentationScope{Name: "github.com/SamuelSupe/contextGate/audit", Version: version.Version}, LogRecords: records}},
 	}}}
 }
 
@@ -43,6 +43,7 @@ func auditRequest(config Config, instance string, audits []model.Audit) (*collec
 		}
 		truncated := false
 		for _, entry := range []struct{ key, value string }{
+			{"event_kind", a.EventKind}, {"resource_id", a.ResourceID}, {"revision", a.Revision}, {"submitted_fields", a.ChangedFields},
 			{"request_id", a.RequestID}, {"agent_id", a.AgentID}, {"source_id", a.SourceID}, {"operation", a.Operation},
 			{"template_id", a.TemplateID}, {"template_version", a.TemplateVersion}, {"ontology_id", a.OntologyID}, {"ontology_version", a.OntologyVersion},
 			{"query_fingerprint", a.Fingerprint}, {"error_code", a.ErrorCode}, {"native_code", a.NativeCode},
@@ -59,11 +60,13 @@ func auditRequest(config Config, instance string, audits []model.Audit) (*collec
 		if truncated {
 			attrs = append(attrs, boolAttribute("mcpdbhub.audit.attributes_truncated", true))
 		}
-		record := &logspb.LogRecord{TimeUnixNano: uint64(a.At.UnixNano()), ObservedTimeUnixNano: uint64(time.Now().UnixNano()), SeverityNumber: logspb.SeverityNumber_SEVERITY_NUMBER_INFO, SeverityText: "INFO", Attributes: attrs, Body: &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "Database audit: operation completed"}}}
-		if a.ErrorCode != "" {
+		record := &logspb.LogRecord{TimeUnixNano: uint64(a.At.UnixNano()), ObservedTimeUnixNano: uint64(time.Now().UnixNano()), SeverityNumber: logspb.SeverityNumber_SEVERITY_NUMBER_INFO, SeverityText: "INFO", Attributes: attrs, Body: &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "Audit: operation completed"}}}
+		if a.ErrorCode == "operation_pending" {
+			record.Body = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "Management audit: operation started; outcome pending"}}
+		} else if a.ErrorCode != "" {
 			record.SeverityNumber = logspb.SeverityNumber_SEVERITY_NUMBER_ERROR
 			record.SeverityText = "ERROR"
-			record.Body = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "Database audit: operation failed"}}
+			record.Body = &commonpb.AnyValue{Value: &commonpb.AnyValue_StringValue{StringValue: "Audit: operation failed"}}
 		}
 		// Include protobuf length prefixes, leaving ample room below the transport limit.
 		size += proto.Size(record) + 16

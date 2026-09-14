@@ -1,0 +1,78 @@
+{
+  "result": "passed",
+  "scope": "Unreleased product workflows; no database adapter or query contract changes",
+  "verified_at": "2026-09-12T08:04:46.880412+00:00",
+  "environment": "OrbStack Linux arm64 and local Google Chrome",
+  "ui_assets": {
+    "assets/index-Dujt-XeX.js": "85ccbf5235bc021950f002ecc96520cbca838ffc6b0270108221e6fcef8e6dfe",
+    "assets/index-DwYOFXFp.css": "a1d9bba1c8b16183e590de1b5413d07a56f30715d24ea9f621a00b786c083db4",
+    "index.html": "d28b5b9ac01d65387f7582a2ae5b14dfd973098ff62910eacfe8d4d5b90e0cf3"
+  },
+  "automated_checks": [
+    "TypeScript and Vite production build",
+    "Go build with embedded UI and QA service restart",
+    "Full internal/server and internal/engine Go test suites",
+    "Published template readiness remains false after retrial until publication",
+    "Evaluation isolates source and Agent, excludes previews, and rejects invalid windows",
+    "Agent tokens cannot access readiness or evaluation management APIs",
+    "Three existing graph layout tests in OrbStack Node 24"
+  ],
+  "runtime": {
+    "postgres": {
+      "matched_native_template": true,
+      "preview_excluded": true,
+      "admin_boundary": true,
+      "ontology": "3",
+      "metrics": {
+        "from": "2026-09-12T07:59:21.379Z",
+        "stats": {
+          "calls": 2,
+          "queries": 2,
+          "successful_queries": 2,
+          "errors": 0,
+          "elapsed_ms": 7,
+          "template_calls": 1
+        },
+        "until": "2026-09-12T07:59:21.394Z"
+      }
+    },
+    "mongodb": {
+      "matched_native_template": true,
+      "preview_excluded": true,
+      "admin_boundary": true,
+      "ontology": "2",
+      "metrics": {
+        "from": "2026-09-12T07:59:21.396Z",
+        "stats": {
+          "calls": 2,
+          "queries": 2,
+          "successful_queries": 2,
+          "errors": 0,
+          "elapsed_ms": 52,
+          "template_calls": 1
+        },
+        "until": "2026-09-12T07:59:21.457Z"
+      }
+    }
+  },
+  "chrome_checks": [
+    "Source list readiness and setup entry",
+    "Selected Agent preserved in PostgreSQL template preview; two rows and ontology v3",
+    "Contextual Agent connection, activity refresh and source return link",
+    "Create Agent preselects only the chosen source; cancelled without creating credentials",
+    "Real client activity updates source success evidence",
+    "Evaluation empty state, required question and criteria, pinned Agent and paired capture",
+    "One real native query and one real template query captured in separate runs",
+    "Unsaved worksheet blocks navigation; exported JSON verified from downloaded file",
+    "Customer details show PostgreSQL adopted v3 and MongoDB adopted v2",
+    "Concept-to-template navigation preserves selected Agent; MongoDB two-row result and v2 context",
+    "Escape closes template preview",
+    "390x844 setup and evaluation layouts have document width 390",
+    "Final browser warning and error logs empty"
+  ],
+  "not_claimed": [
+    "No LLM answer-quality or token-cost improvement was measured; evaluation grading is manual",
+    "Full 18-product/20-version adapter matrix was not rerun for these workflow changes",
+    "Not a release or GitHub publication validation"
+  ]
+}

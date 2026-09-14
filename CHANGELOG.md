@@ -1,5 +1,37 @@
 # Changelog
 
+## 0.4.0 — 2026-09-14
+
+- Publish under the renamed `SamuelSupe/contextGate` repository and Go module, with English-first documentation and Linux arm64/amd64 `contextgate` distributions.
+- Add Configuration MCP at `/mcp/config`: 22 typed tools for trusted Agents to prepare sources, semantic catalogs, verified query templates and ontology drafts/mappings. Dedicated expiring, revocable credentials are separate from query grants; publication remains an administrator action.
+
+- Renamed the product to **ContextGate — Semantic Data Gateway for AI Agents**, with a new logo, favicon, bilingual positioning and updated client setup. New builds use `contextgate`; the `mcpdbhub` command, existing configuration keys, volumes and telemetry attributes remain compatible.
+
+- Added administrator change auditing with durable intent/outcome correlation and OTLP export; encrypted semantic publication history, diffs and restore-to-draft; opt-in health checks and schema baselines; deterministic template regression cases; PostgreSQL diagnostics and isolated backup recovery scripts.
+- Added language selection and setup-code help before sign-in. Local build identity is visible in the CLI and settings.
+
+- **Breaking:** Replaced internal SQLite metadata storage with PostgreSQL. Set `MCPDBHUB_DATABASE_URL`; Compose includes PostgreSQL. Existing SQLite metadata is not imported; initialize a fresh store. SQLite/DuckDB remain supported read-only data sources. PostgreSQL transactions preserve session revocation, atomic semantic snapshots, encrypted recovery and audit export ordering.
+
+- Added English and Simplified Chinese UI languages in Settings, with immediate switching and a browser-local preference. English remains the default; business content, query values and database identifiers retain their original text.
+- Fixed OAuth-wide blocking from slow token, revocation and client-management request bodies, including multipart parsing and consent replay of the submitted body. Token mutations and client revision checks remain serialized.
+- Rejected MySQL-family locking reads throughout the SQL syntax tree, including `FOR SHARE` in subqueries and CTEs. MySQL read-only transactions can otherwise acquire shared locks and block application writes.
+- Fixed administrator password-change atomicity and stale authentication: password updates and session revocation now commit together, concurrent outdated edits are rejected, and session issuance checks the password hash that was verified.
+- Added client-specific Codex/Cursor/VS Code connection guides, lossless contract-driven template parameter forms and readable result previews.
+- Evaluation history now supports source-wide question/Agent/date filters, retained filter state, honest paired-review summaries and results-first evaluation details.
+- Simplified workspace navigation, ontology usage, Agent actions and optional OTLP settings; improved copy feedback, empty/error recovery, schema import defaults and keyboard navigation on narrow screens.
+
+- Completed source setup now opens a query workspace with persistent Agent context and collapsible evidence. Ontology cards show published mapping/executable template counts and direct query navigation with a named entity inspector.
+- Added encrypted reusable evaluation questions and paginated history, server-generated capture metrics and configuration snapshots, resume after restart, explicit manual review saving, optimistic edit conflicts and source deletion cleanup.
+
+- Added source-level Agent setup, executable-template readiness with publication proof, contextual connection recovery, concept-to-source/template navigation, and a real-client paired evaluation worksheet with source-scoped audit metrics and manual answer review.
+
+- Graph-mode entity details and relationship maps now open in a contextual side panel, with related-entity navigation and a return path from editing to the panel and canvas.
+
+- Fixed ontology editor state surviving navigation into another ontology, and protected unsaved edits from sidebar navigation, browser history and page unload. Save operations lock form inputs; conflicts preserve the edit with export and explicit reload actions.
+- Improved graph selection and full-detail navigation, and made Enter save an entry without unintentionally starting another.
+- Entity-centered ontology editing with contextual property/relationship forms, inherited-property navigation, readable relationship maps and count presets, generated stable IDs, continuous entry and unsaved-edit protection.
+- Graphical ontology editing with movable entity cards, drag or click connections, editable relationship lines, inheritance links, zoom, automatic layout, keyboard controls and browser-local layout persistence. Graph and list modes share the same draft and publication flow.
+
 ## 0.3.0 — 2026-09-12
 
 - Shared, encrypted business ontologies with immutable versions, single inheritance, entity/property/relation validation, explicit version adoption and reference-protected deletion.

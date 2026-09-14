@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 const labels: Record<string, string> = {
   "explicit SQL": "Explicit SQL pagination",
   "explicit Cypher": "Explicit Cypher pagination",
@@ -16,5 +17,5 @@ const labels: Record<string, string> = {
   engine_classification: "Engine statement classification",
 };
 export function capabilityLabel(value: string) {
-  return labels[value] || value;
+  return t(labels[value] || value);
 }

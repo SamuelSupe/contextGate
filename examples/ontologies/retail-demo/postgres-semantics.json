@@ -1,0 +1,523 @@
+{
+  "format_version": 2,
+  "overview": "Fictional retail demo: 3 customers, 3 products, 3 orders and 4 lines. All currency is USD. Query results remain native. Use the ontology to discover templates; definitions and mappings do not compile queries or enforce row constraints.",
+  "ontology": {
+    "ontology_id": "retail-example",
+    "version": "1",
+    "entities": [
+      {
+        "entity": "Customer",
+        "objects": [
+          {
+            "namespace": "retail_example",
+            "object": "customers"
+          }
+        ]
+      },
+      {
+        "entity": "Order",
+        "objects": [
+          {
+            "namespace": "retail_example",
+            "object": "orders"
+          }
+        ]
+      },
+      {
+        "entity": "OrderLine",
+        "objects": [
+          {
+            "namespace": "retail_example",
+            "object": "order_lines"
+          }
+        ]
+      },
+      {
+        "entity": "Product",
+        "objects": [
+          {
+            "namespace": "retail_example",
+            "object": "products"
+          }
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "entity": "Customer",
+        "property": "customer_id",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "id"
+        }
+      },
+      {
+        "entity": "Customer",
+        "property": "customer_name",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "display_name"
+        }
+      },
+      {
+        "entity": "Customer",
+        "property": "customer_segment",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "segment"
+        }
+      },
+      {
+        "entity": "Customer",
+        "property": "customer_region",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "region"
+        }
+      },
+      {
+        "entity": "Customer",
+        "property": "customer_joined_at",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "joined_at"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_id",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "id"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_placed_at",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "placed_at"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_status",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "status"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_currency",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "currency"
+        }
+      },
+      {
+        "entity": "Order",
+        "property": "order_gross_amount",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "gross_amount"
+        }
+      },
+      {
+        "entity": "OrderLine",
+        "property": "line_order_id",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "order_id"
+        }
+      },
+      {
+        "entity": "OrderLine",
+        "property": "line_number",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "line_number"
+        }
+      },
+      {
+        "entity": "OrderLine",
+        "property": "line_quantity",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "quantity"
+        }
+      },
+      {
+        "entity": "OrderLine",
+        "property": "line_unit_price",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "unit_price"
+        }
+      },
+      {
+        "entity": "OrderLine",
+        "property": "line_amount",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "line_amount"
+        }
+      },
+      {
+        "entity": "Product",
+        "property": "product_id",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "id"
+        }
+      },
+      {
+        "entity": "Product",
+        "property": "product_sku",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "sku"
+        }
+      },
+      {
+        "entity": "Product",
+        "property": "product_name",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "name"
+        }
+      },
+      {
+        "entity": "Product",
+        "property": "product_category",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "category"
+        }
+      },
+      {
+        "entity": "Product",
+        "property": "product_active",
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "active"
+        }
+      }
+    ],
+    "relations": [
+      {
+        "relation": "places",
+        "fields": [
+          {
+            "from": {
+              "namespace": "retail_example",
+              "object": "customers",
+              "field": "id"
+            },
+            "to": {
+              "namespace": "retail_example",
+              "object": "orders",
+              "field": "customer_id"
+            }
+          }
+        ],
+        "template_id": "customer-orders"
+      },
+      {
+        "relation": "contains",
+        "fields": [
+          {
+            "from": {
+              "namespace": "retail_example",
+              "object": "orders",
+              "field": "id"
+            },
+            "to": {
+              "namespace": "retail_example",
+              "object": "order_lines",
+              "field": "order_id"
+            }
+          }
+        ],
+        "template_id": "order-lines"
+      },
+      {
+        "relation": "refers_to",
+        "fields": [
+          {
+            "from": {
+              "namespace": "retail_example",
+              "object": "order_lines",
+              "field": "product_id"
+            },
+            "to": {
+              "namespace": "retail_example",
+              "object": "products",
+              "field": "id"
+            }
+          }
+        ],
+        "template_id": "order-lines"
+      }
+    ]
+  },
+  "entries": [
+    {
+      "id": "customers",
+      "kind": "object",
+      "name": "Customer records",
+      "reference": {
+        "namespace": "retail_example",
+        "object": "customers"
+      },
+      "description": "Explicitly seeded fictional Customer records in the demo schema."
+    },
+    {
+      "id": "orders",
+      "kind": "object",
+      "name": "Order records",
+      "reference": {
+        "namespace": "retail_example",
+        "object": "orders"
+      },
+      "description": "Explicitly seeded fictional Order records in the demo schema."
+    },
+    {
+      "id": "order_lines",
+      "kind": "object",
+      "name": "OrderLine records",
+      "reference": {
+        "namespace": "retail_example",
+        "object": "order_lines"
+      },
+      "description": "Explicitly seeded fictional OrderLine records in the demo schema."
+    },
+    {
+      "id": "products",
+      "kind": "object",
+      "name": "Product records",
+      "reference": {
+        "namespace": "retail_example",
+        "object": "products"
+      },
+      "description": "Explicitly seeded fictional Product records in the demo schema."
+    },
+    {
+      "id": "customer-orders",
+      "kind": "template",
+      "name": "Orders for a customer",
+      "description": "Find submitted orders for one customer, including line counts and exact gross amounts. 客户有哪些订单？",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"WITH line_counts AS (\\n  SELECT order_id, COUNT(*) AS line_count\\n  FROM retail_example.order_lines GROUP BY order_id\\n)\\nSELECT o.id AS order_id, o.placed_at, o.status,\\n       o.gross_amount::text AS gross_amount, o.currency, lc.line_count\\nFROM retail_example.orders o\\nJOIN line_counts lc ON lc.order_id = o.id\\nWHERE o.customer_id = $1\\nORDER BY o.id\", \"params\": [\"\"]}",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "type": "integer",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ],
+            "minimum": "1"
+          }
+        ],
+        "example_json": "{\"customer_id\": 1}",
+        "concept_refs": [
+          "ontology:entity_type:Customer",
+          "ontology:entity_type:Order",
+          "ontology:relation_type:places"
+        ],
+        "tests": [
+          {
+            "name": "Customer with two orders",
+            "parameters_json": "{\"customer_id\": 1}",
+            "min_rows": 2,
+            "max_rows": 2,
+            "values": [
+              {
+                "pointer": "/0/3",
+                "expected_json": "\"70.00\""
+              },
+              {
+                "pointer": "/1/3",
+                "expected_json": "\"18.00\""
+              }
+            ]
+          },
+          {
+            "name": "Registered customer without orders",
+            "parameters_json": "{\"customer_id\": 3}",
+            "min_rows": 0,
+            "max_rows": 0,
+            "values": []
+          }
+        ],
+        "result_description": "One native row per order. Decimal amounts are explicitly projected as exact text. Status includes pending orders; gross amount is not paid-order amount."
+      }
+    },
+    {
+      "id": "order-lines",
+      "kind": "template",
+      "name": "Products in an order",
+      "description": "Follow Order → Order line → Product and inspect quantities and captured prices. 订单里买了什么？",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"SELECT l.line_number, p.sku, p.name AS product_name, l.quantity,\\n       l.unit_price::text AS unit_price, l.line_amount::text AS line_amount\\nFROM retail_example.order_lines l\\nJOIN retail_example.products p ON p.id = l.product_id\\nWHERE l.order_id = $1\\nORDER BY l.line_number\", \"params\": [\"\"]}",
+        "parameters": [
+          {
+            "name": "order_id",
+            "type": "integer",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ],
+            "minimum": "1"
+          }
+        ],
+        "example_json": "{\"order_id\": 1001}",
+        "concept_refs": [
+          "ontology:entity_type:Order",
+          "ontology:entity_type:OrderLine",
+          "ontology:entity_type:Product",
+          "ontology:relation_type:contains",
+          "ontology:relation_type:refers_to"
+        ],
+        "tests": [
+          {
+            "name": "Two line order",
+            "parameters_json": "{\"order_id\": 1001}",
+            "min_rows": 2,
+            "max_rows": 2,
+            "values": [
+              {
+                "pointer": "/0/1",
+                "expected_json": "\"NOTEBOOK-A5\""
+              },
+              {
+                "pointer": "/0/5",
+                "expected_json": "\"25.00\""
+              },
+              {
+                "pointer": "/1/5",
+                "expected_json": "\"45.00\""
+              }
+            ]
+          },
+          {
+            "name": "Unknown order",
+            "parameters_json": "{\"order_id\": 9999}",
+            "min_rows": 0,
+            "max_rows": 0,
+            "values": []
+          }
+        ],
+        "result_description": "Native line rows. Order 1001 has 2 notebooks and 1 lamp, with line amounts USD 25.00 and USD 45.00."
+      }
+    },
+    {
+      "id": "paid-order-amount",
+      "kind": "template",
+      "name": "Paid-order amount by customer",
+      "description": "Aggregate paid orders within a UTC placed-at window. Pending and cancelled orders are excluded. 已支付订单金额按客户汇总。",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"WITH per_customer AS (\\n  SELECT customer_id, COUNT(*) AS paid_orders, SUM(gross_amount) AS amount\\n  FROM retail_example.orders\\n  WHERE status = 'paid' AND currency = 'USD'\\n    AND placed_at >= $1::timestamptz AND placed_at < $2::timestamptz\\n  GROUP BY customer_id\\n)\\nSELECT c.id AS customer_id, c.display_name, r.paid_orders,\\n       r.amount::text AS paid_order_amount,\\n       DENSE_RANK() OVER (ORDER BY r.amount DESC) AS amount_rank\\nFROM per_customer r JOIN retail_example.customers c ON c.id = r.customer_id\\nORDER BY c.id\", \"params\": [\"\", \"\"]}",
+        "parameters": [
+          {
+            "name": "start_at",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ]
+          },
+          {
+            "name": "end_at",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/params/1"
+            ]
+          }
+        ],
+        "example_json": "{\"start_at\": \"2026-09-01T00:00:00Z\", \"end_at\": \"2026-10-01T00:00:00Z\"}",
+        "concept_refs": [
+          "ontology:entity_type:Customer",
+          "ontology:entity_type:Order",
+          "ontology:property:Order:order_gross_amount",
+          "ontology:relation_type:places"
+        ],
+        "tests": [
+          {
+            "name": "September paid orders",
+            "parameters_json": "{\"start_at\": \"2026-09-01T00:00:00Z\", \"end_at\": \"2026-10-01T00:00:00Z\"}",
+            "min_rows": 2,
+            "max_rows": 2,
+            "values": [
+              {
+                "pointer": "/0/3",
+                "expected_json": "\"70.00\""
+              },
+              {
+                "pointer": "/1/3",
+                "expected_json": "\"90.00\""
+              }
+            ]
+          },
+          {
+            "name": "Empty October window",
+            "parameters_json": "{\"start_at\": \"2026-10-01T00:00:00Z\", \"end_at\": \"2026-11-01T00:00:00Z\"}",
+            "min_rows": 0,
+            "max_rows": 0,
+            "values": []
+          }
+        ],
+        "result_description": "One row per customer with paid orders. September total USD 160.00; USD 18.00 pending order excluded. Decimal sums use exact text. This metric is grouped by order placement time and current status; it is not cash flow or accounting revenue."
+      }
+    },
+    {
+      "id": "paid-order-amount-metric",
+      "kind": "metric",
+      "name": "Paid-order amount",
+      "aliases": [
+        "已支付订单金额"
+      ],
+      "description": "Sum gross order amount for orders currently paid, grouped by customer and filtered on order placement time.",
+      "unit": "USD",
+      "grain": "Customer × selected placed-at interval",
+      "time_definition": "UTC, inclusive start and exclusive end. Current order status is used, not historical status at period end.",
+      "caveats": "Not cash flow, profit or accounting revenue. Tax, shipping, discounts and refunds are outside this synthetic example.",
+      "template_id": "paid-order-amount",
+      "related": [
+        {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "gross_amount"
+        }
+      ]
+    }
+  ]
+}

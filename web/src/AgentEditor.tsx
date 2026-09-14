@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { api, APIError, message, payload } from "./api";
 import { Button, Drawer, ErrorNote, Field } from "./components";
@@ -8,15 +9,17 @@ export function AgentEditor({
   onClose,
   saved,
   reload,
+  initialSources = [],
 }: {
   agent: Agent | null;
+  initialSources?: string[];
   sources: Source[];
   reload: () => Promise<void>;
   onClose: () => void;
   saved: (result: { agent: Agent; token?: string }) => Promise<void>;
 }) {
   const [name, setName] = useState(agent?.name || "");
-  const [selected, setSelected] = useState(agent?.sources || []);
+  const [selected, setSelected] = useState(agent?.sources || initialSources);
   const [expires, setExpires] = useState(() => {
     const date = agent
       ? new Date(agent.expires_at)
@@ -31,18 +34,18 @@ export function AgentEditor({
   const [error, setError] = useState("");
   return (
     <Drawer
-      title={agent ? "Edit Agent grants" : "Create Agent"}
-      subtitle="Allow access only to the selected data sources"
+      title={agent ? t("Edit Agent grants") : t("Create Agent")}
+      subtitle={t("Allow access only to the selected data sources")}
       onClose={() => {
         if (!busy) onClose();
       }}
       footer={
         <>
           <Button disabled={busy} onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button primary busy={busy} form="agent-form" type="submit">
-            {agent ? "Save grants" : "Create and generate token"}
+            {agent ? t("Save grants") : t("Create and generate token")}
           </Button>
         </>
       }
@@ -63,7 +66,7 @@ export function AgentEditor({
             }
           }}
         >
-          Close and reload current grants
+          {t("Close and reload current grants")}
         </Button>
       ) : null}
       <form
@@ -98,18 +101,18 @@ export function AgentEditor({
           }
         }}
       >
-        <Field label="Agent name" required>
+        <Field label={t("Agent name")} required>
           <input
             required
             maxLength={120}
-            placeholder="e.g. Analytics assistant"
+            placeholder={t("e.g. Analytics assistant")}
             value={name}
             onChange={(e) => setName(e.target.value)}
           />
         </Field>
         <Field
-          label="Expires at"
-          hint="Date and time in your local time zone."
+          label={t("Expires at")}
+          hint={t("Date and time in your local time zone.")}
           required
         >
           <input
@@ -122,15 +125,20 @@ export function AgentEditor({
         </Field>
         <section className="form-section">
           <h3>
-            Granted data sources <small>{selected.length} selected</small>
+            {t("Granted data sources ")}
+            <small>
+              {selected.length}
+              {t(" selected")}
+            </small>
           </h3>
           <p className="help">
-            Database, table and field access is controlled by the account
-            configured on each data source.
+            {t(
+              "Database, table and field access is controlled by the account configured on each data source.",
+            )}
           </p>
           {selected.some((id) => !sources.some((s) => s.id === id)) ? (
             <div className="notice neutral">
-              <p>Some granted data sources were deleted.</p>
+              <p>{t("Some granted data sources were deleted.")}</p>
               <Button
                 onClick={() =>
                   setSelected(
@@ -138,7 +146,7 @@ export function AgentEditor({
                   )
                 }
               >
-                Remove deleted grants
+                {t("Remove deleted grants")}
               </Button>
             </div>
           ) : null}
@@ -161,13 +169,13 @@ export function AgentEditor({
                     {s.name}
                     <small>
                       {s.kind}
-                      {s.enabled ? "" : " · Disabled"}
+                      {s.enabled ? "" : t(" · Disabled")}
                     </small>
                   </span>
                 </label>
               ))
             ) : (
-              <p className="help">Add a data source first.</p>
+              <p className="help">{t("Add a data source first.")}</p>
             )}
           </div>
         </section>
@@ -179,8 +187,10 @@ export function AgentEditor({
             onChange={(e) => setEnabled(e.target.checked)}
           />
           {agent?.revoked_at
-            ? "Credential permanently revoked. Issue a new token or authorize OAuth again."
-            : "Enable Agent access (uncheck to pause)"}
+            ? t(
+                "Credential permanently revoked. Issue a new token or authorize OAuth again.",
+              )
+            : t("Enable Agent access (uncheck to pause)")}
         </label>
       </form>
     </Drawer>

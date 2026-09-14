@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { api, APIError, message, payload } from "./api";
 import { Button, Drawer, ErrorNote, Field, Protection } from "./components";
@@ -102,13 +103,15 @@ export function SourceEditor({
             : undefined,
         );
         setError(
-          `Configuration saved, but the connection check failed. ${message(e)}`,
+          t("Configuration saved, but the connection check failed. {value1}", {
+            value1: message(e),
+          }),
         );
         await onSaved("", false);
         return;
       }
       setProbe(checked);
-      await onSaved("Configuration saved and connection check passed.");
+      await onSaved(t("Configuration saved and connection check passed."));
     } catch (e) {
       setError(message(e));
     } finally {
@@ -117,13 +120,13 @@ export function SourceEditor({
   }
   return (
     <Drawer
-      title={savedSource ? "Configure data source" : "Add data source"}
-      subtitle="Configure the connection, credentials and query limits"
+      title={savedSource ? t("Configure data source") : t("Add data source")}
+      subtitle={t("Configure the connection, credentials and query limits")}
       onClose={onClose}
       footer={
         <>
           <Button busy={busy === "test"} disabled={!!busy} onClick={test}>
-            Test connection
+            {t("Test connection")}
           </Button>
           <Button
             primary
@@ -132,7 +135,7 @@ export function SourceEditor({
             form="source-form"
             type="submit"
           >
-            Save configuration
+            {t("Save configuration")}
           </Button>
         </>
       }
@@ -145,7 +148,7 @@ export function SourceEditor({
           save();
         }}
       >
-        <Field label="Name" required>
+        <Field label={t("Name")} required>
           <input
             required
             maxLength={120}
@@ -153,7 +156,7 @@ export function SourceEditor({
             onChange={(e) => field("name", e.target.value)}
           />
         </Field>
-        <Field label="Database type" required>
+        <Field label={t("Database type")} required>
           <select
             value={form.kind}
             onChange={(e) => {
@@ -181,7 +184,7 @@ export function SourceEditor({
           </select>
         </Field>
         {form.kind === "influxdb" ? (
-          <Field label="InfluxDB version">
+          <Field label={t("InfluxDB version")}>
             <select
               value={form.version}
               onChange={(e) => {
@@ -199,17 +202,19 @@ export function SourceEditor({
                 setProbe(undefined);
               }}
             >
-              <option value="1">1.x — InfluxQL</option>
-              <option value="2">2.x — Flux</option>
-              <option value="3">3 Core — SQL / InfluxQL</option>
+              <option value="1">{t("1.x — InfluxQL")}</option>
+              <option value="2">{t("2.x — Flux")}</option>
+              <option value="3">{t("3 Core — SQL / InfluxQL")}</option>
             </select>
           </Field>
         ) : null}
         {local ? (
           <Field
-            label="Database file path"
+            label={t("Database file path")}
             required
-            hint="The file must already exist in the server database directory shown in Settings."
+            hint={t(
+              "The file must already exist in the server database directory shown in Settings.",
+            )}
           >
             <input
               required
@@ -221,7 +226,7 @@ export function SourceEditor({
         ) : (
           <>
             <div className="field-grid host-port">
-              <Field label="Host" required>
+              <Field label={t("Host")} required>
                 <input
                   required
                   placeholder="db.internal"
@@ -229,7 +234,7 @@ export function SourceEditor({
                   onChange={(e) => field("host", e.target.value)}
                 />
               </Field>
-              <Field label="Port" required>
+              <Field label={t("Port")} required>
                 <input
                   required
                   type="number"
@@ -244,12 +249,12 @@ export function SourceEditor({
               <Field
                 label={
                   ["elasticsearch", "opensearch"].includes(form.kind)
-                    ? "Index / index pattern"
+                    ? t("Index / index pattern")
                     : ["cassandra", "scylla"].includes(form.kind)
-                      ? "Keyspace"
+                      ? t("Keyspace")
                       : ["redis", "valkey"].includes(form.kind)
-                        ? "Database index"
-                        : "Database"
+                        ? t("Database index")
+                        : t("Database")
                 }
               >
                 <input
@@ -258,7 +263,7 @@ export function SourceEditor({
                 />
               </Field>
               {form.auth_mode === "password" ? (
-                <Field label="Username">
+                <Field label={t("Username")}>
                   <input
                     autoComplete="off"
                     value={form.username || ""}
@@ -267,7 +272,7 @@ export function SourceEditor({
                 </Field>
               ) : null}
             </div>
-            <Field label="Authentication method">
+            <Field label={t("Authentication method")}>
               <select
                 value={form.auth_mode || "password"}
                 onChange={(e) => {
@@ -282,12 +287,12 @@ export function SourceEditor({
                   setProbe(undefined);
                 }}
               >
-                <option value="none">None</option>
-                <option value="password">Username and password</option>
+                <option value="none">{t("None")}</option>
+                <option value="password">{t("Username and password")}</option>
                 {["influxdb", "elasticsearch", "opensearch"].includes(
                   form.kind,
                 ) ? (
-                  <option value="token">Token</option>
+                  <option value="token">{t("Token")}</option>
                 ) : null}
               </select>
             </Field>
@@ -295,9 +300,13 @@ export function SourceEditor({
               <>
                 <Field
                   label={
-                    form.auth_mode === "token" ? "Access token" : "Password"
+                    form.auth_mode === "token"
+                      ? t("Access token")
+                      : t("Password")
                   }
-                  hint="Leave blank to keep the stored credential for this method. Enter a value to replace it, or select Clear below."
+                  hint={t(
+                    "Leave blank to keep the stored credential for this method. Enter a value to replace it, or select Clear below.",
+                  )}
                 >
                   <input
                     type="password"
@@ -342,31 +351,34 @@ export function SourceEditor({
                       setProbe(undefined);
                     }}
                   />
-                  Clear the stored credential
+                  {t("Clear the stored credential")}
                 </label>
                 <p className="help">
-                  Changing the authentication method removes credentials for the
-                  previous method.
+                  {t(
+                    "Changing the authentication method removes credentials for the previous method.",
+                  )}
                 </p>
               </>
             ) : (
               <p className="help">
-                Saving removes any stored username, password and token.
+                {t("Saving removes any stored username, password and token.")}
               </p>
             )}
-            <Field label="TLS mode" required>
+            <Field label={t("TLS mode")} required>
               <select
                 value={form.tls_mode}
                 onChange={(e) => field("tls_mode", e.target.value)}
               >
-                <option value="verify">Verify certificate</option>
-                <option value="disable">Disable TLS (unencrypted)</option>
+                <option value="verify">{t("Verify certificate")}</option>
+                <option value="disable">
+                  {t("Disable TLS (unencrypted)")}
+                </option>
               </select>
             </Field>
             <details className="advanced">
-              <summary>Advanced connection options</summary>
+              <summary>{t("Advanced connection options")}</summary>
               {form.tls_mode === "verify" ? (
-                <Field label="Custom CA certificate (PEM)">
+                <Field label={t("Custom CA certificate (PEM)")}>
                   <textarea
                     rows={4}
                     value={form.ca_cert || ""}
@@ -376,13 +388,13 @@ export function SourceEditor({
               ) : null}
               {form.kind === "mongodb" ? (
                 <>
-                  <Field label="Authentication database (authSource)">
+                  <Field label={t("Authentication database (authSource)")}>
                     <input
                       value={form.options?.auth_source || ""}
                       onChange={(e) => option("auth_source", e.target.value)}
                     />
                   </Field>
-                  <Field label="Replica set name">
+                  <Field label={t("Replica set name")}>
                     <input
                       value={form.options?.replica_set || ""}
                       onChange={(e) => option("replica_set", e.target.value)}
@@ -391,7 +403,7 @@ export function SourceEditor({
                 </>
               ) : null}
               {["redis", "valkey"].includes(form.kind) ? (
-                <Field label="Sentinel master (optional)">
+                <Field label={t("Sentinel master (optional)")}>
                   <input
                     value={form.options?.sentinel_master || ""}
                     onChange={(e) => option("sentinel_master", e.target.value)}
@@ -403,14 +415,14 @@ export function SourceEditor({
         )}
         {form.kind === "influxdb" && form.version === "2" ? (
           <div className="field-grid">
-            <Field label="Organization (org)" required>
+            <Field label={t("Organization (org)")} required>
               <input
                 required
                 value={form.options?.org || ""}
                 onChange={(e) => option("org", e.target.value)}
               />
             </Field>
-            <Field label="Bucket" required>
+            <Field label={t("Bucket")} required>
               <input
                 required
                 value={form.options?.bucket || ""}
@@ -420,20 +432,23 @@ export function SourceEditor({
           </div>
         ) : null}
         <section className="form-section">
-          <h3>Read-only verification</h3>
+          <h3>{t("Read-only verification")}</h3>
           <Protection probe={probe} detail />
           {!probe ? (
             <p className="help">
-              Connection checks inspect available read-only protection without
-              attempting any writes.
+              {t(
+                "Connection checks inspect available read-only protection without attempting any writes.",
+              )}
             </p>
           ) : null}
         </section>
         <section className="form-section">
-          <h3>Query access</h3>
+          <h3>{t("Query access")}</h3>
           <Field
-            label="Agent query access"
-            hint="Templates only blocks native Agent queries across HTTP, stdio, OAuth and Agent previews. Structure discovery remains available."
+            label={t("Agent query access")}
+            hint={t(
+              "Templates only allows Agents to run published, verified templates. Structure discovery remains available.",
+            )}
           >
             <select
               value={form.query_access_mode || "native_and_templates"}
@@ -445,14 +460,14 @@ export function SourceEditor({
               }
             >
               <option value="native_and_templates">
-                Native queries and templates
+                {t("Native queries and templates")}
               </option>
-              <option value="templates_only">Templates only</option>
+              <option value="templates_only">{t("Templates only")}</option>
             </select>
           </Field>
-          <h3>Query limits</h3>
+          <h3>{t("Query limits")}</h3>
           <div className="field-grid">
-            <Field label="Timeout" required>
+            <Field label={t("Timeout")} required>
               <div className="unit-input">
                 <input
                   type="number"
@@ -467,10 +482,10 @@ export function SourceEditor({
                     })
                   }
                 />
-                <span>seconds</span>
+                <span>{t("seconds")}</span>
               </div>
             </Field>
-            <Field label="Maximum rows" required>
+            <Field label={t("Maximum rows")} required>
               <input
                 type="number"
                 required
@@ -487,9 +502,9 @@ export function SourceEditor({
             </Field>
           </div>
           <details className="advanced">
-            <summary>Response size and concurrency</summary>
+            <summary>{t("Response size and concurrency")}</summary>
             <div className="field-grid">
-              <Field label="Response limit (MiB)">
+              <Field label={t("Response limit (MiB)")}>
                 <input
                   type="number"
                   min={1}
@@ -503,7 +518,7 @@ export function SourceEditor({
                   }
                 />
               </Field>
-              <Field label="Data source concurrency">
+              <Field label={t("Data source concurrency")}>
                 <input
                   type="number"
                   min={1}
@@ -526,7 +541,7 @@ export function SourceEditor({
             checked={form.enabled}
             onChange={(e) => field("enabled", e.target.checked)}
           />
-          Enable this data source for authorized Agents
+          {t("Enable this data source for authorized Agents")}
         </label>
       </form>
     </Drawer>

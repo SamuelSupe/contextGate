@@ -1,0 +1,364 @@
+.workflow-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  padding: 18px;
+  margin: 20px 0;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f3f8f9;
+}
+.workflow-summary small {
+  flex-basis: 100%;
+  color: var(--muted);
+}
+.setup-steps {
+  padding: 0;
+  list-style: none;
+  counter-reset: setup;
+  display: grid;
+  gap: 18px;
+}
+.setup-steps > li {
+  counter-increment: setup;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 22px;
+  min-width: 0;
+}
+.setup-steps h2 {
+  font-size: 17px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.setup-steps h2::before {
+  content: counter(setup);
+  border-radius: 50%;
+  background: #e4f1f2;
+  color: #236572;
+  width: 28px;
+  height: 28px;
+  display: inline-grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.setup-steps p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.workflow-items {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.workflow-items > li {
+  border-bottom: 1px solid var(--line);
+  padding: 12px 0;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.workflow-items small {
+  display: block;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.concept-usage {
+  border-top: 1px solid var(--line);
+  margin-top: 24px;
+  padding-top: 20px;
+}
+.concept-usage h3 {
+  font-size: 16px;
+}
+.concept-source {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 12px;
+  overflow-wrap: anywhere;
+}
+.concept-source h4 {
+  margin: 0 0 10px;
+}
+.evaluation-runs {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 20px 0;
+}
+.evaluation-run {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+.evaluation-run h2 {
+  font-size: 17px;
+}
+.workflow-readiness {
+  display: block;
+  text-align: left;
+  font-size: 12px;
+  color: #28717c;
+  border: 0;
+  background: none;
+  padding: 6px 0 0;
+  white-space: normal;
+}
+@media (max-width: 760px) {
+  .evaluation-runs {
+    grid-template-columns: 1fr;
+  }
+  .setup-steps > li {
+    padding: 16px;
+  }
+}
+.workflow-identity {
+  border: 1px solid var(--line);
+  border-left: 4px solid #438c91;
+  border-radius: 8px;
+  padding: 18px;
+  margin: 18px 0;
+}
+.workflow-identity .field {
+  max-width: 580px;
+}
+.workspace-queries {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 22px;
+  margin: 18px 0;
+}
+.workspace-queries h2 {
+  font-size: 17px;
+  margin: 0;
+}
+.workspace-queries .workflow-items > li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+.workspace-queries .workflow-items > li > span {
+  overflow-wrap: anywhere;
+}
+.workspace-queries > .help {
+  margin-top: 12px;
+}
+.query-identity {
+  color: #286773;
+}
+.setup-step summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 20px;
+  align-items: center;
+  cursor: pointer;
+}
+.setup-step summary::after {
+  content: "+";
+  margin-left: auto;
+  font-size: 20px;
+}
+.setup-step details[open] > summary::after {
+  content: "−";
+}
+.setup-step summary > span {
+  color: var(--muted);
+  font-size: 12px;
+}
+.setup-step h2 {
+  margin: 0;
+}
+.setup-step-content {
+  margin-top: 18px;
+}
+.evaluation-library .workflow-items > li {
+  align-items: center;
+}
+.evaluation-library .workflow-items strong {
+  overflow-wrap: anywhere;
+}
+.evaluation-library .workflow-items > li > div:first-child {
+  min-width: 180px;
+  flex: 1;
+}
+.evaluation-status {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: 16px 0;
+}
+.evaluation-run dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6px 14px;
+  font-size: 13px;
+}
+.evaluation-run dd {
+  margin: 0;
+}
+.section-heading,
+.parameter-label,
+.history-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 18px;
+}
+.section-heading {
+  justify-content: space-between;
+  margin: 20px 0 12px;
+}
+.parameter-field {
+  margin: 16px 0;
+}
+.parameter-label {
+  margin-bottom: 8px;
+}
+.parameter-label > label:first-child {
+  font-weight: 600;
+}
+.parameter-label .check-row {
+  margin: 0 0 0 auto;
+}
+.parameter-field > input,
+.parameter-field > textarea,
+.parameter-field > select {
+  width: 100%;
+}
+.parameter-field .help {
+  margin-top: 6px;
+  overflow-wrap: anywhere;
+}
+.field-error {
+  color: #b42318;
+  display: block;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.client-setup p,
+.client-setup details {
+  margin: 12px 0;
+}
+.client-setup > .field {
+  max-width: 280px;
+}
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  margin: 20px 0;
+}
+.history-filters > .field {
+  margin: 0;
+  flex: 1 1 150px;
+  min-width: 0;
+}
+.history-filters > .field:first-child {
+  flex: 2 1 220px;
+}
+.history-summary {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.history-summary strong {
+  font-size: 18px;
+  margin-right: 4px;
+}
+.evaluation-comparison {
+  margin: 20px 0 14px;
+}
+.evaluation-comparison h2 {
+  font-size: 20px;
+}
+.evaluation-comparison .table-scroll {
+  margin-top: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+.evaluation-comparison th[scope="row"] {
+  background: transparent;
+  color: inherit;
+  font-weight: 500;
+  border-bottom: 1px solid var(--line);
+}
+.evaluation-comparison td {
+  font-variant-numeric: tabular-nums;
+}
+.evaluation-context {
+  padding: 12px 0;
+}
+.evaluation-context p {
+  margin-top: 10px;
+}
+.evaluation-snapshot {
+  font-size: 13px;
+}
+.evaluation-snapshot dt {
+  font-weight: 600;
+  margin: 16px 0 5px;
+}
+.evaluation-snapshot dd {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.evaluation-details {
+  margin: 20px 0;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+.evaluation-details > summary {
+  font-size: 14px;
+  color: var(--teal-dark);
+  margin-bottom: 12px;
+}
+.agent-secondary-actions {
+  min-width: 50px;
+}
+.agent-secondary-actions > summary {
+  color: var(--teal-dark);
+  padding: 6px 0;
+}
+.agent-secondary-actions .button-row {
+  padding: 8px 0;
+}
+.evaluation-status:has(strong) {
+  position: sticky;
+  top: 8px;
+  z-index: 2;
+  padding: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  border-radius: 6px;
+}
+@media (max-width: 760px) {
+  .section-heading .button-row {
+    width: 100%;
+  }
+  .history-filters .button-row {
+    flex-basis: 100%;
+  }
+  .evaluation-comparison table {
+    min-width: 0;
+    table-layout: fixed;
+    font-size: 12px;
+  }
+  .evaluation-comparison th, .evaluation-comparison td {
+    padding: 10px 8px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+  .evaluation-comparison th:first-child { width: 40%; }
+  .workflow-summary, .workflow-identity, .workspace-queries {
+    margin: 12px 0;
+    padding: 14px;
+  }
+}

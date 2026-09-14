@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "contextgate-configuration": {
+      "url": "http://127.0.0.1:8080/mcp/config",
+      "headers": {
+        "Authorization": "Bearer YOUR_CONFIGURATION_TOKEN"
+      }
+    }
+  }
+}

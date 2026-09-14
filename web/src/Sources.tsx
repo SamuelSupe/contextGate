@@ -1,6 +1,9 @@
+import { t } from "./i18n";
 import { SourceEditor } from "./SourceEditor";
+import { type Readiness, readinessLabel } from "./readiness";
+import "./product-workflows.css";
 import { SourceDetails } from "./SourceDetails";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Plus,
   Search,
@@ -32,6 +35,8 @@ export function Sources({
   notify: (s: string) => void;
 }) {
   const [search, setSearch] = useState("");
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const [deleteError, setDeleteError] = useState("");
   const [kind, setKind] = useState("");
   const [editing, setEditing] = useState<Source | null | undefined>();
   const [detail, setDetail] = useState<Source | null>(null);
@@ -58,6 +63,43 @@ export function Sources({
     page,
     Math.max(0, Math.ceil(rows.length / pageSize) - 1),
   );
+  const [readiness, setReadiness] = useState<Record<string, Readiness>>({});
+  const visibleSources = useMemo(
+    () => rows.slice(current * pageSize, (current + 1) * pageSize),
+    [rows, current, pageSize],
+  );
+  useEffect(() => {
+    const abort = new AbortController();
+    setReadiness({});
+    void (async () => {
+      for (
+        let i = 0;
+        i < visibleSources.length && !abort.signal.aborted;
+        i += 4
+      ) {
+        const batch = await Promise.all(
+          visibleSources.slice(i, i + 4).map(async (source) => {
+            try {
+              return await api<Readiness>(
+                `/api/sources/${source.id}/readiness?summary=1`,
+                { signal: abort.signal },
+              );
+            } catch {
+              return null;
+            }
+          }),
+        );
+        if (!abort.signal.aborted)
+          setReadiness((prior) => ({
+            ...prior,
+            ...Object.fromEntries(
+              batch.filter((v) => v !== null).map((v) => [v.source_id, v]),
+            ),
+          }));
+      }
+    })();
+    return () => abort.abort();
+  }, [visibleSources, agents]);
   async function test(s: Source) {
     setBusy(s.id);
     setError("");
@@ -67,7 +109,7 @@ export function Sources({
         body: "{}",
       });
       await reload();
-      notify(`${s.name} check complete`);
+      notify(t("{name} check complete", { name: s.name }));
     } catch (e) {
       setError(message(e));
       await reload().catch((e) => setError(message(e)));
@@ -79,20 +121,20 @@ export function Sources({
     <>
       <div className="page-header">
         <div>
-          <h1>Data sources</h1>
-          <p>Manage database connections and read-only access</p>
+          <h1>{t("Data sources")}</h1>
+          <p>{t("Manage database connections and read-only access")}</p>
         </div>
         <Button primary onClick={() => setEditing(null)}>
           <Plus size={17} />
-          Add data source
+          {t("Add data source")}
         </Button>
       </div>
       <div className="filters">
         <div className="search-input">
           <Search size={16} />
           <input
-            aria-label="Search data sources"
-            placeholder="Search data sources"
+            aria-label={t("Search data sources")}
+            placeholder={t("Search data sources")}
             value={search}
             onChange={(e) => {
               setSearch(e.target.value);
@@ -101,14 +143,14 @@ export function Sources({
           />
         </div>
         <select
-          aria-label="Filter by database type"
+          aria-label={t("Filter by database type")}
           value={kind}
           onChange={(e) => {
             setKind(e.target.value);
             setPage(0);
           }}
         >
-          <option value="">All types</option>
+          <option value="">{t("All types")}</option>
           {catalog.map((c) => (
             <option key={c.kind} value={c.kind}>
               {c.name}
@@ -117,7 +159,7 @@ export function Sources({
         </select>
         <button
           className="icon-button"
-          aria-label="Refresh data sources"
+          aria-label={t("Refresh data sources")}
           onClick={() => reload().catch((e) => setError(message(e)))}
         >
           <RefreshCw size={16} />
@@ -128,21 +170,33 @@ export function Sources({
         <Empty
           title={
             sources.length
-              ? "No matching data sources"
-              : "Add your first data source"
+              ? t("No matching data sources")
+              : t("Add your first data source")
           }
           description={
             sources.length
-              ? "Try another name or database type."
-              : "Connect a database, check read-only protection, then grant access to an Agent."
+              ? t("Try another name or database type.")
+              : t(
+                  "Connect a database, check read-only protection, then grant access to an Agent.",
+                )
           }
           action={
             !sources.length ? (
               <Button primary onClick={() => setEditing(null)}>
                 <Plus size={16} />
-                Add data source
+                {t("Add data source")}
               </Button>
-            ) : undefined
+            ) : (
+              <Button
+                onClick={() => {
+                  setSearch("");
+                  setKind("");
+                  setPage(0);
+                }}
+              >
+                {t("Clear filters")}
+              </Button>
+            )
           }
         />
       ) : (
@@ -151,11 +205,11 @@ export function Sources({
             <table className="source-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Type</th>
-                  <th>Read-only protection</th>
-                  <th>Status</th>
-                  <th>Actions</th>
+                  <th>{t("Name")}</th>
+                  <th>{t("Type")}</th>
+                  <th>{t("Read-only protection")}</th>
+                  <th>{t("Status")}</th>
+                  <th>{t("Actions")}</th>
                 </tr>
               </thead>
               <tbody>
@@ -169,17 +223,31 @@ export function Sources({
                       <td>
                         <button
                           className="text-button name-link"
-                          onClick={() => setDetail(s)}
+                          onClick={() => navigate(`/sources/${s.id}/setup`)}
                         >
                           {s.name}
                         </button>
+                        <span className="workflow-readiness">
+                          {readiness[s.id]
+                            ? readinessLabel(s, readiness[s.id])
+                            : t("Open to review Agent setup")}
+                        </span>
+                        {readiness[s.id] && (
+                          <small className="block">
+                            {readiness[s.id].executable_templates}
+                            {t(" templates ·")}{" "}
+                            {readiness[s.id].active_agents.length}
+                            {t(" active Agents")}
+                          </small>
+                        )}
                       </td>
                       <td>
                         {catalog.find((c) => c.kind === s.kind)?.name || s.kind}
                         {s.kind === "influxdb" ? (
                           <small className="inline-version">
                             {" "}
-                            {s.version}.x
+                            {s.version}
+                            {t(".x")}
                           </small>
                         ) : null}
                       </td>
@@ -192,17 +260,19 @@ export function Sources({
                         >
                           <i className="dot" />
                           {!s.enabled
-                            ? "Disabled"
+                            ? t("Disabled")
                             : s.probe?.connected
-                              ? "Connected at last check"
+                              ? t("Connected at last check")
                               : s.probe
-                                ? "Connection failed"
-                                : "Not checked"}
+                                ? t("Connection failed")
+                                : t("Not checked")}
                         </span>
                         <small className="block">
                           {s.probe
-                            ? `Checked ${date(s.probe.checked_at)}`
-                            : "No connection check yet"}
+                            ? t("Checked {value1}", {
+                                value1: date(s.probe.checked_at),
+                              })
+                            : t("No connection check yet")}
                         </small>
                         {s.probe?.error ? (
                           <small className="block amber">
@@ -216,14 +286,14 @@ export function Sources({
                             className="text-button"
                             onClick={() => setEditing(s)}
                           >
-                            Edit
+                            {t("Edit")}
                           </button>
                           <button
                             className="text-button"
                             disabled={busy === s.id}
                             onClick={() => test(s)}
                           >
-                            {busy === s.id ? "Checking…" : "Test"}
+                            {busy === s.id ? t("Checking…") : t("Test")}
                           </button>
                           <button
                             className="text-button"
@@ -231,12 +301,14 @@ export function Sources({
                               navigate(`/sources/${s.id}/semantics`)
                             }
                           >
-                            Semantics
+                            {t("Semantics")}
                           </button>
                           <div className="menu-wrap">
                             <button
                               className="icon-button"
-                              aria-label={`${s.name} More actions`}
+                              aria-label={t("{name} More actions", {
+                                name: s.name,
+                              })}
                               aria-expanded={menu === s.id}
                               onClick={() => setMenu(menu === s.id ? "" : s.id)}
                             >
@@ -251,7 +323,7 @@ export function Sources({
                                   }}
                                 >
                                   <Table2 size={15} />
-                                  Explore data
+                                  {t("Structure & native preview")}
                                 </button>
                                 <button
                                   onClick={async () => {
@@ -272,8 +344,8 @@ export function Sources({
                                 >
                                   <Power size={15} />
                                   {s.enabled
-                                    ? "Disable data source"
-                                    : "Enable data source"}
+                                    ? t("Disable data source")
+                                    : t("Enable data source")}
                                 </button>
                                 <button
                                   className="danger"
@@ -283,7 +355,7 @@ export function Sources({
                                   }}
                                 >
                                   <Trash2 size={15} />
-                                  Delete configuration
+                                  {t("Delete configuration")}
                                 </button>
                               </div>
                             ) : null}
@@ -296,10 +368,13 @@ export function Sources({
             </table>
           </div>
           <div className="pagination">
-            <span>{rows.length} data sources</span>
+            <span>
+              {rows.length}
+              {t(" data sources")}
+            </span>
             <div>
               <select
-                aria-label="Rows per page"
+                aria-label={t("Rows per page")}
                 value={pageSize}
                 onChange={(e) => {
                   setPageSize(Number(e.target.value));
@@ -308,13 +383,14 @@ export function Sources({
               >
                 {[20, 50, 100].map((n) => (
                   <option key={n} value={n}>
-                    {n} per page
+                    {n}
+                    {t(" per page")}
                   </option>
                 ))}
               </select>
               <button
                 className="icon-button"
-                aria-label="Previous page"
+                aria-label={t("Previous page")}
                 disabled={current === 0}
                 onClick={() => setPage(current - 1)}
               >
@@ -323,7 +399,7 @@ export function Sources({
               <span className="page-number">{current + 1}</span>
               <button
                 className="icon-button"
-                aria-label="Next page"
+                aria-label={t("Next page")}
                 disabled={(current + 1) * pageSize >= rows.length}
                 onClick={() => setPage(current + 1)}
               >
@@ -355,36 +431,61 @@ export function Sources({
       ) : null}
       {deleting ? (
         <Drawer
-          title="Delete data source configuration"
-          onClose={() => setDeleting(null)}
+          title={t("Delete data source configuration")}
+          onClose={() => {
+            if (!deleteBusy) {
+              setDeleting(null);
+              setDeleteError("");
+            }
+          }}
           footer={
             <>
-              <Button onClick={() => setDeleting(null)}>Cancel</Button>
+              <Button
+                disabled={deleteBusy}
+                onClick={() => {
+                  setDeleting(null);
+                  setDeleteError("");
+                }}
+              >
+                {t("Cancel")}
+              </Button>
               <Button
                 className="danger"
+                busy={deleteBusy}
                 onClick={async () => {
+                  setDeleteBusy(true);
+                  setDeleteError("");
                   try {
                     await api(`/api/sources/${deleting.id}`, {
                       method: "DELETE",
                     });
                     setDeleting(null);
                     await reload();
-                    notify("Data source configuration deleted");
+                    notify(t("Data source configuration deleted"));
                   } catch (e) {
-                    setError(message(e));
+                    setDeleteError(message(e));
+                  } finally {
+                    setDeleteBusy(false);
                   }
                 }}
               >
-                Delete configuration
+                {t("Delete configuration")}
               </Button>
             </>
           }
         >
+          <ErrorNote error={deleteError} />
           <p>
-            Delete the connection configuration for{" "}
-            <strong>{deleting.name}</strong> and cancel related Agent queries.
-            Its grants will be removed from all Agents. The database and its
-            data will be preserved.
+            {t("Delete the connection configuration for")}{" "}
+            <strong>{deleting.name}</strong>
+            {t(
+              " and cancel related Agent queries. Its grants will be removed from all Agents. The database and its data will be preserved.",
+            )}
+          </p>
+          <p className="help">
+            {t(
+              "This also permanently removes this source's semantic catalog, templates, ontology mapping, saved questions and evaluation history. Export anything you need to keep before deleting.",
+            )}
           </p>
         </Drawer>
       ) : null}

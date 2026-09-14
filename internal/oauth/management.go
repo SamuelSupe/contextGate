@@ -10,8 +10,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 	"github.com/ory/fosite"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -73,32 +73,40 @@ type clientEdit struct {
 	Revision     int64    `json:"revision,string"`
 }
 
-func (s *Server) clientEdit(w http.ResponseWriter, r *http.Request) (Client, clientEdit, bool) {
+func decodeClientEdit(w http.ResponseWriter, r *http.Request) (clientEdit, bool) {
 	var in clientEdit
 	dec := json.NewDecoder(http.MaxBytesReader(w, r.Body, 64<<10))
 	dec.DisallowUnknownFields()
 	if err := dec.Decode(&in); err != nil {
 		clientError(w, 400, "invalid_input", "Invalid client configuration.")
-		return Client{}, in, false
+		return in, false
 	}
+	return in, true
+}
+
+func (s *Server) clientForEdit(w http.ResponseWriter, r *http.Request, in clientEdit) (Client, bool) {
 	var c Client
 	if _, err := s.storage.get(r.Context(), "client", r.PathValue("id"), &c); err != nil {
 		clientError(w, 404, "client_not_found", "Client not found.")
-		return c, in, false
+		return c, false
 	}
 	if in.Revision != c.Revision {
 		clientError(w, 409, "conflict", "Client changed. Reload the client before saving.")
-		return c, in, false
+		return c, false
 	}
-	return c, in, true
+	return c, true
 }
 
 func (s *Server) UpdateClient(w http.ResponseWriter, r *http.Request) {
+	in, ok := decodeClientEdit(w, r)
+	if !ok {
+		return
+	}
 	s.tokenMu.Lock()
 	defer s.tokenMu.Unlock()
 	s.clientMu.Lock()
 	defer s.clientMu.Unlock()
-	c, in, ok := s.clientEdit(w, r)
+	c, ok := s.clientForEdit(w, r, in)
 	if !ok {
 		return
 	}
@@ -128,11 +136,15 @@ func (s *Server) UpdateClient(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) RotateClientSecret(w http.ResponseWriter, r *http.Request) {
+	in, ok := decodeClientEdit(w, r)
+	if !ok {
+		return
+	}
 	s.tokenMu.Lock()
 	defer s.tokenMu.Unlock()
 	s.clientMu.Lock()
 	defer s.clientMu.Unlock()
-	c, _, ok := s.clientEdit(w, r)
+	c, ok := s.clientForEdit(w, r, in)
 	if !ok {
 		return
 	}
@@ -155,11 +167,15 @@ func (s *Server) RotateClientSecret(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) DeleteClient(w http.ResponseWriter, r *http.Request) {
+	in, ok := decodeClientEdit(w, r)
+	if !ok {
+		return
+	}
 	s.tokenMu.Lock()
 	defer s.tokenMu.Unlock()
 	s.clientMu.Lock()
 	defer s.clientMu.Unlock()
-	c, _, ok := s.clientEdit(w, r)
+	c, ok := s.clientForEdit(w, r, in)
 	if !ok {
 		return
 	}
@@ -234,19 +250,19 @@ func (s *Server) saveClient(ctx context.Context, c Client, remove, invalidate bo
 	}
 	defer tx.Rollback()
 	if remove {
-		_, err = tx.ExecContext(ctx, "DELETE FROM oauth WHERE kind='client' AND id=?", c.ID)
+		_, err = tx.ExecContext(ctx, "DELETE FROM oauth WHERE kind='client' AND id=$1", c.ID)
 	} else {
 		var b []byte
 		b, err = json.Marshal(c)
 		if err == nil {
-			_, err = tx.ExecContext(ctx, "UPDATE oauth SET value=? WHERE kind='client' AND id=?", s.Store.Vault.Seal(b, "oauth:client:"+c.ID), c.ID)
+			_, err = tx.ExecContext(ctx, "UPDATE oauth SET value=$1 WHERE kind='client' AND id=$2", s.Store.Vault.Seal(b, "oauth:client:"+c.ID), c.ID)
 		}
 	}
 	if err != nil {
 		return err
 	}
 	for _, item := range records {
-		if _, err = tx.ExecContext(ctx, "DELETE FROM oauth WHERE kind=? AND id=?", item.kind, item.id); err != nil {
+		if _, err = tx.ExecContext(ctx, "DELETE FROM oauth WHERE kind=$1 AND id=$2", item.kind, item.id); err != nil {
 			return err
 		}
 	}
@@ -261,7 +277,7 @@ func (s *Server) saveClient(ctx context.Context, c Client, remove, invalidate bo
 		if err != nil {
 			return err
 		}
-		if _, err = tx.ExecContext(ctx, "UPDATE agents SET value=?,token_hash=NULL WHERE id=?", string(b), a.ID); err != nil {
+		if _, err = tx.ExecContext(ctx, "UPDATE agents SET value=$1,token_hash=NULL WHERE id=$2", string(b), a.ID); err != nil {
 			return err
 		}
 		affected = append(affected, a.ID)

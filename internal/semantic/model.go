@@ -4,7 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
 	"time"
 )
 
@@ -39,14 +39,15 @@ type Entry struct {
 // JSON documents are strings in configuration APIs so editing in a browser does
 // not round database integers or decimals through JavaScript's number type.
 type Template struct {
-	ConceptRefs       []string    `json:"concept_refs,omitempty"`
-	Enabled           bool        `json:"enabled"`
-	Tool              string      `json:"tool"`
-	QueryJSON         string      `json:"query_json"`
-	Parameters        []Parameter `json:"parameters"`
-	ExampleJSON       string      `json:"example_json"`
-	ResultDescription string      `json:"result_description,omitempty"`
-	ExecutionVersion  string      `json:"execution_version,omitempty"`
+	Tests             []RegressionCase `json:"tests,omitempty"`
+	ConceptRefs       []string         `json:"concept_refs,omitempty"`
+	Enabled           bool             `json:"enabled"`
+	Tool              string           `json:"tool"`
+	QueryJSON         string           `json:"query_json"`
+	Parameters        []Parameter      `json:"parameters"`
+	ExampleJSON       string           `json:"example_json"`
+	ResultDescription string           `json:"result_description,omitempty"`
+	ExecutionVersion  string           `json:"execution_version,omitempty"`
 }
 
 type Parameter struct {
@@ -69,10 +70,11 @@ type Snapshot struct {
 }
 
 type State struct {
-	Revision         int64    `json:"revision,string"`
-	PublishedVersion int64    `json:"published_version,string"`
-	Draft            Snapshot `json:"draft"`
-	Published        Snapshot `json:"published"`
+	TrialAfter       *time.Time `json:"trial_after,omitempty"`
+	Revision         int64      `json:"revision,string"`
+	PublishedVersion int64      `json:"published_version,string"`
+	Draft            Snapshot   `json:"draft"`
+	Published        Snapshot   `json:"published"`
 }
 
 type Evidence struct {
@@ -94,6 +96,7 @@ type Execution struct {
 }
 
 func Definition(t Template) string {
+	t.Tests = nil
 	t.ConceptRefs = nil
 	t.ExecutionVersion, t.ResultDescription, t.ExampleJSON = "", "", ""
 	// Description and examples do not change executable behavior.

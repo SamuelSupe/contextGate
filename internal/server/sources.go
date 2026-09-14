@@ -1,10 +1,10 @@
 package server
 
 import (
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/engine"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/engine"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 	"net/http"
 	"time"
 )
@@ -39,6 +39,10 @@ func (s *Server) saveSource(w http.ResponseWriter, r *http.Request) {
 	src := input.Source
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	id := r.PathValue("id")
 	var old model.Source
 	if id != "" {
@@ -105,6 +109,10 @@ func (s *Server) saveSource(w http.ResponseWriter, r *http.Request) {
 func (s *Server) deleteSource(w http.ResponseWriter, r *http.Request) {
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	id := r.PathValue("id")
 	if e := s.Store.DeleteSource(id); e != nil {
 		fail(w, 500, e)
@@ -154,7 +162,11 @@ func (s *Server) testSource(w http.ResponseWriter, r *http.Request) {
 		probe = model.Probe{Connected: false, PermissionStatus: "unverified", CheckedAt: time.Now(), Evidence: []string{}, Error: engine.PublicError(probeErr)}
 		probe.Error.RequestID = requestID
 	}
-	record := model.Audit{RequestID: requestID, At: started, AgentID: "admin", SourceID: src.ID, Operation: "test_connection", ElapsedMS: time.Since(started).Milliseconds(), Preview: true}
+	actor := model.AdministratorPrincipal(r.Context()).AgentID
+	if actor == "" {
+		actor = "admin"
+	}
+	record := model.Audit{RequestID: requestID, At: started, AgentID: actor, SourceID: src.ID, Operation: "test_connection", ElapsedMS: time.Since(started).Milliseconds(), Preview: true}
 	if probe.Error != nil {
 		record.ErrorCode = probe.Error.Code
 		record.NativeCode = probe.Error.NativeCode
@@ -166,6 +178,10 @@ func (s *Server) testSource(w http.ResponseWriter, r *http.Request) {
 	if id != "" {
 		s.Store.Mutations.Lock()
 		defer s.Store.Mutations.Unlock()
+		if err := model.CheckConfigurationContext(r.Context()); err != nil {
+			fail(w, 401, err)
+			return
+		}
 		fresh, e := s.Store.Source(id)
 		if e != nil || fresh.Revision != src.Revision {
 			fail(w, 409, model.Fail("conflict", "data source changed during verification"))

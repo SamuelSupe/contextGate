@@ -2,7 +2,7 @@
 
 [English](read-only-accounts.md)
 
-以下命令由数据库管理员在数据库中执行，MCP DB Hub 不创建账号、不修改数据库授权，也不使用写入探测权限。将示例中的数据库、用户名、密码替换为实际值；使用专用账号，避免继承额外角色。表/列/行范围由数据库权限、视图和 RLS 控制。
+以下命令由数据库管理员在数据库中执行，ContextGate 不创建账号、不修改数据库授权，也不使用写入探测权限。将示例中的数据库、用户名、密码替换为实际值；使用专用账号，避免继承额外角色。表/列/行范围由数据库权限、视图和 RLS 控制。
 
 ## PostgreSQL / TimescaleDB
 
@@ -26,7 +26,7 @@ GRANT SELECT, SHOW VIEW ON app.* TO 'hub_reader'@'%';
 SHOW GRANTS FOR 'hub_reader'@'%';
 ```
 
-实际部署把 `%` 收紧到 Hub 来源网络。MySQL/MariaDB 每次使用只读事务。TiDB 不依赖只读事务提示，连接时要求 SHOW GRANTS 明确仅有 SELECT/SHOW VIEW/USAGE；间接角色、列级复杂授权或无法识别的 grant 会保守拒绝，需要配置直接授权的专用账号。
+实际部署把 `%` 收紧到 ContextGate 来源网络。MySQL/MariaDB 每次使用只读事务。TiDB 不依赖只读事务提示，连接时要求 SHOW GRANTS 明确仅有 SELECT/SHOW VIEW/USAGE；间接角色、列级复杂授权或无法识别的 grant 会保守拒绝，需要配置直接授权的专用账号。
 
 ## CockroachDB
 
@@ -61,7 +61,7 @@ db.createUser({user: "hub_reader", pwd: "REPLACE_WITH_RANDOM_PASSWORD",
                roles: [{role: "read", db: "app"}]})
 ```
 
-UI 的 auth_source 填用户创建所在数据库，副本集可指定 replica_set。Hub 使用 connectionStatus 的有效 actions 检查；证据不完整时显示未验证。
+UI 的 auth_source 填用户创建所在数据库，副本集可指定 replica_set。ContextGate 使用 connectionStatus 的有效 actions 检查；证据不完整时显示未验证。
 
 ## Redis / Valkey
 
@@ -69,7 +69,7 @@ UI 的 auth_source 填用户创建所在数据库，副本集可指定 replica_s
 ACL SETUSER hub_reader on >REPLACE_WITH_RANDOM_PASSWORD ~app:* -@all +@read +ping +info
 ```
 
-用数据库 ACL 约束 key 范围。Hub 另有更窄的命令白名单，因此 `@read` 中的命令不一定都可调用。若 INFO 被禁，部分版本探测无法完成。集群拓扑、Sentinel 故障切换不在本次实测矩阵中。
+用数据库 ACL 约束 key 范围。ContextGate 另有更窄的命令白名单，因此 `@read` 中的命令不一定都可调用。若 INFO 被禁，部分版本探测无法完成。集群拓扑、Sentinel 故障切换不在本次实测矩阵中。
 
 ## Elasticsearch / OpenSearch
 
@@ -103,8 +103,8 @@ GRANT READ ON app TO hub_reader;
 
 ## InfluxDB 2.x
 
-在 InfluxDB 管理界面创建只对所需 bucket 授予 read 的 API Token。在 Hub 配置 token、org、bucket。不要使用 all-access Token。Flux 仅支持读取子集与原生字面量参数，禁用 import、网络访问和写入。
+在 InfluxDB 管理界面创建只对所需 bucket 授予 read 的 API Token。在 ContextGate 配置 token、org、bucket。不要使用 all-access Token。Flux 仅支持读取子集与原生字面量参数，禁用 import、网络访问和写入。
 
 ## InfluxDB 3 Core
 
-按照已确认的例外，配置 Core 的可用 Token，Hub 仅开放 `/api/v3/query_sql` 与 `/api/v3/query_influxql` 等固定读取接口。**管理员 Token 仍具管理/写入权限；UI 标为“查询 API 隔离”。** 不能将该状态等同数据库只读账号。接口依据 [InfluxDB 3 查询 API](https://docs.influxdata.com/influxdb3/core/api/query-data/)。
+按照已确认的例外，配置 Core 的可用 Token，ContextGate 仅开放 `/api/v3/query_sql` 与 `/api/v3/query_influxql` 等固定读取接口。**管理员 Token 仍具管理/写入权限；UI 标为“查询 API 隔离”。** 不能将该状态等同数据库只读账号。接口依据 [InfluxDB 3 查询 API](https://docs.influxdata.com/influxdb3/core/api/query-data/)。

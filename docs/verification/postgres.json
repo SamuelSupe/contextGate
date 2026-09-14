@@ -36,12 +36,12 @@
       "transaction_read_only=on for every query; account grants are not inferred"
     ],
     "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
-    "checked_at": "2026-09-12T02:23:39.967570602Z"
+    "checked_at": "2026-09-14T09:21:34.053225764Z"
   },
   "query_cases": 6,
-  "verified_at": "2026-09-12T02:23:39.977836452Z",
+  "verified_at": "2026-09-14T09:21:34.065425778Z",
   "version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
   "image_id": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
-  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
+  "implementation_sha256": "852303d31393378fd7d7699c09a4349b3aa454b0d01604673ff7f0cbffdf5c14",
   "environment": "OrbStack Linux arm64"
 }

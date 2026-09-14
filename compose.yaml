@@ -1,11 +1,30 @@
 services:
+  postgres:
+    image: postgres:17.11
+    environment:
+      POSTGRES_USER: mcpdbhub
+      POSTGRES_PASSWORD: ${MCPDBHUB_POSTGRES_PASSWORD:?Set MCPDBHUB_POSTGRES_PASSWORD in .env}
+      POSTGRES_DB: mcpdbhub
+    volumes:
+      - hub-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U mcpdbhub -d mcpdbhub"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+    restart: unless-stopped
   hub:
     build: .
-    image: mcpdbhub:local
+    image: contextgate:local
     ports:
       - "127.0.0.1:8080:8080"
     environment:
       MCPDBHUB_PUBLIC_URL: http://127.0.0.1:8080
+      MCPDBHUB_DATABASE_URL: postgres://mcpdbhub@postgres:5432/mcpdbhub?sslmode=disable
+      PGPASSWORD: ${MCPDBHUB_POSTGRES_PASSWORD}
+    depends_on:
+      postgres:
+        condition: service_healthy
     volumes:
       - hub-data:/data
       - ./databases:/databases:ro
@@ -19,3 +38,4 @@ services:
     restart: unless-stopped
 volumes:
   hub-data:
+  hub-postgres:

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"fmt"
 	chparser "github.com/AfterShip/clickhouse-sql-parser/parser"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	pgquery "github.com/pganalyze/pg_query_go/v6"
 	mysqlparser "github.com/pingcap/tidb/pkg/parser"
 	"github.com/pingcap/tidb/pkg/parser/ast"
@@ -269,6 +269,11 @@ func walkPG(v any) error {
 type sqlVisitor struct{ err error }
 
 func (v *sqlVisitor) Enter(n ast.Node) (ast.Node, bool) {
+	// MySQL read-only transactions still allow shared locks. Inspect every
+	// SELECT, including subqueries and CTEs, before it reaches the database.
+	if selectStmt, ok := n.(*ast.SelectStmt); ok && selectStmt.LockInfo != nil && selectStmt.LockInfo.LockType != ast.SelectLockNone {
+		v.err = model.Fail("query_denied", "locking reads are denied")
+	}
 	if f, ok := n.(*ast.FuncCallExpr); ok && (f.Schema.O != "" || !pureFunctions[strings.ToLower(f.FnName.O)]) {
 		v.err = model.Fail("query_denied", "function is not in the pure query allowlist")
 	}

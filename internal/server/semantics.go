@@ -7,30 +7,36 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
 )
 
 func (s *Server) semanticRoutes(mux *http.ServeMux) {
 	for route, handler := range map[string]http.HandlerFunc{
-		"GET /api/sources/{id}/semantics":                    s.semantics,
-		"PUT /api/sources/{id}/semantics":                    s.saveSemantics,
-		"GET /api/sources/{id}/semantics/entries":            s.semanticEntries,
-		"PUT /api/sources/{id}/semantics/entries/{entry}":    s.saveSemanticEntry,
-		"DELETE /api/sources/{id}/semantics/entries/{entry}": s.saveSemanticEntry,
-		"POST /api/sources/{id}/semantics/preview":           s.previewSemanticVisibility,
-		"POST /api/sources/{id}/semantics/check-mapping":     s.checkOntologyMapping,
-		"POST /api/sources/{id}/semantics/validate":          s.validateSemantics,
-		"POST /api/sources/{id}/semantics/trial":             s.trialSemantics,
-		"POST /api/sources/{id}/semantics/publish":           s.publishSemantics,
-		"POST /api/sources/{id}/semantics/discard":           s.discardSemantics,
-		"POST /api/sources/{id}/semantics/import":            s.saveSemantics,
-		"GET /api/sources/{id}/semantics/export":             s.exportSemantics,
-		"POST /api/sources/{id}/semantics/import-structure":  s.importSemanticStructure,
-		"POST /api/sources/{id}/semantics/execute":           s.executeSemanticTemplate,
+		"GET /api/sources/{id}/semantics/versions":              s.semanticVersions,
+		"GET /api/sources/{id}/semantics/versions/{version}":    s.semanticVersion,
+		"DELETE /api/sources/{id}/semantics/versions/{version}": s.deleteSemanticVersion,
+		"POST /api/sources/{id}/semantics/restore":              s.restoreSemantics,
+		"POST /api/sources/{id}/semantics/trial-all":            s.trialAllSemantics,
+		"GET /api/sources/{id}/semantics":                       s.semantics,
+		"PUT /api/sources/{id}/semantics":                       s.saveSemantics,
+		"GET /api/sources/{id}/semantics/entries":               s.semanticEntries,
+		"PUT /api/sources/{id}/semantics/entries/{entry}":       s.saveSemanticEntry,
+		"DELETE /api/sources/{id}/semantics/entries/{entry}":    s.saveSemanticEntry,
+		"POST /api/sources/{id}/semantics/preview":              s.previewSemanticVisibility,
+		"POST /api/sources/{id}/semantics/check-mapping":        s.checkOntologyMapping,
+		"POST /api/sources/{id}/semantics/validate":             s.validateSemantics,
+		"POST /api/sources/{id}/semantics/trial":                s.trialSemantics,
+		"POST /api/sources/{id}/semantics/publish":              s.publishSemantics,
+		"POST /api/sources/{id}/semantics/discard":              s.discardSemantics,
+		"POST /api/sources/{id}/semantics/import":               s.saveSemantics,
+		"GET /api/sources/{id}/semantics/export":                s.exportSemantics,
+		"POST /api/sources/{id}/semantics/import-structure":     s.importSemanticStructure,
+		"POST /api/sources/{id}/semantics/execute":              s.executeSemanticTemplate,
 	} {
 		mux.HandleFunc(route, s.requireAdmin(handler))
 	}
@@ -60,7 +66,7 @@ func (s *Server) semanticView(src model.Source, st semantic.State) map[string]an
 	validation := []any{}
 	for _, en := range st.Draft.Entries {
 		if en.Template != nil {
-			validation = append(validation, s.Engine.TemplateValidation(src, en))
+			validation = append(validation, s.Engine.DraftTemplateValidation(src, st, en))
 		}
 	}
 	a, b := st.Draft, st.Published
@@ -76,7 +82,13 @@ func (s *Server) semanticView(src model.Source, st semantic.State) map[string]an
 		}
 		return out
 	}
-	return map[string]any{"revision": strconv.FormatInt(st.Revision, 10), "published_version": strconv.FormatInt(st.PublishedVersion, 10), "draft": st.Draft, "published": st.Published, "changed": !reflect.DeepEqual(strip(a), strip(b)), "validation": validation, "mapping_validation": s.Engine.MappingValidation(src, st.Draft)}
+	mapping := s.Engine.MappingValidation(src, st.Draft)
+	if st.TrialAfter != nil {
+		if checked, ok := mapping["checked_at"].(time.Time); ok && checked.Before(*st.TrialAfter) {
+			mapping["status"] = "check_required"
+		}
+	}
+	return map[string]any{"revision": strconv.FormatInt(st.Revision, 10), "published_version": strconv.FormatInt(st.PublishedVersion, 10), "draft": st.Draft, "published": st.Published, "changed": !reflect.DeepEqual(strip(a), strip(b)), "validation": validation, "mapping_validation": mapping}
 }
 
 func (s *Server) semantics(w http.ResponseWriter, r *http.Request) {
@@ -144,6 +156,10 @@ func (s *Server) saveSemantics(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	if err := s.writeDraft(r.PathValue("id"), in.Revision, in.Snapshot); err != nil {
 		semanticFailure(w, err)
 		return
@@ -162,6 +178,10 @@ func (s *Server) saveSemanticEntry(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	_, st, err := s.semanticState(r.PathValue("id"))
 	if err != nil {
 		semanticFailure(w, err)
@@ -279,12 +299,18 @@ func (s *Server) discardSemantics(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	_, st, err := s.semanticState(r.PathValue("id"))
 	if err != nil {
 		semanticFailure(w, err)
 		return
 	}
-	if err = s.writeDraft(r.PathValue("id"), in.Revision, st.Published); err != nil {
+	st.Draft = st.Published
+	st.TrialAfter = nil
+	if err = s.Store.WriteSemantics(r.PathValue("id"), in.Revision, st); err != nil {
 		semanticFailure(w, err)
 		return
 	}
@@ -334,7 +360,7 @@ func (s *Server) importSemanticStructure(w http.ResponseWriter, r *http.Request)
 		// Neo4j property discovery reads node contents. Import labels only; their
 		// property semantics must be supplied explicitly by the administrator.
 		if src.Kind != "neo4j" {
-			res, err := s.Engine.Execute(r.Context(), model.Principal{Admin: true, Preview: true}, "describe", model.Query{SourceID: id, Namespace: ref.Namespace, Object: ref.Object})
+			res, err := s.Engine.Execute(r.Context(), model.AdministratorPrincipal(r.Context()), "describe", model.Query{SourceID: id, Namespace: ref.Namespace, Object: ref.Object})
 			if err != nil {
 				semanticFailure(w, err)
 				return
@@ -376,6 +402,10 @@ func (s *Server) importSemanticStructure(w http.ResponseWriter, r *http.Request)
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	fresh, err := s.Store.Source(id)
 	if err != nil || fresh.ExecutionRevision() != src.ExecutionRevision() {
 		semanticFailure(w, model.Fail("conflict", "Data source changed during structure import"))

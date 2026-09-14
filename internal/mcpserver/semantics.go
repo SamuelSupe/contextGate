@@ -5,9 +5,9 @@ import (
 	"context"
 	"encoding/json"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/engine"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/engine"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 

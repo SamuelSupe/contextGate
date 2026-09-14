@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
 	"reflect"
 	"time"
 )
@@ -215,6 +215,10 @@ type Object struct {
 	Details   any      `json:"details,omitempty"`
 }
 type Audit struct {
+	EventKind       string    `json:"event_kind"`
+	ResourceID      string    `json:"resource_id,omitempty"`
+	Revision        string    `json:"revision,omitempty"`
+	ChangedFields   string    `json:"changed_fields,omitempty"`
 	TemplateID      string    `json:"template_id,omitempty"`
 	TemplateVersion string    `json:"template_version,omitempty"`
 	OntologyID      string    `json:"ontology_id,omitempty"`

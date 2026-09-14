@@ -6,11 +6,11 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/store"
 	"slices"
 	"strconv"
 	"sync"
@@ -53,11 +53,11 @@ func (e *Engine) Authorize(p model.Principal, id string) (model.Source, error) {
 	if err != nil || !src.Enabled {
 		return src, model.Fail("not_found", "data source is unavailable")
 	}
-	if p.Admin {
-		return src, nil
-	}
 	if p.CredentialValid != nil && !p.CredentialValid() {
 		return src, model.Fail("unauthorized", "credential revoked or expired")
+	}
+	if p.Admin {
+		return src, nil
 	}
 	a, err := e.Store.Agent(p.AgentID)
 	if err != nil || !a.Enabled || a.RevokedAt != nil || !a.ExpiresAt.After(time.Now()) || !slices.Contains(a.Sources, id) {
@@ -226,7 +226,7 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 	requestID := secure.Random(16)
 	fp := e.fingerprint(q)
 	principal := p.AgentID
-	if p.Admin {
+	if p.Admin && principal == "" {
 		principal = "admin"
 	}
 	defer func() {

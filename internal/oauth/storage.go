@@ -5,7 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/store"
 	"github.com/ory/fosite"
 	"net/url"
 	"time"
@@ -33,13 +33,13 @@ func (s *storage) put(ctx context.Context, kind, id string, v any, exp time.Time
 	if !exp.IsZero() {
 		expires = exp.Unix()
 	}
-	_, e = s.store.DB.ExecContext(ctx, "INSERT INTO oauth(kind,id,value,expires,request_id,active) VALUES(?,?,?,?,?,1) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value,expires=excluded.expires,request_id=excluded.request_id,active=1", kind, id, s.store.Vault.Seal(b, "oauth:"+kind+":"+id), expires, requestID)
+	_, e = s.store.DB.ExecContext(ctx, "INSERT INTO oauth(kind,id,value,expires,request_id,active) VALUES($1,$2,$3,$4,$5,1) ON CONFLICT(kind,id) DO UPDATE SET value=excluded.value,expires=excluded.expires,request_id=excluded.request_id,active=1", kind, id, s.store.Vault.Seal(b, "oauth:"+kind+":"+id), expires, requestID)
 	return e
 }
 func (s *storage) get(ctx context.Context, kind, id string, v any) (bool, error) {
 	var ciphertext string
 	var active int
-	e := s.store.DB.QueryRowContext(ctx, "SELECT value,active FROM oauth WHERE kind=? AND id=? AND (expires=0 OR expires>?)", kind, id, time.Now().Unix()).Scan(&ciphertext, &active)
+	e := s.store.DB.QueryRowContext(ctx, "SELECT value,active FROM oauth WHERE kind=$1 AND id=$2 AND (expires=0 OR expires>$3)", kind, id, time.Now().Unix()).Scan(&ciphertext, &active)
 	if errors.Is(e, sql.ErrNoRows) {
 		return false, fosite.ErrNotFound
 	}
@@ -53,7 +53,7 @@ func (s *storage) get(ctx context.Context, kind, id string, v any) (bool, error)
 	return active == 1, json.Unmarshal(b, v)
 }
 func (s *storage) del(ctx context.Context, kind, id string) error {
-	_, e := s.store.DB.ExecContext(ctx, "DELETE FROM oauth WHERE kind=? AND id=?", kind, id)
+	_, e := s.store.DB.ExecContext(ctx, "DELETE FROM oauth WHERE kind=$1 AND id=$2", kind, id)
 	return e
 }
 func (s *storage) GetClient(ctx context.Context, id string) (fosite.Client, error) {
@@ -121,7 +121,7 @@ func (s *storage) GetAuthorizeCodeSession(ctx context.Context, id string, _ fosi
 	return r, nil
 }
 func (s *storage) InvalidateAuthorizeCodeSession(ctx context.Context, id string) error {
-	r, e := s.store.DB.ExecContext(ctx, "UPDATE oauth SET active=0 WHERE kind='code' AND id=? AND active=1", id)
+	r, e := s.store.DB.ExecContext(ctx, "UPDATE oauth SET active=0 WHERE kind='code' AND id=$1 AND active=1", id)
 	if e != nil {
 		return e
 	}
@@ -177,15 +177,15 @@ func (s *storage) DeleteRefreshTokenSession(ctx context.Context, id string) erro
 	return s.del(ctx, "refresh", id)
 }
 func (s *storage) RevokeRefreshToken(ctx context.Context, id string) error {
-	_, e := s.store.DB.ExecContext(ctx, "UPDATE oauth SET active=0 WHERE kind='refresh' AND request_id=?", id)
+	_, e := s.store.DB.ExecContext(ctx, "UPDATE oauth SET active=0 WHERE kind='refresh' AND request_id=$1", id)
 	return e
 }
 func (s *storage) RevokeAccessToken(ctx context.Context, id string) error {
-	_, e := s.store.DB.ExecContext(ctx, "DELETE FROM oauth WHERE kind='access' AND request_id=?", id)
+	_, e := s.store.DB.ExecContext(ctx, "DELETE FROM oauth WHERE kind='access' AND request_id=$1", id)
 	return e
 }
 func (s *storage) RotateRefreshToken(ctx context.Context, requestID, id string) error {
-	result, e := s.store.DB.ExecContext(ctx, "UPDATE oauth SET active=0 WHERE kind='refresh' AND id=? AND active=1", id)
+	result, e := s.store.DB.ExecContext(ctx, "UPDATE oauth SET active=0 WHERE kind='refresh' AND id=$1 AND active=1", id)
 	if e != nil {
 		return e
 	}

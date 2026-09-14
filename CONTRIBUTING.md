@@ -4,10 +4,11 @@ Small, focused changes are welcome. Start an issue for a new adapter or a change
 
 ## Development
 
-Use Go 1.26, a C/C++ toolchain, Node.js 24 and Docker. SQLite and DuckDB require CGO. Build the embedded UI before running Go tests:
+Use Go 1.26, a C/C++ toolchain, Node.js 24 and Docker. SQLite and DuckDB require CGO. Tests require `MCPDBHUB_TEST_DATABASE_URL` pointing to a disposable PostgreSQL database whose role can create/drop schemas. Tests isolate temporary configurations by schema and remove only their own schemas. Build the embedded UI before running Go tests:
 
 ```sh
 make ui
+export MCPDBHUB_TEST_DATABASE_URL='postgres://test:REPLACE_ME@127.0.0.1:5432/mcpdbhub_test?sslmode=disable'
 go test ./...
 go test -race ./...
 node --test web/test/query.test.mjs

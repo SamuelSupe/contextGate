@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useEffect, useState } from "react";
 import { api, date, message, payload } from "./api";
 import { Button, Drawer, Empty, ErrorNote, Field, Loading } from "./components";
@@ -118,7 +119,7 @@ export function OntologyMapping({
     );
     onDirty(false);
     notify(
-      "Ontology mapping saved to draft. Check structure before publishing.",
+      t("Ontology mapping saved to draft. Check structure before publishing."),
     );
   }
   const prior = state.published.ontology;
@@ -128,14 +129,14 @@ export function OntologyMapping({
     <div role="tabpanel" className="ontology-mapping">
       <ErrorNote error={dialog || editing ? "" : error} />
       <section className="ontology-binding-panel">
-        <h2>Ontology mapping</h2>
+        <h2>{t("Ontology mapping")}</h2>
         <p className="help">
-          Bind one immutable ontology version. Only mapped definitions are
-          visible to Agents authorized for this data source. Publish the mapping
-          together with the catalog and template concept links.
+          {t(
+            "Bind one immutable ontology version. Only mapped definitions are visible to Agents authorized for this data source. Publish the mapping together with the catalog and template concept links.",
+          )}
         </p>
         <div className="field-grid">
-          <Field label="Shared ontology">
+          <Field label={t("Shared ontology")}>
             <select
               value={binding?.ontology_id || ""}
               disabled={busy}
@@ -154,24 +155,25 @@ export function OntologyMapping({
                 );
               }}
             >
-              <option value="">No ontology binding</option>
+              <option value="">{t("No ontology binding")}</option>
               {ontologies.map((o) => (
                 <option
                   key={o.id}
                   value={o.id}
                   disabled={o.archived && o.id !== prior?.ontology_id}
                 >
-                  {o.name} {o.archived ? "(archived)" : ""}
+                  {o.name} {o.archived ? t("(archived)") : ""}
                 </option>
               ))}
               {binding && !selected && (
                 <option value={binding.ontology_id}>
-                  Missing ontology: {binding.ontology_id}
+                  {t("Missing ontology: ")}
+                  {binding.ontology_id}
                 </option>
               )}
             </select>
           </Field>
-          <Field label="Pinned version">
+          <Field label={t("Pinned version")}>
             <select
               value={binding?.version || "0"}
               disabled={!binding || busy || loading}
@@ -181,7 +183,7 @@ export function OntologyMapping({
                 )
               }
             >
-              <option value="0">Select published version</option>
+              <option value="0">{t("Select published version")}</option>
               {versions.map((v) => (
                 <option
                   key={v}
@@ -192,14 +194,16 @@ export function OntologyMapping({
                       v !== prior?.version)
                   }
                 >
-                  Version {v}
+                  {t("Version ")}
+                  {v}
                 </option>
               ))}
               {binding &&
                 binding.version !== "0" &&
                 !versions.includes(binding.version) && (
                   <option value={binding.version}>
-                    Version {binding.version}
+                    {t("Version ")}
+                    {binding.version}
                   </option>
                 )}
             </select>
@@ -207,10 +211,14 @@ export function OntologyMapping({
         </div>
         <p className="help">
           {prior
-            ? `Published binding: ${prior.ontology_id} · version ${prior.version}.`
-            : "No published binding."}{" "}
-          Selecting another ontology starts a new mapping draft. Existing
-          published queries continue until publication.
+            ? t("Published binding: {ontology_id} · version {version}.", {
+                ontology_id: prior.ontology_id,
+                version: prior.version,
+              })
+            : t("No published binding.")}{" "}
+          {t(
+            "Selecting another ontology starts a new mapping draft. Existing published queries continue until publication.",
+          )}
         </p>
         <div className="button-row">
           <Button
@@ -218,13 +226,13 @@ export function OntologyMapping({
             disabled={!dirty || busy || loading}
             onClick={() => action(() => save(binding))}
           >
-            Save binding draft
+            {t("Save binding draft")}
           </Button>
           <Button
             disabled={!dirty || busy}
             onClick={() => setBinding(state.draft.ontology || null)}
           >
-            Revert unsaved binding
+            {t("Revert unsaved binding")}
           </Button>
           <Button
             disabled={!binding || busy || dirty || loading}
@@ -236,12 +244,14 @@ export function OntologyMapping({
                 });
                 accept(await api<SemanticState>(endpoint));
                 notify(
-                  "Mapping structure checked. Review unverified declarations before publication.",
+                  t(
+                    "Mapping structure checked. Review unverified declarations before publication.",
+                  ),
                 );
               })
             }
           >
-            Check structure
+            {t("Check structure")}
           </Button>
           <Button
             disabled={
@@ -262,21 +272,24 @@ export function OntologyMapping({
               })
             }
           >
-            Compare with adopted version
+            {t("Compare with adopted version")}
           </Button>
         </div>
         {dirty && (
           <p className="help">
-            Save or revert the binding before leaving this section or
-            publishing.
+            {t(
+              "Save or revert the binding before leaving this section or publishing.",
+            )}
           </p>
         )}
         {loading && <Loading />}
       </section>
       {!binding ? (
         <Empty
-          title="No ontology selected"
-          description="Existing semantic entries and native templates continue to work without an ontology."
+          title={t("No ontology selected")}
+          description={t(
+            "Existing semantic entries and native templates continue to work without an ontology.",
+          )}
         />
       ) : (
         version && (
@@ -286,29 +299,33 @@ export function OntologyMapping({
                 className={`status ${validation?.status === "checked" && !dirty ? "green" : "amber"}`}
               >
                 {dirty
-                  ? "Unsaved binding"
-                  : validation?.status?.replaceAll("_", " ") ||
-                    "Check required"}
+                  ? t("Unsaved binding")
+                  : (validation?.status
+                      ? t(validation.status.replaceAll("_", " "))
+                      : "") || t("Check required")}
               </span>
-              <span>Metadata checked {date(validation?.checked_at)}</span>
-              <span>Database value constraints are not verified</span>
+              <span>
+                {t("Metadata checked ")}
+                {date(validation?.checked_at)}
+              </span>
+              <span>{t("Database value constraints are not verified")}</span>
             </div>
             {validation?.checks && !dirty && (
               <details>
                 <summary>
-                  Structure evidence ·{" "}
+                  {t("Structure evidence ·")}{" "}
                   {
                     validation.checks.filter((c) => c.status === "unverified")
                       .length
                   }{" "}
-                  unverified fields
+                  {t("unverified fields")}
                 </summary>
                 <div className="table-scroll">
                   <table>
                     <thead>
                       <tr>
-                        <th>Physical reference</th>
-                        <th>Evidence</th>
+                        <th>{t("Physical reference")}</th>
+                        <th>{t("Evidence")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -323,8 +340,8 @@ export function OntologyMapping({
                               className={`status ${c.status === "verified" ? "green" : "amber"}`}
                             >
                               {c.status === "verified"
-                                ? "Discovered in metadata"
-                                : "Administrator declared · unverified"}
+                                ? t("Discovered in metadata")
+                                : t("Administrator declared · unverified")}
                             </span>
                           </td>
                         </tr>
@@ -339,10 +356,10 @@ export function OntologyMapping({
                 <div className="page-header">
                   <h2>
                     {kind === "entities"
-                      ? "Entity mappings"
+                      ? t("Entity mappings")
                       : kind === "properties"
-                        ? "Property mappings"
-                        : "Relation mappings"}
+                        ? t("Property mappings")
+                        : t("Relation mappings")}
                   </h2>
                   <Button
                     disabled={dirty || busy}
@@ -370,27 +387,28 @@ export function OntologyMapping({
                       })
                     }
                   >
-                    Add{" "}
+                    {t("Add")}{" "}
                     {kind === "entities"
-                      ? "entity"
+                      ? t("entity")
                       : kind === "properties"
-                        ? "property"
-                        : "relation"}{" "}
-                    mapping
+                        ? t("property")
+                        : t("relation")}{" "}
+                    {t("mapping")}
                   </Button>
                 </div>
                 {binding[kind].length === 0 ? (
                   <p className="help">
-                    No {kind} mapped. Unmapped definitions are hidden from
-                    Agents.
+                    {t("No ")}
+                    {t(kind)}
+                    {t(" mapped. Unmapped definitions are hidden from Agents.")}
                   </p>
                 ) : (
                   <div className="table-scroll">
                     <table>
                       <thead>
                         <tr>
-                          <th>Concept</th>
-                          <th>Physical mapping / template</th>
+                          <th>{t("Concept")}</th>
+                          <th>{t("Physical mapping / template")}</th>
                           <th />
                         </tr>
                       </thead>
@@ -405,9 +423,16 @@ export function OntologyMapping({
                                     .join(", ")
                                 : "property" in m
                                   ? m.reference
-                                    ? `${m.reference.namespace}.${m.reference.object}.${m.reference.field}${m.declared ? " · declaration allowed" : ""}`
-                                    : `Template: ${m.template_id || "missing"}`
-                                  : `${m.fields?.length || 0} field pairs${m.template_id ? ` · Template: ${m.template_id}` : ""}`}
+                                    ? `${m.reference.namespace}.${m.reference.object}.${m.reference.field}${m.declared ? t(" · declaration allowed") : ""}`
+                                    : t("Template: {value1}", {
+                                        value1: m.template_id || "missing",
+                                      })
+                                  : t("{value1} field pairs{value2}", {
+                                      value1: m.fields?.length || 0,
+                                      value2: m.template_id
+                                        ? ` · Template: ${m.template_id}`
+                                        : "",
+                                    })}
                             </td>
                             <td>
                               <div className="button-row">
@@ -417,7 +442,7 @@ export function OntologyMapping({
                                     setEditing({ kind, item: m, index: i })
                                   }
                                 >
-                                  Edit
+                                  {t("Edit")}
                                 </Button>
                                 <Button
                                   disabled={dirty || busy}
@@ -427,7 +452,7 @@ export function OntologyMapping({
                                     setDialog("remove");
                                   }}
                                 >
-                                  Remove
+                                  {t("Remove")}
                                 </Button>
                               </div>
                             </td>
@@ -458,7 +483,7 @@ export function OntologyMapping({
                   i !== editing.index && mappingKey(v) === mappingKey(item),
               )
             )
-              throw new Error("This concept already has a mapping.");
+              throw new Error(t("This concept already has a mapping."));
             const rows: MappingItem[] = [...binding[editing.kind]];
             if (editing.index < 0) rows.push(item);
             else rows[editing.index] = item;
@@ -472,8 +497,8 @@ export function OntologyMapping({
           wide={dialog === "diff"}
           title={
             dialog === "diff"
-              ? "Ontology version differences"
-              : "Remove mapping from draft"
+              ? t("Ontology version differences")
+              : t("Remove mapping from draft")
           }
           onClose={() => {
             if (!busy) setDialog("");
@@ -487,7 +512,7 @@ export function OntologyMapping({
                   setError("");
                 }}
               >
-                {dialog === "diff" ? "Close" : "Cancel"}
+                {dialog === "diff" ? t("Close") : t("Cancel")}
               </Button>
               {dialog === "remove" && (
                 <Button
@@ -506,7 +531,7 @@ export function OntologyMapping({
                     })
                   }
                 >
-                  Remove draft mapping
+                  {t("Remove draft mapping")}
                 </Button>
               )}
             </>
@@ -516,8 +541,9 @@ export function OntologyMapping({
           {dialog === "diff" ? (
             <>
               <p>
-                Review removed or changed definitions and repair mappings before
-                adopting this version.
+                {t(
+                  "Review removed or changed definitions and repair mappings before adopting this version.",
+                )}
               </p>
               <pre className="query-output">
                 {JSON.stringify(diff, null, 2)}
@@ -525,9 +551,9 @@ export function OntologyMapping({
             </>
           ) : (
             <p>
-              Related property mappings, relation endpoints and template concept
-              references must be repaired before publication. The published
-              snapshot remains available.
+              {t(
+                "Related property mappings, relation endpoints and template concept references must be repaired before publication. The published snapshot remains available.",
+              )}
             </p>
           )}
         </Drawer>

@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 116" role="img" aria-labelledby="title desc">
+  <title id="title">ContextGate</title>
+  <desc id="desc">Semantic Data Gateway for AI Agents</desc>
+  <g transform="translate(12 20)">  <path d="M51 19 32 8 12 20v24l20 12 19-11" stroke="#183f43" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M33 32h25" stroke="#32b6a0" stroke-width="7" stroke-linecap="round"/>
+  <circle cx="32" cy="32" r="6.5" fill="#32b6a0"/>
+</g>
+  <g fill="#183f43" font-family="Inter, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="94" y="59" font-size="40" font-weight="700" letter-spacing="-1.2">ContextGate</text>
+    <text x="96" y="83" font-size="14" fill="#506b6e">Semantic Data Gateway for AI Agents</text>
+  </g>
+</svg>

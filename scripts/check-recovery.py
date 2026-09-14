@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Exercise the running Hub against its isolated PostgreSQL fixture.
+"""Exercise the running ContextGate service against its isolated PostgreSQL fixture.
 
 Requires MCPDBHUB_ADMIN_PASSWORD, optional MCPDBHUB_TEST_URL. Creates and removes
 one test source; stops/restarts only mcpdbhub-it-postgres (fixture label required).

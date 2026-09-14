@@ -3,8 +3,8 @@ package server
 import (
 	"net/http"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/auditexport"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/auditexport"
+	"github.com/SamuelSupe/contextGate/internal/model"
 )
 
 func (s *Server) auditExportSettings(w http.ResponseWriter, r *http.Request) {

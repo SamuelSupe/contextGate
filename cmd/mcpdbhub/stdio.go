@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 	"flag"
-	"github.com/SamuelSupe/mcpdbhub/internal/version"
+	"github.com/SamuelSupe/contextGate/internal/version"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"net"
 	"net/http"
@@ -44,7 +44,7 @@ func stdio(args []string) error {
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
-	client := mcp.NewClient(&mcp.Implementation{Name: "mcpdbhub-stdio", Version: version.Version}, nil)
+	client := mcp.NewClient(&mcp.Implementation{Name: "contextgate-stdio", Version: version.Version}, nil)
 	session, e := client.Connect(ctx, &mcp.StreamableClientTransport{Endpoint: *endpoint, HTTPClient: &http.Client{Transport: &bearerTransport{token, http.DefaultTransport}, CheckRedirect: func(*http.Request, []*http.Request) error { return errors.New("MCP redirects are denied") }}}, nil)
 	if e != nil {
 		return e
@@ -54,7 +54,8 @@ func stdio(args []string) error {
 	if e != nil {
 		return e
 	}
-	bridge := mcp.NewServer(&mcp.Implementation{Name: "mcpdbhub", Version: version.Version}, nil)
+	remote := session.InitializeResult()
+	bridge := mcp.NewServer(remote.ServerInfo, &mcp.ServerOptions{Instructions: remote.Instructions})
 	for _, tool := range tools.Tools {
 		tool := tool
 		bridge.AddTool(tool, func(ctx context.Context, r *mcp.CallToolRequest) (*mcp.CallToolResult, error) {

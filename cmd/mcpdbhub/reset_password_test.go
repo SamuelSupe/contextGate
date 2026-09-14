@@ -2,9 +2,10 @@ package main
 
 import (
 	"bytes"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 	"strings"
 	"testing"
 	"time"
@@ -12,11 +13,13 @@ import (
 
 func TestPasswordRecoveryPreservesConfigurationAndRevokesSessions(t *testing.T) {
 	dir := t.TempDir()
-	st, err := store.Open(dir)
+	t.Setenv("MCPDBHUB_DATABASE_URL", testpg.DSN(t, dir))
+	st, err := store.Open(dir, testpg.DSN(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = st.Setup(secure.Password("original-password")); err != nil {
+	originalHash := secure.Password("original-password")
+	if err = st.Setup(originalHash); err != nil {
 		t.Fatal(err)
 	}
 	if err = st.SaveSource(model.Source{ID: "kept", Name: "Kept source", Password: "database-secret"}); err != nil {
@@ -25,7 +28,7 @@ func TestPasswordRecoveryPreservesConfigurationAndRevokesSessions(t *testing.T) 
 	if err = st.SaveAgent(model.Agent{ID: "reader", Enabled: true, Sources: []string{"kept"}}, "kept-token"); err != nil {
 		t.Fatal(err)
 	}
-	if err = st.Session("session", "csrf", time.Now().Add(time.Hour)); err != nil {
+	if err = st.Session("session", "csrf", time.Now().Add(time.Hour), originalHash); err != nil {
 		t.Fatal(err)
 	}
 	st.Close()
@@ -37,7 +40,7 @@ func TestPasswordRecoveryPreservesConfigurationAndRevokesSessions(t *testing.T) 
 	if strings.Contains(output.String(), password) {
 		t.Fatal("password leaked to output")
 	}
-	st, err = store.Open(dir)
+	st, err = store.Open(dir, testpg.DSN(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}

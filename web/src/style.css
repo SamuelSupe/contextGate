@@ -29,6 +29,21 @@
 body {
   margin: 0;
 }
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+.app main:focus,
+h1[tabindex="-1"]:focus {
+  outline: none;
+}
 button,
 input,
 select,
@@ -183,11 +198,50 @@ details ul {
   z-index: 20;
 }
 .brand {
-  font-size: 23px;
+  display: flex;
+  align-items: center;
+  font-size: 19px;
   font-weight: 700;
   letter-spacing: -0.65px;
-  padding: 25px 20px 30px;
+  padding: 25px 16px 30px;
   white-space: nowrap;
+}
+.brand-lockup {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  color: #183f43;
+  text-align: left;
+}
+.brand-mark {
+  flex: none;
+  width: 36px;
+  height: 36px;
+}
+.brand .brand-mark {
+  width: 30px;
+  height: 30px;
+}
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.brand-name {
+  font-weight: 700;
+  letter-spacing: -0.65px;
+  line-height: 1.15;
+}
+.brand-tagline {
+  font-size: 11px;
+  line-height: 1.45;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: #506b6e;
+}
+.service-brand {
+  margin: 18px 0;
+  font-size: 20px;
 }
 .sidebar nav {
   display: flex;
@@ -493,7 +547,7 @@ tbody tr.selected {
 }
 .field-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 15px;
 }
 .host-port {
@@ -543,6 +597,67 @@ tbody tr.selected {
 .check-row span > small {
   display: block;
   margin-top: 2px;
+}
+.checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  min-width: 0;
+  min-height: 28px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.checkbox-row > input {
+  margin-top: 2px;
+}
+.checkbox-row > span {
+  min-width: 0;
+}
+.checkbox-row small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+.checkbox-row code {
+  white-space: normal;
+}
+.checkbox-row:has(input:disabled) {
+  opacity: 0.65;
+  cursor: default;
+}
+.checkbox-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin: 12px 0 20px;
+}
+.checkbox-list > .checkbox-row {
+  min-height: 44px;
+  margin: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+}
+.checkbox-list > .checkbox-row:has(input:checked) {
+  background: #eaf4f5;
+  border-color: #a8cbd0;
+}
+.checkbox-list > .checkbox-row:has(input:focus-visible) {
+  outline: 2px solid var(--teal);
+  outline-offset: 1px;
+}
+@media (max-width: 560px) {
+  .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+    row-gap: 0;
+  }
+  .checkbox-list {
+    grid-template-columns: minmax(0, 1fr);
+  }
 }
 .advanced {
   margin: 0 0 13px;
@@ -818,10 +933,17 @@ tbody tr.selected {
   font-size: 23px;
   font-weight: 650;
   letter-spacing: -0.4px;
-  margin-bottom: 32px;
+  margin-bottom: 14px;
 }
-.auth-brand svg {
-  color: var(--teal);
+.auth-brand .brand-mark {
+  width: 48px;
+  height: 48px;
+}
+.auth-tagline {
+  color: #506b6e;
+  font-size: 13px;
+  text-align: center;
+  margin: 0 0 28px;
 }
 .auth-panel {
   width: 100%;
@@ -905,8 +1027,8 @@ tbody tr.selected {
     --drawer: 430px;
   }
   .brand {
-    font-size: 21px;
-    padding-inline: 17px;
+    font-size: 17px;
+    padding-inline: 12px;
   }
   .sidebar nav a {
     font-size: 14px;
@@ -1082,7 +1204,7 @@ tbody tr.selected {
 }
 .audit-filters {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px 18px;
   margin-bottom: 24px;
 }
@@ -1091,6 +1213,22 @@ tbody tr.selected {
 }
 .audit-filters .button-row {
   grid-column: 1/-1;
+}
+.audit-advanced-filters {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+.audit-advanced-filters > summary {
+  padding: 6px 0;
+}
+.audit-advanced-filters > summary small {
+  margin-left: 10px;
+  color: var(--teal-dark);
+}
+.audit-time-filters {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px 18px;
 }
 .result-heading {
   display: flex;
@@ -1146,7 +1284,8 @@ tbody tr.selected {
   max-width: 300px;
 }
 @media (max-width: 760px) {
-  .audit-filters {
+  .audit-filters,
+  .audit-time-filters {
     grid-template-columns: 1fr;
   }
   .row-actions.wrap {
@@ -1200,38 +1339,193 @@ tbody tr.selected {
   }
 }
 
-.otlp-form { margin-top: 18px; }
-.otlp-fields { border: 0; padding: 0; margin: 0; min-width: 0; display: grid; gap: 16px; }
-.otlp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.otlp-actions { display: flex; flex-wrap: wrap; gap: 8px; }
-.otlp-fields textarea { font-family: ui-monospace, monospace; font-size: 12px; }
-.otlp-status-title { margin: 24px 0 8px; }
-.capitalize { text-transform: capitalize; }
-@media (max-width: 620px) { .otlp-grid { grid-template-columns: 1fr; } }
+.otlp-form {
+  margin-top: 18px;
+}
+.otlp-fields {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+  display: grid;
+  gap: 16px;
+}
+.otlp-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.otlp-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.otlp-fields textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+}
+.otlp-status-title {
+  margin: 24px 0 8px;
+}
+.capitalize {
+  text-transform: capitalize;
+}
+@media (max-width: 620px) {
+  .otlp-grid {
+    grid-template-columns: 1fr;
+  }
+}
 
-.semantic-back { display:inline-flex; align-items:center; gap:6px; margin-bottom:18px; }
-.semantic-source { color:var(--muted, #687386); font-size:18px; font-weight:400; overflow-wrap:anywhere; }
-.semantic-status { display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px; font-size:12px; color:#657080; margin-bottom:24px; }
-.semantic-tabs { display:flex; overflow-x:auto; gap:24px; border-bottom:1px solid #e1e5eb; margin-bottom:24px; }
-.semantic-tabs button { flex-shrink:0; border:0; border-radius:0; background:transparent; padding:12px 2px; border-bottom:2px solid transparent; }
-.semantic-tabs button[aria-selected="true"] { border-bottom-color:#267451; color:#267451; }
-.semantic-tabs small { margin-left:8px; color:#758176; }
-.semantic-overview { max-width:980px; }
-.semantic-overview section { margin-bottom:32px; padding-bottom:24px; border-bottom:1px solid #e1e5eb; }
-.semantic-overview h2 { font-size:16px; margin:0 0 12px; }
-.semantic-overview .button-row { flex-wrap:wrap; }
-.semantic-description { max-width:320px; white-space:normal; overflow-wrap:anywhere; }
-.semantic-parameter { padding:16px; margin:12px 0; background:#f6f8fa; border:1px solid #e1e5eb; border-radius:6px; }
-.semantic-reference { margin-top:12px; }
-.semantic-object-list { display:grid; gap:8px; margin:16px 0; }
-.semantic-result { background:#f6f8fa; padding:16px; overflow:auto; max-height:440px; font-size:12px; }
-.semantic-overview textarea, .semantic-parameter textarea { width:100%; }
-@media(max-width:640px) {
- .semantic-tabs { gap:14px; }
- .semantic-tabs button { font-size:12px; }
- .semantic-source { display:block; font-size:15px; margin-top:8px; }
- .semantic-status { gap:8px 14px; }
- .semantic-parameter { padding:10px; }
+.semantic-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 18px;
+}
+.semantic-navigation {
+  margin-bottom: 18px;
+}
+.semantic-navigation .semantic-back {
+  margin-bottom: 0;
+}
+.semantic-source {
+  color: var(--muted, #687386);
+  font-size: 18px;
+  font-weight: 400;
+  overflow-wrap: anywhere;
+}
+.semantic-status {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  font-size: 12px;
+  color: #657080;
+  margin-bottom: 24px;
+}
+.semantic-publication-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 20px;
+}
+.semantic-publication-bar .semantic-status {
+  margin: 0;
+}
+.semantic-tabs {
+  display: flex;
+  overflow-x: auto;
+  gap: 24px;
+  border-bottom: 1px solid #e1e5eb;
+  margin-bottom: 24px;
+}
+.semantic-tabs button {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 2px;
+  border-bottom: 2px solid transparent;
+}
+.semantic-tabs button[aria-selected="true"] {
+  border-bottom-color: #267451;
+  color: #267451;
+}
+.semantic-tabs small {
+  margin-left: 8px;
+  color: #758176;
+}
+.semantic-overview {
+  max-width: 980px;
+}
+.semantic-overview section {
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid #e1e5eb;
+}
+.semantic-overview h2 {
+  font-size: 16px;
+  margin: 0 0 12px;
+}
+.semantic-overview .button-row {
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.semantic-overview .help {
+  margin-bottom: 14px;
+}
+.semantic-description {
+  max-width: 320px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.semantic-parameter {
+  padding: 16px;
+  margin: 12px 0;
+  background: #f6f8fa;
+  border: 1px solid #e1e5eb;
+  border-radius: 6px;
+}
+.semantic-reference {
+  margin-top: 12px;
+}
+.semantic-object-list {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 8px;
+  margin: 16px 0;
+}
+.semantic-concepts {
+  padding-block: 16px;
+  margin-bottom: 24px;
+  border-block: 1px solid var(--line);
+}
+.semantic-concepts > summary {
+  font-size: 13px;
+  font-weight: 550;
+}
+.semantic-concepts > summary small {
+  margin-left: 8px;
+  color: var(--muted);
+  font-weight: 400;
+}
+.semantic-concept-list {
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 3px;
+  margin-bottom: 0;
+}
+.semantic-result {
+  background: #f6f8fa;
+  padding: 16px;
+  overflow: auto;
+  max-height: 440px;
+  font-size: 12px;
+}
+.semantic-overview textarea,
+.semantic-parameter textarea {
+  width: 100%;
+}
+@media (max-width: 640px) {
+  .semantic-tabs {
+    gap: 14px;
+  }
+  .semantic-tabs button {
+    font-size: 12px;
+  }
+  .semantic-source {
+    display: block;
+    font-size: 15px;
+    margin-top: 8px;
+  }
+  .semantic-status {
+    gap: 8px 14px;
+  }
+  .semantic-parameter {
+    padding: 10px;
+  }
 }
 
 .ontology-binding-panel,
@@ -1244,6 +1538,17 @@ tbody tr.selected {
 }
 .ontology-mapping-section .page-header {
   margin-bottom: 12px;
+}
+.ontology-binding-panel h2,
+.ontology-mapping-section h2 {
+  font-size: 16px;
+}
+.ontology-binding-panel h2,
+.ontology-binding-panel .help {
+  margin-bottom: 12px;
+}
+.ontology-mapping > details {
+  margin-bottom: 18px;
 }
 .ontology-mapping-section h2 {
   margin: 0;
@@ -1278,4 +1583,229 @@ tbody tr.selected {
     align-items: flex-start;
     flex-direction: column;
   }
+}
+
+.otlp-advanced {
+  margin: 12px 0;
+}
+.otlp-advanced > summary {
+  margin-bottom: 12px;
+}
+.otlp-delivery {
+  margin-top: 20px;
+}
+.otlp-delivery > summary {
+  color: var(--teal-dark);
+}
+
+/* Operational evidence stays next to its recovery action at narrow widths. */
+.auth-language {
+  margin-bottom: 22px;
+}
+.auth-language label {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+}
+.auth-language select {
+  width: auto;
+  min-width: 130px;
+}
+.health-schedule,
+.health-card {
+  border: 1px solid var(--border, #e2e8e6);
+  border-radius: 10px;
+  padding: 18px;
+  background: white;
+  margin-bottom: 16px;
+}
+.health-schedule form {
+  max-width: 680px;
+  margin-top: 16px;
+}
+.health-card h2 {
+  margin-top: 0;
+  font-size: 17px;
+}
+.health-card-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.health-card-header .button-row {
+  align-self: flex-start;
+}
+.health-card li {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+}
+.health-card .notice {
+  margin-top: 14px;
+}
+.baseline-actions {
+  margin-top: 14px;
+}
+.history-versions {
+  display: grid;
+  gap: 8px;
+}
+.history-versions button {
+  justify-content: flex-start;
+  white-space: normal;
+  text-align: left;
+}
+.history-versions [aria-pressed="true"] {
+  border-color: #147663;
+  background: #edf8f4;
+}
+.history-change {
+  border-bottom: 1px solid #e2e8e6;
+  padding: 12px 0;
+}
+.history-change summary {
+  overflow-wrap: anywhere;
+}
+.history-diff {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+}
+.history-diff pre {
+  font-size: 11px;
+  max-height: 360px;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.regression-case {
+  min-width: 0;
+  border: 1px solid #dbe4df;
+  border-radius: 8px;
+  padding: 16px;
+  margin: 16px 0;
+}
+.regression-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.regression-row button {
+  margin-top: 8px;
+}
+.regression-editor .field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.trial-report {
+  margin-top: 8px;
+  font-size: 12px;
+  max-width: 300px;
+  overflow-wrap: anywhere;
+}
+.recovery-help pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+@media (max-width: 760px) {
+  .history-diff,
+  .regression-row,
+  .regression-editor .field-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .health-card-header .button-row {
+    width: 100%;
+  }
+  .auth-language {
+    margin-top: 8px;
+  }
+}
+.check {
+  display: flex;
+  align-items: flex-start;
+  gap: 9px;
+  margin: 14px 0;
+  line-height: 1.5;
+}
+.check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  flex: 0 0 17px;
+  margin: 2px 0 0;
+}
+.configuration-mcp {
+  scroll-margin-top: 24px;
+}
+.configuration-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.configuration-heading h2 {
+  margin-bottom: 8px;
+}
+.configuration-endpoint {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 16px 0;
+}
+.configuration-endpoint code {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.configuration-agents {
+  border-top: 1px solid var(--line);
+  margin-top: 16px;
+}
+.configuration-agent {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.configuration-agent > div {
+  min-width: 0;
+  flex: 1;
+  overflow-wrap: anywhere;
+}
+.configuration-mcp pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 12px;
+}
+.configuration-mcp .advanced {
+  margin-top: 20px;
+}
+@media (max-width: 560px) {
+  .configuration-agent {
+    flex-wrap: wrap;
+  }
+  .configuration-agent > div {
+    flex-basis: 100%;
+  }
+  .configuration-heading > button {
+    width: 100%;
+  }
+}
+
+.configuration-mcp .drawer-body > .help {
+  margin: 12px 0 18px;
+}
+.configuration-mcp .drawer-body > h3 {
+  margin: 24px 0 10px;
+}
+.configuration-mcp .drawer-body > .checkbox-row {
+  margin-top: 18px;
+}
+.configuration-mcp .drawer header h2 {
+  font-size: 22px;
+  margin-bottom: 0;
 }

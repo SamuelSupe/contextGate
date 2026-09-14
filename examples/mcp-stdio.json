@@ -1,7 +1,7 @@
 {
   "mcpServers": {
-    "mcpdbhub": {
-      "command": "/absolute/path/to/mcpdbhub",
+    "contextgate": {
+      "command": "/absolute/path/to/contextgate",
       "args": ["stdio", "--url", "http://127.0.0.1:8080/mcp"],
       "env": { "MCPDBHUB_TOKEN": "<AGENT_TOKEN>" }
     }

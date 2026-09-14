@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: Security report
-    url: https://github.com/SamuelSupe/mcpdbhub/security/advisories/new
+    url: https://github.com/SamuelSupe/contextGate/security/advisories/new
     about: Report credential disclosure or authorization bypasses privately.

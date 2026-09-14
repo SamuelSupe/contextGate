@@ -1,0 +1,476 @@
+{
+  "environment": "OrbStack PostgreSQL 17.11, local 0.4.0 Hub at port 19844",
+  "definition": {
+    "revision": "1",
+    "scope": "Definition consistency only; database values and declared constraints have not been validated",
+    "valid": true
+  },
+  "ontology_id": "retail-example",
+  "ontology_version": "1",
+  "source_id": "src_tnR8W-h0tvIDNmFoDNeSEg",
+  "semantic_version": "1",
+  "mapping_status": {
+    "checked_at": "2026-09-14T07:41:09.539922136Z",
+    "checks": [
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "display_name"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "segment"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "region"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "joined_at"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "placed_at"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "status"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "currency"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "gross_amount"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "order_id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "line_number"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "quantity"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "unit_price"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "line_amount"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "sku"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "name"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "category"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "active"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "customers",
+          "field": "id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "customer_id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "orders",
+          "field": "id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "order_id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "order_lines",
+          "field": "product_id"
+        },
+        "status": "verified"
+      },
+      {
+        "reference": {
+          "namespace": "retail_example",
+          "object": "products",
+          "field": "id"
+        },
+        "status": "verified"
+      }
+    ],
+    "status": "checked"
+  },
+  "trials": {
+    "remaining": 0,
+    "results": [
+      {
+        "id": "customer-orders",
+        "validation": {
+          "report": {
+            "passed": true,
+            "cases": [
+              {
+                "name": "Example",
+                "passed": true,
+                "rows": 2,
+                "elapsed_ms": 9
+              },
+              {
+                "name": "Customer with two orders",
+                "passed": true,
+                "rows": 2,
+                "elapsed_ms": 0
+              },
+              {
+                "name": "Registered customer without orders",
+                "passed": true,
+                "rows": 0,
+                "elapsed_ms": 0
+              }
+            ]
+          },
+          "id": "customer-orders",
+          "valid": true,
+          "status": "verified",
+          "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+          "checked_at": "2026-09-14T07:41:09.557951987Z"
+        }
+      },
+      {
+        "id": "order-lines",
+        "validation": {
+          "report": {
+            "passed": true,
+            "cases": [
+              {
+                "name": "Example",
+                "passed": true,
+                "rows": 2,
+                "elapsed_ms": 0
+              },
+              {
+                "name": "Two line order",
+                "passed": true,
+                "rows": 2,
+                "elapsed_ms": 0
+              },
+              {
+                "name": "Unknown order",
+                "passed": true,
+                "rows": 0,
+                "elapsed_ms": 0
+              }
+            ]
+          },
+          "id": "order-lines",
+          "valid": true,
+          "status": "verified",
+          "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+          "checked_at": "2026-09-14T07:41:09.565477352Z"
+        }
+      },
+      {
+        "id": "paid-order-amount",
+        "validation": {
+          "report": {
+            "passed": true,
+            "cases": [
+              {
+                "name": "Example",
+                "passed": true,
+                "rows": 2,
+                "elapsed_ms": 2
+              },
+              {
+                "name": "September paid orders",
+                "passed": true,
+                "rows": 2,
+                "elapsed_ms": 0
+              },
+              {
+                "name": "Empty October window",
+                "passed": true,
+                "rows": 0,
+                "elapsed_ms": 0
+              }
+            ]
+          },
+          "id": "paid-order-amount",
+          "valid": true,
+          "status": "verified",
+          "server_version": "PostgreSQL 17.11 (Debian 17.11-1.pgdg13+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 14.2.0-19) 14.2.0, 64-bit",
+          "checked_at": "2026-09-14T07:41:09.576347162Z"
+        }
+      }
+    ]
+  },
+  "fixture_counts": {
+    "customers": 3,
+    "products": 3,
+    "orders": 3,
+    "order_lines": 4
+  },
+  "ui_verified": true,
+  "verified_at": "2026-09-14T07:42:06.077528+00:00",
+  "mcp": {
+    "identity_isolation": "passed",
+    "composite_identity_discovery": "passed",
+    "native_query_blocked_in_templates_only": "passed",
+    "executions": [
+      {
+        "template_id": "customer-orders",
+        "rows": 2,
+        "data": [
+          [
+            "1001",
+            "2026-09-01T09:00:00Z",
+            "paid",
+            "70.00",
+            "USD",
+            "2"
+          ],
+          [
+            "1002",
+            "2026-09-02T10:00:00Z",
+            "pending",
+            "18.00",
+            "USD",
+            "1"
+          ]
+        ],
+        "ontology_context": {
+          "ontology_id": "retail-example",
+          "version": "1",
+          "concept_refs": [
+            "ontology:entity_type:Customer",
+            "ontology:entity_type:Order",
+            "ontology:relation_type:places"
+          ]
+        }
+      },
+      {
+        "template_id": "order-lines",
+        "rows": 2,
+        "data": [
+          [
+            "1",
+            "NOTEBOOK-A5",
+            "A5 notebook",
+            "2",
+            "12.50",
+            "25.00"
+          ],
+          [
+            "2",
+            "LAMP-DESK",
+            "Desk lamp",
+            "1",
+            "45.00",
+            "45.00"
+          ]
+        ],
+        "ontology_context": {
+          "ontology_id": "retail-example",
+          "version": "1",
+          "concept_refs": [
+            "ontology:entity_type:Order",
+            "ontology:entity_type:OrderLine",
+            "ontology:entity_type:Product",
+            "ontology:relation_type:contains",
+            "ontology:relation_type:refers_to"
+          ]
+        }
+      },
+      {
+        "template_id": "paid-order-amount",
+        "rows": 2,
+        "data": [
+          [
+            "1",
+            "Acme Retail (fictional)",
+            "1",
+            "70.00",
+            "2"
+          ],
+          [
+            "2",
+            "River Studio (fictional)",
+            "1",
+            "90.00",
+            "1"
+          ]
+        ],
+        "ontology_context": {
+          "ontology_id": "retail-example",
+          "version": "1",
+          "concept_refs": [
+            "ontology:entity_type:Customer",
+            "ontology:entity_type:Order",
+            "ontology:property:Order:order_gross_amount",
+            "ontology:relation_type:places"
+          ]
+        }
+      }
+    ]
+  },
+  "scope": "Synthetic fixture only. Query/mapping/MCP checks used the independent demo instance on port 19844. The main instance on 19843 has the published ontology definition only. Native Chrome UI verification succeeded after the browser-tab connector was unavailable. No full database matrix was rerun.",
+  "main_instance": {
+    "url": "http://localhost:19843/ontologies/retail-example",
+    "ontology_version": "1",
+    "revision": "2",
+    "mapped_sources": 0,
+    "verification": "Native Chrome: imported a separate ontology, passed definition validation, published version 1, visually inspected the four-node graph and opened Order line details to confirm composite identity and both relationship cardinalities."
+  },
+  "ui_verified_at": "2026-09-14T07:47:47.604280+00:00"
+}

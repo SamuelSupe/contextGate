@@ -11,3 +11,6 @@ docs/screenshots
 internal/ui/dist
 **/__pycache__
 **/*.tsbuildinfo
+
+.env
+.env.*

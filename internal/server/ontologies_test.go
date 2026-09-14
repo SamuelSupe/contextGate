@@ -8,10 +8,11 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 )
 
 func eventOntology() ontology.Definition {
@@ -40,6 +41,9 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 	draft.Ontology = binding
 	draft.Entries = []semantic.Entry{template}
 	saved := h.json("PUT", path, semanticInput{Snapshot: draft}, 200)
+	if usage := h.json("GET", op+"/usage-summary", nil, 200); len(usage) != 0 {
+		t.Fatal("draft mapping counted as published query usage", usage)
+	}
 	a := h.json("POST", "/api/agents", map[string]any{"name": "Ontology reader", "sources": []string{source}, "enabled": true}, 200)
 	agent := h.mcp(a["token"].(string))
 	call(t, agent, "get_semantic_entry", map[string]any{"source_id": source, "entry_id": ontology.Ref("entity_type", "event")}, true)
@@ -50,6 +54,15 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 		t.Fatal(checks)
 	}
 	saved = h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
+	checkUsage := func(templates int) {
+		t.Helper()
+		usage := h.json("GET", op+"/usage-summary", nil, 200)
+		event := usage["event"].(map[string]any)
+		if len(usage) != 1 || event["sources"] != float64(1) || event["templates"] != float64(templates) {
+			t.Fatal("usage must count published mappings and deduplicate executable templates", usage)
+		}
+	}
+	checkUsage(1)
 	entry := call(t, agent, "get_semantic_entry", map[string]any{"source_id": source, "entry_id": ontology.Ref("entity_type", "event")}, false)
 	raw, _ := json.Marshal(entry)
 	for _, secret := range []string{"unmapped-identity-key", "hidden-ancestor-description", "unmapped-private-entity", "private-relation", "\"identity\"", "\"usage\""} {
@@ -94,7 +107,8 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 	if native.OntologyContext == nil || native.OntologyContext.Version != "2" || native.TemplateVersion != "1" {
 		t.Fatal(string(raw))
 	}
-	h.json("DELETE", op+"/versions/1", map[string]any{"revision": pub["revision"]}, 200)
+	// Retained semantic publications still reference the old ontology version.
+ h.json("DELETE", op+"/versions/1", map[string]any{"revision": pub["revision"]}, 409)
 	pub = h.json("POST", op+"/archive", map[string]any{"revision": pub["revision"], "archived": true}, 200)
 	call(t, agent, "execute_query_template", execution, false)
 	h.json("DELETE", op, map[string]any{"revision": pub["revision"]}, 409)
@@ -106,7 +120,7 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 	h.json("POST", otherPath+"/check-mapping", map[string]any{"revision": newSaved["revision"]}, 400)
 	// Opening the same persisted database independently exercises decryption and
 	// immutable-version recovery without relying on an in-memory ontology cache.
-	reopened, err := store.Open(filepath.Join(h.dir, "config"))
+	reopened, err := store.Open(filepath.Join(h.dir, "config"), testpg.DSN(t, h.dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -115,12 +129,40 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 	if err != nil || v.Definition.Description != d.Description {
 		t.Fatal(v, err)
 	}
-	for _, file := range []string{"hub.db", "hub.db-wal"} {
-		data, _ := os.ReadFile(filepath.Join(h.dir, "config", file))
-		if bytes.Contains(data, []byte("new-definition-version")) || bytes.Contains(data, []byte("hidden-ancestor-description")) {
+	rows, err := h.s.Store.DB.Query("SELECT value FROM ontologies UNION ALL SELECT value FROM ontology_versions")
+	if err != nil {
+		t.Fatal(err)
+	}
+	for rows.Next() {
+		var sealed string
+		if err := rows.Scan(&sealed); err != nil {
+			rows.Close()
+			t.Fatal(err)
+		}
+		if bytes.Contains([]byte(sealed), []byte("new-definition-version")) || bytes.Contains([]byte(sealed), []byte("hidden-ancestor-description")) {
+			rows.Close()
 			t.Fatal("plaintext ontology persisted")
 		}
 	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	src, err := h.s.Store.Source(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	view := publicSource(src)
+	view.Password = "changed-template-credential"
+	h.json("PUT", "/api/sources/"+source, view, 200)
+	checkUsage(0)
+	h.json("POST", path+"/trial", map[string]any{"revision": saved["revision"], "template_id": "amount"}, 200)
+	checkUsage(0)
+	h.json("POST", path+"/check-mapping", map[string]any{"revision": saved["revision"]}, 200)
+	h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
+	checkUsage(1)
 }
 
 func TestOntologyDefinitionAndMappingValidation(t *testing.T) {

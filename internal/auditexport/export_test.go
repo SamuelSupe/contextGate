@@ -15,8 +15,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 	collectorpb "go.opentelemetry.io/proto/otlp/collector/logs/v1"
 	logspb "go.opentelemetry.io/proto/otlp/logs/v1"
 	"google.golang.org/genproto/googleapis/rpc/errdetails"
@@ -47,7 +48,7 @@ func waitView(t *testing.T, m *Manager, predicate func(View) bool) View {
 }
 func openManager(t *testing.T, dir string) (*store.Store, *Manager) {
 	t.Helper()
-	st, err := store.Open(dir)
+	st, err := store.Open(dir, testpg.DSN(t, dir))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -363,7 +364,7 @@ func TestGRPCWireAndThrottling(t *testing.T) {
 					t.Fatal(result.error)
 				}
 				req := <-receiver.received
-				if len(records(req)) != 1 || req.ResourceLogs[0].Resource.Attributes[0].Value.GetStringValue() != "mcpdbhub" {
+				if len(records(req)) != 1 || req.ResourceLogs[0].Resource.Attributes[0].Value.GetStringValue() != "contextgate" {
 					t.Fatal("gRPC log payload missing")
 				}
 			} else if result.retry != (mode == "retry") || strings.Contains(result.error, "private") {

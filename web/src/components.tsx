@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { t } from "./i18n";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   X,
   Database,
@@ -23,6 +24,7 @@ export function Button({
 }) {
   return (
     <button
+      type="button"
       {...props}
       disabled={props.disabled || busy}
       className={`${primary ? "primary" : ""} ${props.className || ""}`}
@@ -62,7 +64,7 @@ export function ErrorNote({ error }: { error: string }) {
   return error ? (
     <div ref={ref} className="notice error" role="alert">
       <AlertCircle size={17} />
-      <span>{error}</span>
+      <span>{t(error)}</span>
     </div>
   ) : null;
 }
@@ -88,7 +90,7 @@ export function Loading() {
   return (
     <div className="loading" role="status">
       <LoaderCircle className="spin" size={20} />
-      Loading…
+      {t("Loading…")}
     </div>
   );
 }
@@ -103,25 +105,26 @@ export function Protection({
     return (
       <span className="status muted">
         <AlertCircle size={15} />
-        Not verified
+        {t("Not verified")}
       </span>
     );
   if (!probe.connected && !detail)
     return (
       <span className="status amber">
         <ShieldAlert size={15} />
-        Unverified
+        {t("Unverified")}
       </span>
     );
   if (!probe.connected)
     return (
       <div className="notice warning">
         <span>
-          <strong>Connection check failed</strong>
+          <strong>{t("Connection check failed")}</strong>
           {detail && probe.error ? <p>{diagnostic(probe.error)}</p> : null}
           <small className="block">
-            Checked {date(probe.checked_at)} · Read-only protection is
-            unverified
+            {t("Checked ")}
+            {date(probe.checked_at)}
+            {t(" · Read-only protection is unverified")}
           </small>
         </span>
       </div>
@@ -140,23 +143,29 @@ export function Protection({
           <strong>
             {verified
               ? probe.permission_status === "engine_enforced"
-                ? "Engine read-only protection verified"
-                : "Account read permissions verified"
+                ? t("Engine read-only protection verified")
+                : t("Account read permissions verified")
               : isolated
-                ? "Query API isolation"
-                : "Account permissions unverified"}
+                ? t("Query API isolation")
+                : t("Account permissions unverified")}
           </strong>
           <p>
             {verified
               ? probe.permission_status === "engine_enforced"
-                ? "The engine enforces read-only execution. This does not verify all permissions held by the database account."
-                : "The reported database grants provide read-only access."
+                ? t(
+                    "The engine enforces read-only execution. This does not verify all permissions held by the database account.",
+                  )
+                : t("The reported database grants provide read-only access.")
               : isolated
-                ? "Only query APIs are exposed. The database token itself has administrator permissions."
-                : "Query operations are restricted. Verify account grants in the database."}
+                ? t(
+                    "Only query APIs are exposed. The database token itself has administrator permissions.",
+                  )
+                : t(
+                    "Query operations are restricted. Verify account grants in the database.",
+                  )}
           </p>
           <details>
-            <summary>View verification evidence</summary>
+            <summary>{t("View verification evidence")}</summary>
             <ul>
               {probe.evidence.map((item) => (
                 <li key={item}>{item}</li>
@@ -164,9 +173,11 @@ export function Protection({
             </ul>
             <small>
               {probe.server_version
-                ? `Database version ${probe.server_version} · `
+                ? t("Database version {server_version} · ", {
+                    server_version: probe.server_version,
+                  })
                 : ""}
-              {new Date(probe.checked_at).toLocaleString()}
+              {date(probe.checked_at)}
             </small>
           </details>
         </div>
@@ -177,11 +188,11 @@ export function Protection({
       {verified ? <CheckCircle2 size={15} /> : <ShieldAlert size={15} />}{" "}
       {verified
         ? probe.permission_status === "engine_enforced"
-          ? "Engine enforced"
-          : "Account verified"
+          ? t("Engine enforced")
+          : t("Account verified")
         : isolated
-          ? "API isolation"
-          : "Permissions unverified"}
+          ? t("API isolation")
+          : t("Permissions unverified")}
     </span>
   );
 }
@@ -253,7 +264,7 @@ export function Drawer({
           </div>
           <button
             className="icon-button"
-            aria-label="Close panel"
+            aria-label={t("Close panel")}
             onClick={onClose}
           >
             <X size={20} />
@@ -272,19 +283,30 @@ export function CopyButton({
   text: string;
   onCopied?: () => void;
 }) {
+  const [copied, setCopied] = useState(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    setCopied(false);
+    return () => {
+      if (timer.current) clearTimeout(timer.current);
+    };
+  }, [text]);
   return (
     <Button
       onClick={async () => {
         try {
           await navigator.clipboard.writeText(text);
+          setCopied(true);
+          if (timer.current) clearTimeout(timer.current);
+          timer.current = setTimeout(() => setCopied(false), 2000);
           onCopied?.();
         } catch {
-          window.prompt("Copy content", text);
+          window.prompt(t("Copy content"), text);
         }
       }}
     >
-      <Copy size={14} />
-      Copy
+      {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
+      <span aria-live="polite">{copied ? t("Copied") : t("Copy")}</span>
     </Button>
   );
 }

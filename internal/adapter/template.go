@@ -4,7 +4,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 )
 
 var dynamicCypherTarget = regexp.MustCompile(`:\s*\$(?:(?:any|all)\s*)?\(`)

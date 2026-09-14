@@ -9,12 +9,26 @@ This is a definition and query-guidance feature. It does not store entity instan
 ## Define and publish
 
 1. Open **Ontologies → Create ontology**. Give the ontology a name; business names, aliases and descriptions may use any language.
-2. Add **Entities**, **Properties** and **Relations**. Entity and definition IDs are stable references. Entities support one parent. The effective properties include inherited properties; cycles and conflicting inherited property names are rejected.
+2. Use **Model** to select an entity and edit its properties and relationships together. **Add property** and **Add relationship** preselect that entity; **Save & add another** keeps the form open for continuous entry. Names generate unique reference IDs automatically, including for multilingual names. **Reference ID & aliases** allows a custom ID before the first save; renaming an existing definition preserves its ID. **Definitions** provides a searchable flat list. Entities support one parent, and the model distinguishes inherited properties from properties owned by the selected entity.
 3. After adding properties, choose an entity's identity property combination. Identity properties must belong to its effective definition, be required and be single-valued. Properties support logical types, units, enums, exact numeric range text, uniqueness declarations and time conventions.
-4. Define relation endpoints, direction and cardinality. **Origins per target** describes how many origin entities may relate to one target; **Targets per origin** describes the reverse. Blank maximum means unbounded.
-5. **Validate**, then **Publish version**. Saving only changes the draft. Publishing creates an immutable version. **Discard draft** restores the latest published definition.
+4. Define relation endpoints and direction. Choose **Exactly one**, **Optional one**, **Zero or more** or **One or more** for each side, or use **Custom range**. Labels use the selected entity names: **Customer per Order (origin)** means how many customers relate to one order. The relationship map lets you navigate to either endpoint or reopen the relationship editor.
+5. **Validate**, then **Publish version**. Saving only changes the draft. Publishing creates an immutable version. **Settings → Discard draft** restores the latest published definition. Settings also contains ontology details, JSON import/export and archiving. Unsaved form edits prompt before closing; ontology settings must be saved or reverted before switching sections.
 
 These checks validate definition consistency. They do not establish that every database row satisfies identity, requiredness, uniqueness, ranges or cardinality. Numeric range bounds are decimal strings without exponent notation. Cardinality counts range from zero to 2,147,483,647.
+
+## Graph editor
+
+**Model → Graph** is the default editing mode. **List** keeps the entity navigator and full property/relationship tables available.
+
+- Drag an entity card by its header to arrange the model. Drag empty canvas space to pan; use the zoom controls, **Fit**, or **Auto layout** to navigate. **Find entity on graph** brings a concept into view.
+- Drag a card's **+** connection point onto another entity, or click the origin and target connection points in sequence. The relationship form opens with both endpoints selected. A connection becomes a definition only after **Save to draft**; **Esc** cancels an unfinished connection.
+- Click a relationship line or label to edit it. Parallel and self relationships have separate curves. Dashed links represent inheritance; their labels open the child entity's parent selector.
+- Each card exposes **Edit entity**, **Property** and its first three owned properties for direct editing. Use **Details** to open a right-hand panel with all owned/inherited properties and the relationship map. The graph itself stays focused on the canvas.
+- Keyboard: focus a card header and use arrow keys to move it (**Shift** moves farther); **Enter** selects it. Connection points also work with **Enter**. Focus the canvas to pan with arrows, zoom with **+ / −**, or fit with **0**. The list mode provides the same definition editing without canvas gestures.
+
+Card positions are saved only in the current browser, separately for each ontology. They are not part of JSON export, shared definitions or published versions. Moving cards never changes the draft revision. Definition edits still use optimistic concurrency, validation and explicit publication; existing data source bindings remain pinned.
+
+The details panel lets you follow related entities and edit definitions; saving or canceling an edit returns to the panel. **Back to canvas**, the close button or **Esc** dismisses the panel without resetting the canvas. On narrow screens, the panel uses the full width. Selecting an already visible card preserves the canvas position. Unsaved settings and form edits block navigation until saved, reverted or explicitly discarded; saving temporarily locks inputs. **Enter** in an input saves and closes the entry, while **Save & add another** remains an explicit action. When another tab changes the draft, your edit stays in the form: use **Export unsaved entry** to keep a JSON copy, then **Reload latest draft** and confirm discarding the local edit before continuing with the current revision.
 
 ## Map a data source
 
@@ -106,7 +120,7 @@ Administrator endpoints, all protected by session cookies and CSRF on mutations:
 | `/api/sources/{id}/semantics/check-mapping` | `POST` `{revision}`; metadata evidence only |
 | `/api/sources/{id}/semantics/preview` | `POST` `{agent_id, keyword?, kind?, limit?, cursor?, entry_id?}` |
 
-Revisions and versions are JSON strings to avoid browser integer rounding. Stale writes/publishes return HTTP 409. Ontologies and immutable versions are AES-GCM encrypted in SQLite, using the existing independent master key. Source mappings share the encrypted semantic snapshot transaction; source deletion atomically clears their references. Limits are 200 ontologies, 500 definitions and 512 KiB per ontology; a source semantic snapshot remains capped at 768 KiB and 500 catalog entries.
+Revisions and versions are JSON strings to avoid browser integer rounding. Stale writes/publishes return HTTP 409. Ontologies and immutable versions are AES-GCM encrypted in PostgreSQL, using the existing independent master key. Source mappings share the encrypted semantic snapshot transaction; source deletion atomically clears their references. Limits are 200 ontologies, 500 definitions and 512 KiB per ontology; a source semantic snapshot remains capped at 768 KiB and 500 catalog entries.
 
 Template audit records and OTLP Logs add `ontology_id` and `ontology_version`. Definitions, query text, parameters and results are not logged. See [audit export](audit-export.md).
 
@@ -121,4 +135,6 @@ python3 scripts/verify-ontology.py --reuse
 MCPDBHUB_REUSE_FIXTURES=postgres,mongodb python3 scripts/matrix.py
 ```
 
-The script seeds explicitly isolated fixtures, uses read-only database accounts for the Hub, and verifies complex native queries, exact decimals, empty results, parameter rejection, source projection, version lifecycle, cursor invalidation and request-start context. It writes a sanitized [verification record](verification/ontology.json). The [full matrix](verification/matrix.json) independently exercises all seven native query families with ontology-associated templates.
+The script seeds explicitly isolated fixtures, uses read-only database accounts for ContextGate, and verifies complex native queries, exact decimals, empty results, parameter rejection, source projection, version lifecycle, cursor invalidation and request-start context. It writes a sanitized [verification record](verification/ontology.json). The [full matrix](verification/matrix.json) independently exercises all seven native query families with ontology-associated templates.
+
+For a guided four-entity model with composite identity, exact amounts, three query templates and seeded PostgreSQL data, see the [retail demo](../examples/ontologies/retail-demo/README.md).

@@ -25,7 +25,7 @@
     "mcp_audit",
     "token_revocation"
   ],
-  "denied_cases": 6,
+  "denied_cases": 11,
   "kind": "mariadb",
   "name": "mariadb",
   "probe": {
@@ -36,12 +36,12 @@
       "START TRANSACTION READ ONLY accepted; every query uses a new read-only transaction"
     ],
     "server_version": "10.11.18-MariaDB-ubu2204",
-    "checked_at": "2026-09-12T02:23:53.906882508Z"
+    "checked_at": "2026-09-14T09:21:51.887651487Z"
   },
-  "query_cases": 6,
-  "verified_at": "2026-09-12T02:23:53.913313644Z",
+  "query_cases": 7,
+  "verified_at": "2026-09-14T09:21:51.895506641Z",
   "version": "10.11.18-MariaDB-ubu2204",
   "image_id": "sha256:be981e4113326ada8d6004174dd09eeaefc03094037f811182a52d4f2e737350",
-  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
+  "implementation_sha256": "852303d31393378fd7d7699c09a4349b3aa454b0d01604673ff7f0cbffdf5c14",
   "environment": "OrbStack Linux arm64"
 }

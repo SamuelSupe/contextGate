@@ -11,7 +11,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 )
 
 var identifier = regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]{0,95}$`)
@@ -79,6 +79,9 @@ func Validate(s Snapshot, tool string) error {
 				return invalid("Template must use this data source's native query tool")
 			}
 			if _, err := Bind(*en.Template, nil, true); err != nil {
+				return fmt.Errorf("%s: %w", en.ID, err)
+			}
+			if err := ValidateRegression(*en.Template); err != nil {
 				return fmt.Errorf("%s: %w", en.ID, err)
 			}
 		} else if en.Template != nil {

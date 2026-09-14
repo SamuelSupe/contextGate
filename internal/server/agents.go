@@ -2,10 +2,10 @@ package server
 
 import (
 	"encoding/json"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
-	"github.com/SamuelSupe/mcpdbhub/internal/version"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/version"
 	"net/http"
 	"slices"
 	"strconv"
@@ -125,7 +125,7 @@ func (s *Server) revokeAgent(w http.ResponseWriter, r *http.Request) {
 	a.Revision++
 	b, e := json.Marshal(a)
 	if e == nil {
-		_, e = s.Store.DB.Exec("UPDATE agents SET value=?,token_hash=NULL WHERE id=?", string(b), a.ID)
+		_, e = s.Store.DB.Exec("UPDATE agents SET value=$1,token_hash=NULL WHERE id=$2", string(b), a.ID)
 	}
 	if e != nil {
 		fail(w, 500, e)
@@ -170,7 +170,11 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit cursor"))
 		return
 	}
-	f := store.AuditFilter{Before: before, Agent: q.Get("agent_id"), Source: q.Get("source_id"), Status: q.Get("status"), RequestID: q.Get("request_id")}
+	f := store.AuditFilter{Before: before, EventKind: q.Get("event_kind"), Agent: q.Get("agent_id"), Source: q.Get("source_id"), Status: q.Get("status"), RequestID: q.Get("request_id")}
+	if f.EventKind != "" && f.EventKind != "query" && f.EventKind != "management" {
+		fail(w, 400, model.Fail("invalid_input", "Invalid audit event kind"))
+		return
+	}
 	if f.Status != "" && f.Status != "success" && f.Status != "error" {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit status"))
 		return
@@ -193,5 +197,5 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 	write(w, 200, a)
 }
 func (s *Server) settings(w http.ResponseWriter, r *http.Request) {
-	write(w, 200, map[string]any{"version": version.Version, "public_url": s.PublicURL, "mcp_url": s.PublicURL + "/mcp", "database_directory": s.FileRoot, "audit_retention_days": 30, "default_timeout_seconds": 30, "default_max_rows": 1000, "default_max_bytes": 5 << 20, "global_concurrency": 32, "agent_concurrency": 4, "oauth_access_token_minutes": 15, "oauth_refresh_token_days": 30})
+	write(w, 200, map[string]any{"version": version.Version, "commit": version.BuildCommit(), "metadata_storage": "postgresql", "public_url": s.PublicURL, "mcp_url": s.PublicURL + "/mcp", "database_directory": s.FileRoot, "audit_retention_days": 30, "default_timeout_seconds": 30, "default_max_rows": 1000, "default_max_bytes": 5 << 20, "global_concurrency": 32, "agent_concurrency": 4, "oauth_access_token_minutes": 15, "oauth_refresh_token_days": 30})
 }

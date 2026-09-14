@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { message } from "./api";
 import { Button, Drawer, ErrorNote, Field } from "./components";
@@ -37,7 +38,7 @@ function PhysicalField({
   });
   return (
     <div className="field-grid">
-      <Field label={`${label} object`} required>
+      <Field label={t("{label} object", { label: label })} required>
         <select
           required
           value={selected}
@@ -46,7 +47,7 @@ function PhysicalField({
           }
         >
           <option value={JSON.stringify({ namespace: "", object: "" })}>
-            Select mapped object
+            {t("Select mapped object")}
           </option>
           {objects.map((o) => (
             <option
@@ -62,7 +63,7 @@ function PhysicalField({
           ))}
         </select>
       </Field>
-      <Field label={`${label} field path`} required>
+      <Field label={t("{label} field path", { label: label })} required>
         <input
           required
           value={value.field || ""}
@@ -118,13 +119,13 @@ export function OntologyMappingEditor({
     onChange: (v: string) => void,
     required = false,
   ) => (
-    <Field label="Read-only query template" required>
+    <Field label={t("Read-only query template")} required>
       <select
         required={required}
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
-        <option value="">Select template</option>
+        <option value="">{t("Select template")}</option>
         {templates.map((t) => (
           <option value={t.id} key={t.id}>
             {t.name} ({t.id})
@@ -136,18 +137,28 @@ export function OntologyMappingEditor({
   return (
     <Drawer
       wide
-      title={`${existing ? "Edit" : "Add"} ${kind === "entities" ? "entity" : kind === "properties" ? "property" : "relation"} mapping`}
-      subtitle="Mappings describe this data source. They do not generate joins or query text."
+      title={t("{value1} {value2} mapping", {
+        value1: existing ? t("Edit") : t("Add"),
+        value2:
+          kind === "entities"
+            ? t("entity")
+            : kind === "properties"
+              ? t("property")
+              : t("relation"),
+      })}
+      subtitle={t(
+        "Mappings describe this data source. They do not generate joins or query text.",
+      )}
       onClose={() => {
         if (!busy) onClose();
       }}
       footer={
         <>
           <Button disabled={busy} onClick={onClose}>
-            Cancel
+            {t("Cancel")}
           </Button>
           <Button primary form="mapping-form" type="submit" busy={busy}>
-            Save mapping to draft
+            {t("Save mapping to draft")}
           </Button>
         </>
       }
@@ -170,26 +181,29 @@ export function OntologyMappingEditor({
       >
         {entity && (
           <>
-            <Field label="Entity type" required>
+            <Field label={t("Entity type")} required>
               <select
                 required
                 disabled={existing}
                 value={entity.entity}
                 onChange={(e) => update({ entity: e.target.value })}
               >
-                <option value="">Select entity type</option>
+                <option value="">{t("Select entity type")}</option>
                 {entityOptions}
               </select>
             </Field>
-            <h3>Physical objects</h3>
+            <h3>{t("Physical objects")}</h3>
             <p className="help">
-              An entity can map to multiple objects in this source. Use the
-              source's native namespace and object names.
+              {t(
+                "An entity can map to multiple objects in this source. Use the source's native namespace and object names.",
+              )}
             </p>
             {entity.objects.map((o, i) => (
               <section className="semantic-parameter" key={i}>
                 <div className="field-grid">
-                  <Field label={`Object ${i + 1} namespace`}>
+                  <Field
+                    label={t("Object {value1} namespace", { value1: i + 1 })}
+                  >
                     <input
                       value={o.namespace}
                       onChange={(e) =>
@@ -201,7 +215,10 @@ export function OntologyMappingEditor({
                       }
                     />
                   </Field>
-                  <Field label={`Object ${i + 1} name`} required>
+                  <Field
+                    label={t("Object {value1} name", { value1: i + 1 })}
+                    required
+                  >
                     <input
                       required
                       value={o.object}
@@ -224,7 +241,7 @@ export function OntologyMappingEditor({
                     })
                   }
                 >
-                  Remove object
+                  {t("Remove object")}
                 </Button>
               </section>
             ))}
@@ -236,13 +253,13 @@ export function OntologyMappingEditor({
                 })
               }
             >
-              Add physical object
+              {t("Add physical object")}
             </Button>
           </>
         )}
         {property && (
           <>
-            <Field label="Mapped entity" required>
+            <Field label={t("Mapped entity")} required>
               <select
                 required
                 disabled={existing}
@@ -256,7 +273,7 @@ export function OntologyMappingEditor({
                   })
                 }
               >
-                <option value="">Select mapped entity</option>
+                <option value="">{t("Select mapped entity")}</option>
                 {binding.entities.map((m) => (
                   <option key={m.entity} value={m.entity}>
                     {definition.entities.find((e) => e.id === m.entity)?.name ||
@@ -265,14 +282,14 @@ export function OntologyMappingEditor({
                 ))}
               </select>
             </Field>
-            <Field label="Effective property" required>
+            <Field label={t("Effective property")} required>
               <select
                 required
                 disabled={existing}
                 value={property.property}
                 onChange={(e) => update({ property: e.target.value })}
               >
-                <option value="">Select property</option>
+                <option value="">{t("Select property")}</option>
                 {definition.properties
                   .filter((p) =>
                     effectiveEntities(definition, property.entity).includes(
@@ -282,12 +299,12 @@ export function OntologyMappingEditor({
                   .map((p) => (
                     <option key={p.id} value={p.id}>
                       {p.name} ({p.id})
-                      {p.entity !== property.entity ? " · inherited" : ""}
+                      {p.entity !== property.entity ? t(" · inherited") : ""}
                     </option>
                   ))}
               </select>
             </Field>
-            <Field label="Mapping method">
+            <Field label={t("Mapping method")}>
               <select
                 value={property.reference ? "field" : "template"}
                 onChange={(e) =>
@@ -298,14 +315,16 @@ export function OntologyMappingEditor({
                   )
                 }
               >
-                <option value="field">Physical field</option>
-                <option value="template">Computed by query template</option>
+                <option value="field">{t("Physical field")}</option>
+                <option value="template">
+                  {t("Computed by query template")}
+                </option>
               </select>
             </Field>
             {property.reference ? (
               <>
                 <PhysicalField
-                  label="Property"
+                  label={t("Property")}
                   value={property.reference}
                   objects={objects(property.entity)}
                   onChange={(v) => update({ reference: v })}
@@ -316,13 +335,17 @@ export function OntologyMappingEditor({
                     checked={!!property.declared}
                     onChange={(e) => update({ declared: e.target.checked })}
                   />
-                  Allow administrator declaration if this field cannot be
-                  discovered
+                  <span>
+                    {t(
+                      "Allow administrator declaration if this field cannot be discovered",
+                    )}
+                    <small>
+                      {t(
+                        "Undiscoverable fields remain unverified. No business samples are inspected.",
+                      )}
+                    </small>
+                  </span>
                 </label>
-                <p className="help">
-                  Undiscoverable fields remain unverified. No business samples
-                  are inspected.
-                </p>
               </>
             ) : (
               templateSelect(
@@ -335,7 +358,7 @@ export function OntologyMappingEditor({
         )}
         {relation && (
           <>
-            <Field label="Relation type" required>
+            <Field label={t("Relation type")} required>
               <select
                 required
                 disabled={existing}
@@ -344,7 +367,7 @@ export function OntologyMappingEditor({
                   update({ relation: e.target.value, fields: [] })
                 }
               >
-                <option value="">Select relation</option>
+                <option value="">{t("Select relation")}</option>
                 {definition.relations.map((r) => (
                   <option key={r.id} value={r.id}>
                     {r.name} ({r.from} → {r.to})
@@ -353,13 +376,14 @@ export function OntologyMappingEditor({
               </select>
             </Field>
             <p className="help">
-              Both endpoint entities must be mapped. Add field pairs, a query
-              template, or both.
+              {t(
+                "Both endpoint entities must be mapped. Add field pairs, a query template, or both.",
+              )}
             </p>
             {(relation.fields || []).map((pair, i) => (
               <section className="semantic-parameter" key={i}>
                 <PhysicalField
-                  label={`Origin ${i + 1}`}
+                  label={t("Origin {value1}", { value1: i + 1 })}
                   value={pair.from}
                   objects={objects(relationType?.from || "")}
                   onChange={(v) =>
@@ -371,7 +395,7 @@ export function OntologyMappingEditor({
                   }
                 />
                 <PhysicalField
-                  label={`Target ${i + 1}`}
+                  label={t("Target {value1}", { value1: i + 1 })}
                   value={pair.to}
                   objects={objects(relationType?.to || "")}
                   onChange={(v) =>
@@ -394,7 +418,7 @@ export function OntologyMappingEditor({
                       })
                     }
                   />
-                  Allow undiscoverable fields as unverified declarations
+                  {t("Allow undiscoverable fields as unverified declarations")}
                 </label>
                 <Button
                   type="button"
@@ -404,7 +428,7 @@ export function OntologyMappingEditor({
                     })
                   }
                 >
-                  Remove field pair
+                  {t("Remove field pair")}
                 </Button>
               </section>
             ))}
@@ -419,14 +443,14 @@ export function OntologyMappingEditor({
                 })
               }
             >
-              Add field pair
+              {t("Add field pair")}
             </Button>
             {templateSelect(relation.template_id || "", (v) =>
               update({ template_id: v }),
             )}
           </>
         )}
-        <Field label="Mapping description">
+        <Field label={t("Mapping description")}>
           <textarea
             rows={3}
             value={form.description || ""}

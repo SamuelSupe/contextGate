@@ -5,10 +5,11 @@ import (
 	"crypto/x509"
 	"errors"
 	"fmt"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/store"
+ "github.com/SamuelSupe/contextGate/internal/testpg"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
 	"net"
@@ -54,7 +55,7 @@ func (c *controlledConnection) Query(ctx context.Context, q model.Query, l model
 }
 func testEngine(t *testing.T) (*Engine, *controlledConnection, model.Source) {
 	t.Helper()
-	st, e := store.Open(t.TempDir())
+	st, e := store.Open(t.TempDir(), testpg.DSN(t, t.TempDir()))
 	if e != nil {
 		t.Fatal(e)
 	}

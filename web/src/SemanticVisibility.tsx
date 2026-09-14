@@ -1,3 +1,4 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { api, message, payload } from "./api";
 import { Button, Drawer, Empty, ErrorNote, Field } from "./components";
@@ -58,14 +59,16 @@ export function SemanticVisibility({
   return (
     <Drawer
       wide
-      title="Preview Agent visibility"
-      subtitle="Uses the selected Agent's current data source grant and the published snapshot."
+      title={t("Preview Agent visibility")}
+      subtitle={t(
+        "Uses the selected Agent's current data source grant and the published snapshot.",
+      )}
       onClose={() => {
         if (!busy) onClose();
       }}
       footer={
         <Button disabled={busy} onClick={onClose}>
-          Close
+          {t("Close")}
         </Button>
       }
     >
@@ -76,7 +79,7 @@ export function SemanticVisibility({
           search();
         }}
       >
-        <Field label="Agent identity" required>
+        <Field label={t("Agent identity")} required>
           <select
             required
             value={agent}
@@ -85,17 +88,17 @@ export function SemanticVisibility({
               reset();
             }}
           >
-            <option value="">Select Agent</option>
+            <option value="">{t("Select Agent")}</option>
             {agents.map((a) => (
               <option key={a.id} value={a.id}>
                 {a.name}
-                {!a.enabled ? " (disabled)" : ""}
+                {!a.enabled ? t(" (disabled)") : ""}
               </option>
             ))}
           </select>
         </Field>
         <div className="field-grid">
-          <Field label="Concept kind">
+          <Field label={t("Concept kind")}>
             <select
               value={kind}
               onChange={(e) => {
@@ -103,7 +106,7 @@ export function SemanticVisibility({
                 reset();
               }}
             >
-              <option value="">All visible entries</option>
+              <option value="">{t("All visible entries")}</option>
               {[
                 "entity_type",
                 "property",
@@ -116,11 +119,13 @@ export function SemanticVisibility({
                 "relationship",
                 "overview",
               ].map((v) => (
-                <option key={v}>{v}</option>
+                <option key={v} value={v}>
+                  {t(v)}
+                </option>
               ))}
             </select>
           </Field>
-          <Field label="Keyword">
+          <Field label={t("Keyword")}>
             <input
               value={keyword}
               onChange={(e) => {
@@ -131,29 +136,35 @@ export function SemanticVisibility({
           </Field>
         </div>
         <Button primary type="submit" busy={busy} disabled={!agent}>
-          Search published semantics
+          {t("Search published semantics")}
         </Button>
       </form>
       {page && (
         <>
           <p className="help">
-            Source publication {page.published_version}
+            {t("Source publication ")}
+            {page.published_version}
             {page.ontology
-              ? ` · Ontology ${page.ontology.id} version ${page.ontology.version}`
+              ? t(" · Ontology {id} version {version}", {
+                  id: page.ontology.id,
+                  version: page.ontology.version,
+                })
               : ""}
           </p>
           {page.entries.length === 0 ? (
             <Empty
-              title="No visible entries"
-              description="Publish a mapping or adjust the search. Drafts and unmapped concepts are hidden."
+              title={t("No visible entries")}
+              description={t(
+                "Publish a mapping or adjust the search. Drafts and unmapped concepts are hidden.",
+              )}
             />
           ) : (
             <div className="table-scroll">
               <table>
                 <thead>
                   <tr>
-                    <th>Name / ID</th>
-                    <th>Kind</th>
+                    <th>{t("Name / ID")}</th>
+                    <th>{t("Kind")}</th>
                     <th />
                   </tr>
                 </thead>
@@ -164,13 +175,13 @@ export function SemanticVisibility({
                         {en.name}
                         <small className="block">{en.id}</small>
                       </td>
-                      <td>{en.kind}</td>
+                      <td>{t(en.kind)}</td>
                       <td>
                         <Button
                           disabled={busy}
                           onClick={() => search("", en.id)}
                         >
-                          Read definition
+                          {t("Read definition")}
                         </Button>
                       </td>
                     </tr>
@@ -181,14 +192,14 @@ export function SemanticVisibility({
           )}
           {page.next_cursor && (
             <Button disabled={busy} onClick={() => search(page.next_cursor)}>
-              Next page
+              {t("Next page")}
             </Button>
           )}
         </>
       )}
       {detail !== null && (
         <section>
-          <h3>Visible definition and source mapping</h3>
+          <h3>{t("Visible definition and source mapping")}</h3>
           <pre className="query-output">{JSON.stringify(detail, null, 2)}</pre>
         </section>
       )}

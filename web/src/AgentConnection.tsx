@@ -1,10 +1,15 @@
+import { t } from "./i18n";
 import { useState } from "react";
 import { date } from "./api";
 import { Button, CopyButton, Drawer, ErrorNote, Field } from "./components";
-import type { Agent } from "./types";
+import { semanticsURL } from "./readiness";
+import type { Agent, Source } from "./types";
+import { ClientSetup } from "./ClientSetup";
 
 export function AgentConnection({
   agent,
+  sources,
+  navigate,
   endpoint,
   token,
   error,
@@ -12,6 +17,8 @@ export function AgentConnection({
   onClose,
 }: {
   agent: Agent;
+  sources: Source[];
+  navigate: (url: string) => void;
   endpoint: string;
   token: string;
   error: string;
@@ -21,23 +28,11 @@ export function AgentConnection({
   const [saved, setSaved] = useState(false);
   const [busy, setBusy] = useState(false);
   const credential = token || "YOUR_AGENT_TOKEN";
-  const http = JSON.stringify(
-    {
-      mcpServers: {
-        mcpdbhub: {
-          url: endpoint,
-          headers: { Authorization: `Bearer ${credential}` },
-        },
-      },
-    },
-    null,
-    2,
-  );
   const stdio = JSON.stringify(
     {
       mcpServers: {
-        mcpdbhub: {
-          command: "/absolute/path/to/mcpdbhub",
+        contextgate: {
+          command: "/absolute/path/to/contextgate",
           args: ["stdio", "--url", endpoint],
           env: { MCPDBHUB_TOKEN: credential },
         },
@@ -50,7 +45,9 @@ export function AgentConnection({
     if (token && !saved) {
       if (
         !window.confirm(
-          "This token cannot be viewed again. Close without confirming it was saved?",
+          t(
+            "This token cannot be viewed again. Close without confirming it was saved?",
+          ),
         )
       )
         return;
@@ -59,8 +56,14 @@ export function AgentConnection({
   }
   return (
     <Drawer
-      title={token ? "Save your Agent token" : `Connect ${agent.name}`}
-      subtitle="Configure your client, run a query, then check the recorded result"
+      title={
+        token
+          ? t("Save your Agent token")
+          : t("Connect {name}", { name: agent.name })
+      }
+      subtitle={t(
+        "Configure your client, run a query, then check the recorded result",
+      )}
       wide
       onClose={close}
       footer={
@@ -71,7 +74,7 @@ export function AgentConnection({
             onClose();
           }}
         >
-          {token ? "I saved the token — close" : "Close"}
+          {token ? t("I saved the token — close") : t("Close")}
         </Button>
       }
     >
@@ -79,10 +82,11 @@ export function AgentConnection({
       {token ? (
         <>
           <div className="notice warning">
-            This token is shown only once. Save it before closing. It remains
-            visible if a background refresh fails.
+            {t(
+              "This token is shown only once. Save it before closing. It remains visible if a background refresh fails.",
+            )}
           </div>
-          <Field label="Access token">
+          <Field label={t("Access token")}>
             <textarea readOnly rows={2} value={token} />
           </Field>
           <CopyButton text={token} />
@@ -92,44 +96,42 @@ export function AgentConnection({
               checked={saved}
               onChange={(e) => setSaved(e.target.checked)}
             />
-            I have saved this token securely
+            {t("I have saved this token securely")}
           </label>
         </>
       ) : null}
       <ol className="connection-steps">
         <li>
-          <strong>Configure your MCP client</strong>
+          <strong>{t("Configure your MCP client")}</strong>
           {agent.auth_type === "oauth" ? (
             <p>
-              Enter the MCP endpoint in your OAuth-enabled client. Complete
-              administrator consent and select the required data sources.
+              {t(
+                "Enter the MCP endpoint in your OAuth-enabled client. Complete administrator consent and select the required data sources.",
+              )}
             </p>
           ) : (
             <p>
-              Use your saved Agent token. If you lost it, choose Rotate token in
-              Agents. The placeholder below is not a working credential.
+              {t(
+                "Use your saved Agent token. If you lost it, choose Rotate token in Agents.",
+              )}
             </p>
           )}
           <div className="connection-strip">
             <code>{endpoint}</code>
             <CopyButton text={endpoint} />
           </div>
+          <ClientSetup
+            endpoint={endpoint}
+            oauth={agent.auth_type === "oauth"}
+          />
           {agent.auth_type !== "oauth" ? (
             <>
-              <details open>
-                <summary>HTTP configuration</summary>
-                <p className="help">
-                  Use these connection values in your client's MCP
-                  configuration. The outer JSON format may vary by client.
-                </p>
-                <pre>{http}</pre>
-                <CopyButton text={http} />
-              </details>
               <details>
-                <summary>stdio bridge configuration</summary>
+                <summary>{t("Advanced: stdio bridge")}</summary>
                 <p className="help">
-                  Install the Hub executable on the client machine and replace
-                  the absolute path.
+                  {t(
+                    "Install the ContextGate executable on the client machine and replace the absolute path.",
+                  )}
                 </p>
                 <pre>{stdio}</pre>
                 <CopyButton text={stdio} />
@@ -138,22 +140,32 @@ export function AgentConnection({
           ) : null}
         </li>
         <li>
-          <strong>Run a read-only query from the client</strong>
+          <strong>{t("Run a read-only query from the client")}</strong>
           <p>
-            Call <code>list_data_sources</code>, select an authorized source,
-            then use its advertised query tool and example. Administrator
-            previews do not verify client connectivity.
+            {t("Call ")}
+            <code>list_data_sources</code>
+            {t(
+              ", select an authorized source, then use its advertised query tool and example. Administrator previews do not verify client connectivity.",
+            )}
           </p>
         </li>
         <li>
-          <strong>Check the recorded client activity</strong>
+          <strong>{t("Check the recorded client activity")}</strong>
           <p>
             {agent.activity?.last_call
-              ? `Last call: ${date(agent.activity.last_call)}. ${agent.activity.error_code ? `Failed (${agent.activity.error_code}). Open Audit log for details.` : "Succeeded."}`
-              : "Waiting for a query or structure discovery call from this client. Activity is retained for 30 days."}
+              ? t("Last call: {value1}. {value2}", {
+                  value1: date(agent.activity.last_call),
+                  value2: agent.activity.error_code
+                    ? `Failed (${agent.activity.error_code}). Open Audit log for details.`
+                    : t("Succeeded."),
+                })
+              : t(
+                  "Waiting for a query or structure discovery call from this client. Activity is retained for 30 days.",
+                )}
           </p>
           <p className="help">
-            Last successful call: {date(agent.activity?.last_success)}
+            {t("Last successful call: ")}
+            {date(agent.activity?.last_success)}
           </p>
           <Button
             busy={busy}
@@ -166,15 +178,75 @@ export function AgentConnection({
               }
             }}
           >
-            Refresh client activity
+            {t("Refresh client activity")}
           </Button>
         </li>
       </ol>
+      {agent.activity?.error_code && (
+        <div className="notice warning">
+          <div>
+            <strong>{t("Recommended next step")}</strong>
+            <p>
+              {agent.activity.error_code === "templates_only"
+                ? t(
+                    "This source accepts templates only. Discover the published catalog with search_semantics and run execute_query_template using its current execution version.",
+                  )
+                : ["template_changed", "template_unverified"].includes(
+                      agent.activity.error_code,
+                    )
+                  ? t(
+                      "Refresh the semantic catalog. An administrator may need to trial and publish the template again.",
+                    )
+                  : ["forbidden", "unauthorized"].includes(
+                        agent.activity.error_code,
+                      )
+                    ? t(
+                        "Check this Agent’s grants, expiration and credential state.",
+                      )
+                    : ["timeout", "result_too_large"].includes(
+                          agent.activity.error_code,
+                        )
+                      ? t(
+                          "Narrow the query, reduce result size or use the supported pagination before retrying.",
+                        )
+                      : t(
+                          "Open Agent setup for the affected source to review connection, query mode, templates and grants.",
+                        )}
+            </p>
+          </div>
+        </div>
+      )}
+      <div className="button-row">
+        {sources
+          .filter((s) => agent.sources.includes(s.id))
+          .map((s) => (
+            <Button
+              key={s.id}
+              disabled={!!token && !saved}
+              onClick={() =>
+                navigate(
+                  agent.activity?.error_code === "templates_only"
+                    ? semanticsURL(s.id, "Query templates")
+                    : `/sources/${s.id}/setup`,
+                )
+              }
+            >
+              {agent.activity?.error_code === "templates_only"
+                ? t("Templates")
+                : t("Agent setup")}{" "}
+              · {s.name}
+            </Button>
+          ))}
+      </div>
       {agent.revoked_at || !agent.enabled ? (
         <div className="notice warning">
           {agent.revoked_at
-            ? "This credential is permanently revoked. Issue a new token or authorize OAuth again."
-            : "This Agent is paused. Resume it before testing client access."}
+            ? t(
+                "This credential is permanently revoked. Issue a new token or authorize OAuth again.",
+              )
+            : t(
+                "This Agent is paused. Resume it before testing client access.",
+              )}
         </div>
       ) : null}
     </Drawer>

@@ -3,6 +3,7 @@
 import argparse
 import datetime
 import json
+import os
 from matrix import ROOT, OUT, docker, provision, seed, implementation_digest
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -46,7 +47,8 @@ db.buyers.createIndex({'profile.displayName':1}); db.purchases.createIndex({buye
 """)
     (OUT / 'ontology-fixtures.json').write_text(json.dumps(fixtures, indent=2) + '\n')
     digest = implementation_digest()
-    result = docker('exec', '-w', '/work', '-e', 'MCPDBHUB_ONTOLOGY_FIXTURES=/work/artifacts/matrix/ontology-fixtures.json',
+    environment = ["-e", "MCPDBHUB_TEST_DATABASE_URL="+os.environ["MCPDBHUB_TEST_DATABASE_URL"]] if os.getenv("MCPDBHUB_TEST_DATABASE_URL") else []
+    result = docker('exec', *environment, '-w', '/work', '-e', 'MCPDBHUB_ONTOLOGY_FIXTURES=/work/artifacts/matrix/ontology-fixtures.json',
                     'mcpdbhub-dev', 'go', 'test', './internal/server', './internal/engine', '-run', 'Ontology', '-count=1', '-v', check=False)
     (OUT / 'ontology.log').write_text(result.stdout + result.stderr)
     print(result.stdout + result.stderr)

@@ -8,8 +8,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: Hub version and platform
-      placeholder: v0.3.0, Linux arm64, Docker
+      label: ContextGate version and platform
+      placeholder: v0.4.0, Linux arm64, Docker
     validations:
       required: true
   - type: input

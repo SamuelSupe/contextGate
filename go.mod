@@ -1,4 +1,4 @@
-module github.com/SamuelSupe/mcpdbhub
+module github.com/SamuelSupe/contextGate
 
 go 1.26.0
 

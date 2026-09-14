@@ -5,9 +5,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"github.com/SamuelSupe/mcpdbhub/internal/server"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
-	"github.com/SamuelSupe/mcpdbhub/internal/version"
+	"github.com/SamuelSupe/contextGate/internal/server"
+	"github.com/SamuelSupe/contextGate/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/version"
 	"log"
 	"net/http"
 	"os"
@@ -18,8 +18,14 @@ import (
 )
 
 func main() {
+	if len(os.Args) > 1 && os.Args[1] == "verify-metadata" {
+		if err := verifyBackup(os.Args[2:], os.Stdout); err != nil {
+			log.Fatal(err)
+		}
+		return
+	}
 	if len(os.Args) > 1 && (os.Args[1] == "version" || os.Args[1] == "--version") {
-		fmt.Printf("mcpdbhub %s (commit %s)\n", version.Version, version.Commit)
+		fmt.Printf("ContextGate %s (commit %s)\n", version.Version, version.BuildCommit())
 		return
 	}
 	if len(os.Args) > 1 && os.Args[1] == "reset-password" {
@@ -45,10 +51,14 @@ func serve() error {
 	}
 	f := flag.NewFlagSet("serve", flag.ExitOnError)
 	listen := f.String("listen", env("MCPDBHUB_LISTEN", "127.0.0.1:8080"), "HTTP listen address")
-	data := f.String("data-dir", env("MCPDBHUB_DATA_DIR", "./data"), "configuration directory")
+	data := f.String("data-dir", env("MCPDBHUB_DATA_DIR", "./data"), "local encryption key directory")
+	databaseURL := f.String("database-url", "", "PostgreSQL metadata connection (prefer MCPDBHUB_DATABASE_URL)")
 	public := f.String("public-url", env("MCPDBHUB_PUBLIC_URL", "http://127.0.0.1:8080"), "canonical public HTTP(S) origin")
 	files := f.String("database-dir", os.Getenv("MCPDBHUB_DATABASE_DIR"), "allowed directory for SQLite/DuckDB files")
 	f.Parse(args)
+	if *databaseURL == "" {
+		*databaseURL = os.Getenv("MCPDBHUB_DATABASE_URL")
+	}
 	dir, e := filepath.Abs(*data)
 	if e != nil {
 		return e
@@ -59,7 +69,7 @@ func serve() error {
 	if e = os.MkdirAll(*files, 0700); e != nil {
 		return e
 	}
-	st, e := store.Open(dir)
+	st, e := store.Open(dir, *databaseURL)
 	if e != nil {
 		return e
 	}
@@ -81,7 +91,7 @@ func serve() error {
 	go st.Cleanup(ctx)
 	srv := &http.Server{Addr: *listen, Handler: app.Handler(), ReadHeaderTimeout: 5 * time.Second, ReadTimeout: 15 * time.Second, WriteTimeout: 150 * time.Second, IdleTimeout: 60 * time.Second, MaxHeaderBytes: 32 << 10}
 	done := make(chan error, 1)
-	go func() { log.Printf("MCP DB Hub listening on %s", *listen); done <- srv.ListenAndServe() }()
+	go func() { log.Printf("ContextGate listening on %s", *listen); done <- srv.ListenAndServe() }()
 	select {
 	case e := <-done:
 		if !errors.Is(e, http.ErrServerClosed) {

@@ -1,0 +1,75 @@
+{
+  "product": "ContextGate",
+  "result": "passed",
+  "image_id": "sha256:c0a52089fc845c338ed7e218407156679dfb299366976b35e0eec3ec6a155a55",
+  "architecture": "arm64",
+  "version": "0.4.0-dev",
+  "source_sha256": "cb45d7a7e2b1c87e61f81386022629ac0a38b4db63860c8de09d9df8f73f4c47",
+  "verified_at": "2026-09-14T08:02:04Z",
+  "metadata_store": "PostgreSQL 17.11",
+  "checks": [
+    "contextgate_cli_and_legacy_alias",
+    "contextgate_stdio_server_identity",
+    "postgres_metadata_initialization",
+    "nonroot_uid_10001",
+    "readonly_root_filesystem",
+    "no_node_runtime",
+    "bootstrap",
+    "source_persistence",
+    "HTTP_MCP_query",
+    "stdio_initialize_discovery_and_query",
+    "restart_session_agent_and_source_recovery",
+    "revoked_agent_denied",
+    "password_recovery_cli",
+    "old_password_and_admin_sessions_rejected",
+    "recovery_preserves_database_credentials_and_agent_token",
+    "template_trial_required_for_publication",
+    "HTTP_and_stdio_template_query",
+    "HTTP_and_stdio_templates_only_native_denial",
+    "published_template_and_evidence_restart_recovery",
+    "ontology_mapping_and_agent_projection",
+    "ontology_publication_preserves_template_evidence",
+    "HTTP_and_stdio_ontology_context",
+    "ontology_restart_recovery",
+    "OTLP_HTTP_protobuf",
+    "OTLP_gRPC",
+    "OTLP_header_and_payload_redaction",
+    "OTLP_receiver_outage_query_isolation",
+    "OTLP_pending_restart_and_recovery",
+    "OTLP_template_correlation_and_redaction",
+    "OTLP_ontology_correlation_and_redaction"
+  ],
+  "collector_version": "0.160.0",
+  "scope": "ContextGate rebrand on the current 0.4.0-dev working tree; not a release or a fresh database matrix run.",
+  "unit_and_race_checks": {
+    "frontend": "8 existing tests passed; TypeScript and Vite production build passed",
+    "go": "go test -race ./cmd/mcpdbhub ./internal/mcpserver ./internal/auditexport ./internal/server ./internal/engine ./internal/store passed in OrbStack"
+  },
+  "chrome_checks": [
+    "English and Simplified Chinese sign-in branding",
+    "logo images loaded and no horizontal overflow on Settings",
+    "390 px navigation opens with the complete wordmark and no horizontal overflow",
+    "Data sources, Semantics, Agents and ontology graph render",
+    "published PostgreSQL template returns 2 rows in the UI",
+    "client setup uses mcp_servers.contextgate and preserves the existing token environment variable",
+    "no captured error/warning console messages in the checked flow"
+  ],
+  "compatibility_checks": [
+    "existing QA Agent token executes published template over HTTP after restart",
+    "HTTP and stdio server names are contextgate",
+    "legacy mcpdbhub command returns the same ContextGate version as contextgate"
+  ],
+  "not_run": [
+    "full 18-product/20-version matrix",
+    "amd64 build",
+    "GitHub release or repository rename"
+  ],
+  "brand_asset_sha256": {
+    "web/public/contextgate-mark.svg": "9d1b0cbc71882eb41746d9a0bd6722a44afa9ca8e6e009937b3a42566944fa39",
+    "docs/brand/contextgate-mark-mono.svg": "72b60bbae92aac3ef0559ec62981368dcc853e17c6200b65d607436467f73098",
+    "docs/brand/contextgate-mark.svg": "9d1b0cbc71882eb41746d9a0bd6722a44afa9ca8e6e009937b3a42566944fa39",
+    "docs/brand/contextgate-logo.svg": "63aea8423855f7107527b1d685901dd766ece703a707388953996aa3d01520b9",
+    "docs/images/banner.svg": "a082174a891ccb8e82187b9da1c4132c2172db6452373964b3c456c0c36fe9a6"
+  },
+  "ui_verified_at": "2026-09-14T08:08:26.177401+00:00"
+}

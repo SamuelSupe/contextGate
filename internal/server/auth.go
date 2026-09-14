@@ -3,8 +3,8 @@ package server
 import (
 	"database/sql"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 	"net/http"
 	"strings"
 	"time"
@@ -29,11 +29,12 @@ func (s *Server) setup(w http.ResponseWriter, r *http.Request) {
 		fail(w, 403, model.Fail("invalid_setup_token", "invalid or consumed setup token"))
 		return
 	}
-	if e = s.Store.Setup(secure.Password(in.Password)); e != nil {
+	hash := secure.Password(in.Password)
+	if e = s.Store.Setup(hash); e != nil {
 		fail(w, 409, model.Fail("already_initialized", "administrator is already initialized"))
 		return
 	}
-	s.createSession(w, r)
+	s.createSession(w, r, hash)
 }
 func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 	var in struct {
@@ -48,13 +49,17 @@ func (s *Server) login(w http.ResponseWriter, r *http.Request) {
 		fail(w, 401, model.Fail("invalid_credentials", "incorrect administrator password"))
 		return
 	}
-	s.createSession(w, r)
+	s.createSession(w, r, hash)
 }
-func (s *Server) createSession(w http.ResponseWriter, r *http.Request) {
+func (s *Server) createSession(w http.ResponseWriter, r *http.Request, passwordHash string) {
 	token, csrf := secure.Random(32), secure.Random(24)
 	expiry := time.Now().Add(12 * time.Hour)
-	if e := s.Store.Session(token, csrf, expiry); e != nil {
-		fail(w, 500, e)
+	if e := s.Store.Session(token, csrf, expiry, passwordHash); e != nil {
+		status := http.StatusInternalServerError
+		if model.ErrorCode(e) == "unauthorized" {
+			status = http.StatusUnauthorized
+		}
+		fail(w, status, e)
 		return
 	}
 	http.SetCookie(w, &http.Cookie{Name: "hub_session", Value: token, Path: "/", HttpOnly: true, Secure: strings.HasPrefix(s.PublicURL, "https://"), SameSite: http.SameSiteLaxMode, Expires: expiry, MaxAge: 12 * 60 * 60})
@@ -82,15 +87,16 @@ func (s *Server) password(w http.ResponseWriter, r *http.Request) {
 		fail(w, 403, model.Fail("invalid_credentials", "incorrect current password"))
 		return
 	}
-	if e = s.Store.Set("admin_password", secure.Password(in.Password)); e != nil {
-		fail(w, 500, e)
+	nextHash := secure.Password(in.Password)
+	if e = s.Store.ChangeAdminPassword(hash, nextHash); e != nil {
+		status := http.StatusInternalServerError
+		if model.ErrorCode(e) == "conflict" {
+			status = http.StatusConflict
+		}
+		fail(w, status, e)
 		return
 	}
-	if _, e = s.Store.DB.Exec("DELETE FROM sessions"); e != nil {
-		fail(w, 500, e)
-		return
-	}
-	s.createSession(w, r)
+	s.createSession(w, r, nextHash)
 }
 func (s *Server) EnsureSetup() (string, error) {
 	if _, e := s.Store.Get("admin_password"); e == nil {

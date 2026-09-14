@@ -2,7 +2,7 @@
 
 [简体中文](architecture.zh-CN.md)
 
-A single Go process embeds the React application. Configuration and audit records live in the service's own SQLite database. User databases are accessed through administrator-configured accounts; agents never receive connection credentials.
+A single Go process embeds the React application. Configuration and audit records live in the service's own PostgreSQL database. User databases are accessed through administrator-configured accounts; agents never receive connection credentials.
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,7 @@ flowchart LR
   MCP --> Execute
   Execute --> Adapters[Seven native query families]
   Adapters --> DB[(User databases)]
-  Execute --> Store[(Configuration and audit SQLite)]
+  Execute --> Store[(Configuration and audit PostgreSQL)]
   Store --> Export[Optional audit export worker]
   Export --> OTLP[OTLP Logs receiver]
 ```
@@ -84,7 +84,7 @@ AES-GCM cursors bind identity, source revision, original query/parameters/limits
 
 Agent tokens are stored as SHA-256 hashes; administrator passwords use Argon2id. Database credentials and OAuth records use AES-256-GCM with contextual AAD. The master key is stored separately from the configuration database. Auditing retains identity, source, operation, a keyed query fingerprint, duration, count and error category for 30 days.
 
-[Ory Fosite](https://github.com/ory/fosite) provides authorization codes, PKCE S256, resource audiences, administrator source selection, 15-minute access tokens, 30-day refresh grants, rotation and replay revocation. Each consent creates source grants that can be revoked or narrowed on the Agents page. Token, revocation and consent handlers serialize critical state transitions; SQLite persists state across restarts.
+[Ory Fosite](https://github.com/ory/fosite) provides authorization codes, PKCE S256, resource audiences, administrator source selection, 15-minute access tokens, 30-day refresh grants, rotation and replay revocation. Each consent creates source grants that can be revoked or narrowed on the Agents page. Token, revocation and consent handlers serialize critical state transitions; PostgreSQL persists state across restarts.
 
 Public metadata is available at `/.well-known/oauth-protected-resource` (including the `/mcp` suffix) and `/.well-known/oauth-authorization-server`. Clients can be pre-registered in the UI or dynamically registered at `/oauth/register`. CIMD uses a public HTTPS document whose URL must equal client_id. Registration is capped at 1,000 clients. Metadata fetches have a 64 KiB limit and five-second timeout, reject redirects, validate every resolved IP as public, and connect directly to that validated address to prevent DNS rebinding. Redirects match exactly, without wildcards.
 
@@ -92,11 +92,11 @@ The implementation follows the [MCP authorization specification](https://modelco
 
 ## Audit export
 
-The optional worker reads committed audit rows and saves encrypted configuration, cursor and delivery status in one SQLite KV record. It does not add network work to query execution. Administrator-only `/api/settings/audit-export` and `/api/settings/audit-export/test` endpoints share the existing session and CSRF boundary. Settings revisions prevent stale credential/configuration updates; changes cancel active export requests. See [OTLP configuration and delivery semantics](audit-export.md).
+The optional worker reads committed audit rows and saves encrypted configuration, cursor and delivery status in one PostgreSQL KV record. It does not add network work to query execution. Administrator-only `/api/settings/audit-export` and `/api/settings/audit-export/test` endpoints share the existing session and CSRF boundary. Settings revisions prevent stale credential/configuration updates; changes cancel active export requests. See [OTLP configuration and delivery semantics](audit-export.md).
 
 ## Semantic publication
 
-Per-source encrypted draft and published entries are updated in one SQLite transaction with optimistic draft revisions. Templates bind only declared JSON Pointer value slots and reuse the execution engine. Trial and publication proofs bind the executable definition and connection/credentials/observed database version. Queries recheck current authorization and template version before execution and return. Templates-only mode is enforced here for every Agent transport. See the [semantic guide](semantics.md) for workflow, metadata import boundaries, limits and examples.
+Per-source encrypted draft and published entries are updated in one PostgreSQL transaction with optimistic draft revisions. Templates bind only declared JSON Pointer value slots and reuse the execution engine. Trial and publication proofs bind the executable definition and connection/credentials/observed database version. Queries recheck current authorization and template version before execution and return. Templates-only mode is enforced here for every Agent transport. See the [semantic guide](semantics.md) for workflow, metadata import boundaries, limits and examples.
 
 ## Shared ontologies
 

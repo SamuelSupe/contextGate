@@ -9,10 +9,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
 )
 
 func (e *Engine) ValidateOntologyMapping(st semantic.State) error {
@@ -91,7 +91,7 @@ type MappingCheck struct {
 // CheckOntologyMapping uses metadata APIs only. In particular, Neo4j property
 // discovery is excluded because its existing describe operation reads nodes.
 func (e *Engine) CheckOntologyMapping(ctx context.Context, source string, revision int64) ([]MappingCheck, error) {
-	src, err := e.Authorize(model.Principal{Admin: true}, source)
+	src, err := e.Authorize(model.AdministratorPrincipal(ctx), source)
 	if err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func (e *Engine) CheckOntologyMapping(ctx context.Context, source string, revisi
 	for ns := range namespaces {
 		cursor := ""
 		for page := 0; page < 20; page++ {
-			res, err := e.Execute(ctx, model.Principal{Admin: true, Preview: true}, "objects", model.Query{SourceID: source, Namespace: ns, Cursor: cursor})
+			res, err := e.Execute(ctx, model.AdministratorPrincipal(ctx), "objects", model.Query{SourceID: source, Namespace: ns, Cursor: cursor})
 			if err != nil {
 				return nil, err
 			}
@@ -161,7 +161,7 @@ func (e *Engine) CheckOntologyMapping(ctx context.Context, source string, revisi
 			if src.Kind == "neo4j" {
 				continue
 			}
-			res, err := e.Execute(ctx, model.Principal{Admin: true, Preview: true}, "describe", model.Query{SourceID: source, Namespace: ref.Namespace, Object: ref.Object})
+			res, err := e.Execute(ctx, model.AdministratorPrincipal(ctx), "describe", model.Query{SourceID: source, Namespace: ref.Namespace, Object: ref.Object})
 			if err != nil {
 				return nil, err
 			}
@@ -216,6 +216,9 @@ func (e *Engine) CheckOntologyMapping(ctx context.Context, source string, revisi
 	}
 	e.Store.Mutations.Lock()
 	defer e.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return nil, err
+	}
 	fresh, err := e.Store.Source(source)
 	if err != nil {
 		return nil, err

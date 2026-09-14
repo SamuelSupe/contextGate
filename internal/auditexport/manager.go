@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/store"
 )
 
 const stateKey = "audit_otlp_v1"
@@ -124,7 +124,7 @@ func (m *Manager) View(ctx context.Context) (View, error) {
 		v.Status.State = "ready"
 	}
 	if state.Config.Enabled {
-		err := m.store.DB.QueryRowContext(ctx, "SELECT count(*) FROM audit WHERE id>?", state.Cursor).Scan(&v.Status.Pending)
+		err := m.store.DB.QueryRowContext(ctx, "SELECT count(*) FROM audit WHERE id>$1", state.Cursor).Scan(&v.Status.Pending)
 		if err != nil {
 			return View{}, err
 		}
@@ -199,7 +199,7 @@ func (m *Manager) Update(ctx context.Context, update Update) error {
 	if err != nil {
 		return err
 	}
-	if _, err = tx.ExecContext(ctx, "INSERT INTO kv(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", stateKey, m.store.Vault.Seal(b, stateKey)); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO kv(key,value) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", stateKey, m.store.Vault.Seal(b, stateKey)); err != nil {
 		return err
 	}
 	if err = tx.Commit(); err != nil {
@@ -225,7 +225,7 @@ func (m *Manager) persist(ctx context.Context, next checkpoint) error {
 	if err != nil {
 		return err
 	}
-	_, err = m.store.DB.ExecContext(ctx, "INSERT INTO kv(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value", stateKey, m.store.Vault.Seal(b, stateKey))
+	_, err = m.store.DB.ExecContext(ctx, "INSERT INTO kv(key,value) VALUES($1,$2) ON CONFLICT(key) DO UPDATE SET value=excluded.value", stateKey, m.store.Vault.Seal(b, stateKey))
 	return err
 }
 

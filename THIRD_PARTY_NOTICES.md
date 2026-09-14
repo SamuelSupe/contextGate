@@ -1,6 +1,6 @@
 # Third-party notices
 
-MCP DB Hub uses the following upstream components. Their licenses apply to their respective components. The distribution includes the applicable upstream notices and, where collected for redistribution, unmodified dependency source files under [third_party/licenses](third_party/licenses/).
+ContextGate uses the following upstream components. Their licenses apply to their respective components. The distribution includes the applicable upstream notices and, where collected for redistribution, unmodified dependency source files under [third_party/licenses](third_party/licenses/).
 
 ## Go components
 

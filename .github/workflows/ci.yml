@@ -22,6 +22,20 @@ jobs:
         runner: [ubuntu-24.04, ubuntu-24.04-arm]
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 25
+    services:
+      postgres:
+        image: postgres:17.11
+        env:
+          POSTGRES_USER: mcpdbhub
+          POSTGRES_PASSWORD: test-only-password
+          POSTGRES_DB: mcpdbhub_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U mcpdbhub -d mcpdbhub_test"
+          --health-interval 5s --health-timeout 3s --health-retries 12
+    env:
+      MCPDBHUB_TEST_DATABASE_URL: postgres://mcpdbhub:test-only-password@127.0.0.1:5432/mcpdbhub_test?sslmode=disable
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
@@ -35,6 +49,8 @@ jobs:
           cache-dependency-path: web/package-lock.json
       - name: Build embedded UI
         run: make ui
+      - name: Test UI workflows
+        run: npm --prefix web test
       - name: Verify lossless query parameters
         run: node --test web/test/query.test.mjs
       - name: Test Go, SQLite, DuckDB, OAuth, HTTP and stdio
@@ -43,5 +59,5 @@ jobs:
         run: go test -race ./...
       - name: Build CLI
         run: |
-          CGO_ENABLED=1 go build -trimpath -o bin/mcpdbhub ./cmd/mcpdbhub
-          ./bin/mcpdbhub version
+          CGO_ENABLED=1 go build -trimpath -o bin/contextgate ./cmd/mcpdbhub
+          ./bin/contextgate version

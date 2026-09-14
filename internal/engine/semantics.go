@@ -11,10 +11,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/adapter"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
-	"github.com/SamuelSupe/mcpdbhub/internal/semantic"
+	"github.com/SamuelSupe/contextGate/internal/adapter"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/semantic"
 )
 
 func (e *Engine) connectionProof(s model.Source) string {
@@ -35,11 +35,12 @@ func (e *Engine) connectionProof(s model.Source) string {
 }
 
 type TemplateValidation struct {
-	ID            string     `json:"id"`
-	Valid         bool       `json:"valid"`
-	Status        string     `json:"status"`
-	ServerVersion string     `json:"server_version,omitempty"`
-	CheckedAt     *time.Time `json:"checked_at,omitempty"`
+	Report        *semantic.TrialReport `json:"report,omitempty"`
+	ID            string                `json:"id"`
+	Valid         bool                  `json:"valid"`
+	Status        string                `json:"status"`
+	ServerVersion string                `json:"server_version,omitempty"`
+	CheckedAt     *time.Time            `json:"checked_at,omitempty"`
 }
 
 func (e *Engine) TemplateValidation(src model.Source, en semantic.Entry) TemplateValidation {
@@ -51,13 +52,23 @@ func (e *Engine) TemplateValidation(src model.Source, en semantic.Entry) Templat
 		v.Status = "disabled"
 		return v
 	}
-	ev, err := e.Store.SemanticEvidence(src.ID, semantic.Definition(*en.Template))
+	ev, err := e.Store.SemanticEvidence(src.ID, semantic.EvidenceDefinition(*en.Template))
 	if err == nil {
 		v.CheckedAt = &ev.CheckedAt
 		v.Status = "expired"
 		if ev.Connection == e.connectionProof(src) {
 			v.Valid, v.Status = true, "verified"
 		}
+	}
+	return v
+}
+
+// PublishedTemplateValidation includes the publication proof, so a new trial
+// alone cannot make a suspended published template appear executable.
+func (e *Engine) PublishedTemplateValidation(src model.Source, en semantic.Entry) TemplateValidation {
+	v := e.TemplateValidation(src, en)
+	if v.Valid && (en.Template.ExecutionVersion == "" || !e.publishedProofValid(src, en.ID, en.Template.ExecutionVersion)) {
+		v.Valid, v.Status = false, "publish_required"
 	}
 	return v
 }
@@ -94,7 +105,7 @@ func (e *Engine) ExecuteTemplate(ctx context.Context, p model.Principal, in sema
 // Trial executes saved examples through the same engine, then stores only proof
 // of success. No rows or parameter values are persisted as evidence.
 func (e *Engine) TrialTemplate(ctx context.Context, source, id string, revision int64) (TemplateValidation, error) {
-	src, err := e.Authorize(model.Principal{Admin: true}, source)
+	src, err := e.Authorize(model.AdministratorPrincipal(ctx), source)
 	if err != nil {
 		return TemplateValidation{}, err
 	}
@@ -136,19 +147,12 @@ func (e *Engine) TrialTemplate(ctx context.Context, source, id string, revision 
 	if en.Template == nil || !en.Template.Enabled {
 		return TemplateValidation{}, model.Fail("invalid_semantics", "Choose an enabled template")
 	}
-	q, err := semantic.Bind(*en.Template, nil, true)
-	if err != nil {
-		return TemplateValidation{}, err
-	}
-	if err = adapter.CheckTemplateTargets(src, q); err != nil {
-		return TemplateValidation{}, err
-	}
-	q.SourceID = source
-	if _, err = e.execute(ctx, model.Principal{Admin: true, Preview: true}, en.Template.Tool, q, nil, id); err != nil {
-		return TemplateValidation{}, err
-	}
+	report, trialErr := e.runTemplateCases(ctx, src, en)
 	e.Store.Mutations.Lock()
 	defer e.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return TemplateValidation{}, err
+	}
 	fresh, err := e.Store.Source(source)
 	if err != nil {
 		return TemplateValidation{}, err
@@ -160,8 +164,17 @@ func (e *Engine) TrialTemplate(ctx context.Context, source, id string, revision 
 	if latest.Revision != revision || e.connectionProof(fresh) != e.connectionProof(src) {
 		return TemplateValidation{}, model.Fail("conflict", "Draft or connection changed during trial")
 	}
-	err = e.Store.SaveSemanticEvidence(source, semantic.Evidence{Definition: semantic.Definition(*en.Template), Connection: e.connectionProof(src), CheckedAt: time.Now().UTC()})
-	return e.TemplateValidation(src, en), err
+	details, _ := json.Marshal(report)
+	evidence := semantic.Evidence{Definition: "trial-result:" + semantic.EvidenceDefinition(*en.Template), Connection: e.connectionProof(src), CheckedAt: time.Now().UTC(), DetailsJSON: string(details)}
+	if err = e.Store.SaveSemanticEvidence(source, evidence); err != nil {
+		return TemplateValidation{}, err
+	}
+	if trialErr != nil {
+		return TemplateValidation{}, trialErr
+	}
+	evidence.Definition = semantic.EvidenceDefinition(*en.Template)
+	err = e.Store.SaveSemanticEvidence(source, evidence)
+	return e.DraftTemplateValidation(src, st, en), err
 }
 
 func (e *Engine) PublishSemantics(source string, revision int64) (semantic.State, error) {
@@ -186,7 +199,7 @@ func (e *Engine) PublishSemantics(source string, revision int64) (semantic.State
 	}
 	if st.Draft.Ontology != nil {
 		proof, proofErr := e.Store.SemanticEvidence(source, mappingProof(st.Draft.Ontology))
-		if proofErr != nil || proof.Connection != e.connectionProof(src) {
+		if proofErr != nil || proof.Connection != e.connectionProof(src) || st.TrialAfter != nil && proof.CheckedAt.Before(*st.TrialAfter) {
 			return st, model.Fail("mapping_unverified", "Check the current mapping against database structure before publishing")
 		}
 	}
@@ -211,7 +224,7 @@ func (e *Engine) PublishSemantics(source string, revision int64) (semantic.State
 		if err = adapter.CheckTemplateTargets(src, query); err != nil {
 			return st, err
 		}
-		if en.Template.Enabled && !e.TemplateValidation(src, *en).Valid {
+		if en.Template.Enabled && !e.DraftTemplateValidation(src, st, *en).Valid {
 			return st, model.Fail("template_unverified", "Enabled template requires a successful current trial: "+en.ID)
 		}
 		en.Template.ExecutionVersion = strconv.FormatInt(st.PublishedVersion, 10)
@@ -242,6 +255,7 @@ func (e *Engine) PublishSemantics(source string, revision int64) (semantic.State
 			proofs = append(proofs, semantic.Evidence{Definition: "published:" + en.ID + ":" + en.Template.ExecutionVersion, Connection: e.connectionProof(src), CheckedAt: time.Now().UTC()})
 		}
 	}
+	st.TrialAfter = nil
 	if err = e.Store.WriteSemantics(source, revision, st, proofs...); err != nil {
 		return st, err
 	}
@@ -406,6 +420,10 @@ func (e *Engine) SemanticEntry(p model.Principal, source, id string) (map[string
 			out["executable"] = en.Template.Enabled && e.TemplateValidation(src, en).Valid && e.publishedProofValid(src, en.ID, en.Template.ExecutionVersion)
 			example, _ := semantic.Parse(en.Template.ExampleJSON)
 			out["call_example"] = semantic.Execution{SourceID: source, TemplateID: id, ExecutionVersion: en.Template.ExecutionVersion, Parameters: example.(map[string]any)}
+			publicTemplate := *en.Template
+			publicTemplate.Tests = nil
+			en.Template = &publicTemplate
+			out["entry"] = en
 		}
 		if _, err = e.Authorize(p, source); err != nil {
 			return nil, err

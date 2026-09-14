@@ -1,9 +1,12 @@
+import { t } from "./i18n";
+import "./ontology-editor.css";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, Download, Plus, RefreshCw, Upload } from "lucide-react";
 import { api, message, payload } from "./api";
 import { Button, Empty, ErrorNote, Field, Loading } from "./components";
 import {
   OntologyEditor,
+  newOntologyItem,
   type OntologyItem,
   type OntologyKind,
 } from "./OntologyEditor";
@@ -15,27 +18,34 @@ import {
   type OntologySummary,
   type OntologyVersion,
 } from "./ontology-types";
+import { OntologyModel } from "./OntologyModel";
+import { OntologyDefinitions } from "./OntologyDefinitions";
 import { OntologyDialog } from "./OntologyDialog";
-import type { Source } from "./types";
+import type { Agent, Source } from "./types";
+import { useNavigationGuard } from "./useNavigationGuard";
 
 export function Ontologies({
   id,
   sources,
+  agents,
   navigate,
   notify,
 }: {
   id?: string;
   sources: Source[];
+  agents: Agent[];
   navigate: (path: string) => void;
   notify: (text: string) => void;
 }) {
   const [list, setList] = useState<OntologySummary[]>([]);
   const [state, setState] = useState<OntologyState | null>(null);
+  const [usageRefreshKey, setUsageRefreshKey] = useState(0);
   const [draft, setDraft] = useState<OntologyDefinition>(emptyOntology);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const [tab, setTab] = useState("Entities");
+  const [tab, setTab] = useState("Model");
+  const [selectedEntity, setSelectedEntity] = useState("");
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<{
@@ -57,6 +67,7 @@ export function Ontologies({
   const reload = useCallback(async () => {
     if (id) accept(await api<OntologyState>(`/api/ontologies/${id}`));
     else setList(await api<OntologySummary[]>("/api/ontologies"));
+    setUsageRefreshKey((v) => v + 1);
   }, [id, accept]);
   useEffect(() => {
     const controller = new AbortController();
@@ -65,6 +76,8 @@ export function Ontologies({
     setState(null);
     setPage(0);
     setSearch("");
+    setTab("Model");
+    setSelectedEntity("");
     const task = id
       ? api<OntologyState>(`/api/ontologies/${id}`, {
           signal: controller.signal,
@@ -93,29 +106,40 @@ export function Ontologies({
     }
   }
   async function save(definition: OntologyDefinition) {
-    if (!state) return;
+    if (!state || state.id !== id)
+      throw new Error(t("The active ontology changed. Reload before saving."));
     accept(
       await api<OntologyState>(endpoint, {
         method: "PUT",
         body: payload({ revision: state.revision, definition }),
       }),
     );
-    notify("Ontology draft saved.");
+    notify(t("Ontology draft saved."));
   }
   const dirty =
     !!state && JSON.stringify(draft) !== JSON.stringify(state.draft);
-  const tabs = ["Entities", "Properties", "Relations", "Versions", "Usage"];
-  const kind = tab.toLowerCase() as OntologyKind;
-  const rows: OntologyItem[] = ["entities", "properties", "relations"].includes(
-    kind,
-  )
-    ? draft[kind].filter((v) =>
-        `${v.name} ${(v.aliases || []).join(" ")} ${v.description || ""}`
-          .toLowerCase()
-          .includes(search.toLowerCase()),
-      )
-    : [];
-  const current = Math.min(page, Math.max(0, Math.ceil(rows.length / 20) - 1));
+  useNavigationGuard(dirty, busy && !dialog);
+  const tabs = ["Model", "Definitions", "Versions", "Usage", "Settings"];
+  function addDefinition(kind: OntologyKind, entity?: string) {
+    setEditing({ kind, item: newOntologyItem(kind, entity), existing: false });
+  }
+  function editDefinition(kind: OntologyKind, item: OntologyItem) {
+    setEditing({ kind, item, existing: true });
+  }
+  function removeDefinition(kind: OntologyKind, id: string) {
+    setDeleteItem({ kind, id });
+    setDialog("delete-item");
+  }
+  function selectTab(next: string) {
+    if (dirty) {
+      setError(
+        t("Save or revert ontology settings before switching sections."),
+      );
+      return;
+    }
+    setError("");
+    setTab(next);
+  }
   const matchingOntologies = list.filter((v) =>
     `${v.name} ${v.description || ""}`
       .toLowerCase()
@@ -128,28 +152,29 @@ export function Ontologies({
         <Button
           onClick={() => {
             if (dirty) {
-              setError("Save or revert unsaved changes before leaving.");
+              setError(t("Save or revert unsaved changes before leaving."));
               return;
             }
             navigate("/ontologies");
           }}
         >
           <ArrowLeft size={16} />
-          Ontologies
+          {t("Ontologies")}
         </Button>
       )}
       <div className="page-header">
         <div>
-          <h1>{id ? state?.draft.name || "Ontology" : "Ontologies"}</h1>
+          <h1>{id ? state?.draft.name || t("Ontology") : t("Ontologies")}</h1>
           <p>
-            Shared business definitions, independently mapped and authorized per
-            data source.
+            {t(
+              "Shared business definitions, independently mapped and authorized per data source.",
+            )}
           </p>
         </div>
         <div className="button-row">
           <Button disabled={busy || dirty} onClick={() => action(reload)}>
             <RefreshCw size={16} />
-            Reload
+            {t("Reload")}
           </Button>
           {!id && (
             <>
@@ -159,7 +184,7 @@ export function Ontologies({
                 }}
               >
                 <Upload size={16} />
-                Import JSON
+                {t("Import JSON")}
               </Button>
               <Button
                 primary
@@ -168,7 +193,7 @@ export function Ontologies({
                 }}
               >
                 <Plus size={16} />
-                Create ontology
+                {t("Create ontology")}
               </Button>
             </>
           )}
@@ -183,19 +208,21 @@ export function Ontologies({
                       body: payload({ revision: state.revision }),
                     });
                     notify(
-                      "Definition is consistent. Database constraints remain declarative.",
+                      t(
+                        "Definition is consistent. Database constraints remain declarative.",
+                      ),
                     );
                   })
                 }
               >
-                Validate
+                {t("Validate")}
               </Button>
               <Button
                 primary
                 disabled={busy || dirty || !state.changed || state.archived}
                 onClick={() => setDialog("publish")}
               >
-                Publish version
+                {t("Publish version")}
               </Button>
             </>
           )}
@@ -206,65 +233,64 @@ export function Ontologies({
         <Loading />
       ) : !id ? (
         <>
-          <Field label="Search ontologies">
+          <Field label={t("Search ontologies")}>
             <input
               value={search}
               onChange={(e) => {
                 setSearch(e.target.value);
                 setPage(0);
               }}
-              placeholder="Name or description"
+              placeholder={t("Name or description")}
             />
           </Field>
           {matchingOntologies.length === 0 ? (
             <Empty
               title={
-                search ? "No matching ontologies" : "No shared ontologies yet"
+                search
+                  ? t("No matching ontologies")
+                  : t("No shared ontologies yet")
               }
-              description="Define business entities once, then map each data source to a pinned version."
+              description={t(
+                "Define business entities once, then map each data source to a pinned version.",
+              )}
             />
           ) : (
             <div className="table-scroll">
-              <table>
+              <table className="ontologies-table">
                 <thead>
                   <tr>
-                    <th>Ontology</th>
-                    <th>Latest version</th>
-                    <th>Status</th>
+                    <th>{t("Ontology")}</th>
+                    <th>{t("Latest version")}</th>
+                    <th>{t("Status")}</th>
                     <th />
                   </tr>
                 </thead>
                 <tbody>
-                  {list
-                    .filter((v) =>
-                      `${v.name} ${v.description}`
-                        .toLowerCase()
-                        .includes(search.toLowerCase()),
-                    )
+                  {matchingOntologies
                     .slice(page * 20, (page + 1) * 20)
                     .map((v) => (
                       <tr key={v.id}>
                         <td>
-                          <strong>{v.name || "Untitled ontology"}</strong>
+                          <strong>{v.name || t("Untitled ontology")}</strong>
                           <small className="block">{v.id}</small>
                         </td>
-                        <td>
+                        <td data-label={t("Latest version")}>
                           {v.latest_version === "0"
-                            ? "Not published"
+                            ? t("Not published")
                             : v.latest_version}
                         </td>
-                        <td>
+                        <td data-label={t("Status")}>
                           <span
                             className={`status ${v.archived ? "muted" : "green"}`}
                           >
-                            {v.archived ? "Archived" : "Active"}
+                            {v.archived ? t("Archived") : t("Active")}
                           </span>
                         </td>
                         <td>
                           <Button
                             onClick={() => navigate(`/ontologies/${v.id}`)}
                           >
-                            Open
+                            {t("Open")}
                           </Button>
                         </td>
                       </tr>
@@ -273,24 +299,17 @@ export function Ontologies({
               </table>
             </div>
           )}
-          {list.length > 20 && (
+          {matchingOntologies.length > 20 && (
             <div className="pagination">
               <Button disabled={page === 0} onClick={() => setPage(page - 1)}>
-                Previous
+                {t("Previous")}
               </Button>
               <span>{page + 1}</span>
               <Button
-                disabled={
-                  (page + 1) * 20 >=
-                  list.filter((v) =>
-                    `${v.name} ${v.description}`
-                      .toLowerCase()
-                      .includes(search.toLowerCase()),
-                  ).length
-                }
+                disabled={(page + 1) * 20 >= matchingOntologies.length}
                 onClick={() => setPage(page + 1)}
               >
-                Next
+                {t("Next")}
               </Button>
             </div>
           )}
@@ -303,128 +322,38 @@ export function Ontologies({
                 className={`status ${state.changed || dirty ? "amber" : "green"}`}
               >
                 {dirty
-                  ? "Unsaved changes"
+                  ? t("Unsaved changes")
                   : state.changed
-                    ? "Unpublished changes"
-                    : "Draft matches latest version"}
+                    ? t("Unpublished changes")
+                    : t("Draft matches latest version")}
               </span>
-              <span>Revision {state.revision}</span>
-              <span>Latest version {state.latest_version}</span>
+              <span>
+                {t("Revision ")}
+                {state.revision}
+              </span>
+              <span>
+                {t("Latest version ")}
+                {state.latest_version}
+              </span>
               {state.archived && (
                 <span className="status muted">
-                  Archived · existing bindings remain active
+                  {t("Archived · existing bindings remain active")}
                 </span>
               )}
-            </div>
-            <div className="semantic-overview">
-              <section>
-                <div className="field-grid">
-                  <Field label="Ontology name" required>
-                    <input
-                      value={draft.name}
-                      maxLength={256}
-                      onChange={(e) =>
-                        setDraft({ ...draft, name: e.target.value })
-                      }
-                    />
-                  </Field>
-                  <Field label="Stable ontology ID">
-                    <input value={state.id} readOnly />
-                  </Field>
-                </div>
-                <Field label="Description">
-                  <textarea
-                    rows={2}
-                    value={draft.description || ""}
-                    onChange={(e) =>
-                      setDraft({ ...draft, description: e.target.value })
-                    }
-                  />
-                </Field>
-                <div className="button-row">
-                  <Button
-                    primary
-                    disabled={!dirty || busy}
-                    onClick={() => action(() => save(draft))}
-                  >
-                    Save draft
-                  </Button>
-                  <Button
-                    disabled={!dirty || busy}
-                    onClick={() => setDraft(state.draft)}
-                  >
-                    Revert unsaved changes
-                  </Button>
-                </div>
-              </section>
-              <section>
-                <h2>Version adoption is explicit</h2>
-                <p className="help">
-                  Publishing preserves older versions. Sources remain pinned
-                  until an administrator reviews the differences and publishes
-                  their mapping. Identity, uniqueness and cardinality are
-                  declarations, not verified data quality.
-                </p>
-                <div className="button-row">
-                  <Button
-                    disabled={dirty || busy}
-                    onClick={() => {
-                      setDialog("import");
-                    }}
-                  >
-                    <Upload size={15} />
-                    Import JSON
-                  </Button>
-                  <Button
-                    disabled={dirty || busy}
-                    onClick={() =>
-                      action(async () =>
-                        downloadJSON(
-                          await api(endpoint + "/export"),
-                          "ontology.json",
-                        ),
-                      )
-                    }
-                  >
-                    <Download size={15} />
-                    Export draft
-                  </Button>
-                  <Button
-                    disabled={!state.changed || dirty || busy}
-                    onClick={() => setDialog("discard")}
-                  >
-                    Discard draft
-                  </Button>
-                  <Button
-                    disabled={dirty || busy}
-                    onClick={() => setDialog("archive")}
-                  >
-                    {state.archived ? "Unarchive" : "Archive"}
-                  </Button>
-                  <Button
-                    className="danger"
-                    disabled={dirty || busy || state.usage.length > 0}
-                    onClick={() => setDialog("delete")}
-                  >
-                    Delete ontology
-                  </Button>
-                </div>
-              </section>
             </div>
             <div
               className="semantic-tabs"
               role="tablist"
-              aria-label="Ontology sections"
+              aria-label={t("Ontology sections")}
             >
-              {tabs.map((t, i) => (
+              {tabs.map((section, i) => (
                 <button
-                  key={t}
+                  key={section}
                   role="tab"
-                  aria-selected={tab === t}
-                  tabIndex={tab === t ? 0 : -1}
+                  aria-selected={tab === section}
+                  tabIndex={tab === section ? 0 : -1}
                   onClick={() => {
-                    setTab(t);
-                    setPage(0);
+                    selectTab(section);
                   }}
                   onKeyDown={(e) => {
                     if (!["ArrowLeft", "ArrowRight"].includes(e.key)) return;
@@ -432,169 +361,167 @@ export function Ontologies({
                     const n =
                       (i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) %
                       tabs.length;
-                    setTab(tabs[n]);
-                    setPage(0);
+                    if (dirty) {
+                      selectTab(tabs[n]);
+                      return;
+                    }
+                    selectTab(tabs[n]);
                     (
                       e.currentTarget.parentElement?.children[n] as HTMLElement
                     )?.focus();
                   }}
                 >
-                  {t}
+                  {t(section)}
                 </button>
               ))}
             </div>
             <div role="tabpanel">
-              {["Entities", "Properties", "Relations"].includes(tab) ? (
-                <>
-                  <div className="filters">
-                    <input
-                      aria-label="Search ontology definitions"
-                      placeholder="Search names, aliases and descriptions"
-                      value={search}
-                      onChange={(e) => {
-                        setSearch(e.target.value);
-                        setPage(0);
-                      }}
-                    />
-                    <Button
-                      primary
-                      disabled={dirty || busy}
-                      onClick={() =>
-                        setEditing({
-                          kind,
-                          existing: false,
-                          item:
-                            kind === "entities"
-                              ? { id: "", name: "" }
-                              : kind === "properties"
-                                ? {
-                                    id: "",
-                                    name: "",
-                                    entity: "",
-                                    type: "string",
-                                    required: false,
-                                    multiple: false,
-                                  }
-                                : {
-                                    id: "",
-                                    name: "",
-                                    from: "",
-                                    to: "",
-                                    directed: true,
-                                    from_cardinality: { min: 0, max: null },
-                                    to_cardinality: { min: 0, max: null },
-                                  },
-                        })
-                      }
-                    >
-                      <Plus size={16} />
-                      Add{" "}
-                      {kind === "entities"
-                        ? "entity"
-                        : kind === "properties"
-                          ? "property"
-                          : "relation"}
-                    </Button>
-                  </div>
-                  {rows.length === 0 ? (
-                    <Empty
-                      title={
-                        search
-                          ? "No matching definitions"
-                          : `No ${kind} defined`
-                      }
-                      description="Save definitions to the draft, validate, then publish an immutable version."
-                    />
-                  ) : (
-                    <div className="table-scroll">
-                      <table>
-                        <thead>
-                          <tr>
-                            <th>Name / ID</th>
-                            <th>Definition</th>
-                            <th>Description</th>
-                            <th />
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {rows
-                            .slice(current * 20, (current + 1) * 20)
-                            .map((v) => (
-                              <tr key={v.id}>
-                                <td>
-                                  <strong>{v.name}</strong>
-                                  <small className="block">{v.id}</small>
-                                </td>
-                                <td>
-                                  {"entity" in v
-                                    ? `${v.entity} · ${v.type}${v.multiple ? "[]" : ""}`
-                                    : "from" in v
-                                      ? `${v.from} ${v.directed ? "→" : "↔"} ${v.to}`
-                                      : v.parent
-                                        ? `Inherits ${v.parent}`
-                                        : "Root entity"}
-                                </td>
-                                <td>{v.description || "—"}</td>
-                                <td>
-                                  <div className="button-row">
-                                    <Button
-                                      disabled={dirty || busy}
-                                      onClick={() =>
-                                        setEditing({
-                                          kind,
-                                          item: v,
-                                          existing: true,
-                                        })
-                                      }
-                                    >
-                                      Edit
-                                    </Button>
-                                    <Button
-                                      disabled={dirty || busy}
-                                      className="danger"
-                                      onClick={() => {
-                                        setDeleteItem({ kind, id: v.id });
-                                        setDialog("delete-item");
-                                      }}
-                                    >
-                                      Remove
-                                    </Button>
-                                  </div>
-                                </td>
-                              </tr>
-                            ))}
-                        </tbody>
-                      </table>
-                    </div>
+              {tab === "Model" ? (
+                <OntologyModel
+                  key={state.id}
+                  ontologyID={state.id}
+                  refreshKey={usageRefreshKey}
+                  sources={sources.filter((s) =>
+                    state.usage.some(
+                      (u) => u.source_id === s.id && u.phase === "published",
+                    ),
                   )}
-                  {rows.length > 20 && (
-                    <div className="pagination">
+                  agents={agents}
+                  navigate={navigate}
+                  overlayOpen={!!editing || !!dialog}
+                  definition={draft}
+                  selected={selectedEntity}
+                  onSelect={setSelectedEntity}
+                  onAdd={addDefinition}
+                  onConnect={(from, to) =>
+                    setEditing({
+                      kind: "relations",
+                      item: { ...newOntologyItem("relations", from), to },
+                      existing: false,
+                    })
+                  }
+                  onEdit={editDefinition}
+                  onRemove={removeDefinition}
+                  disabled={dirty || busy}
+                />
+              ) : tab === "Settings" ? (
+                <div className="semantic-overview">
+                  <section>
+                    <div className="field-grid">
+                      <Field label={t("Ontology name")} required>
+                        <input
+                          disabled={busy}
+                          value={draft.name}
+                          maxLength={256}
+                          onChange={(e) =>
+                            setDraft({ ...draft, name: e.target.value })
+                          }
+                        />
+                      </Field>
+                      <Field label={t("Stable ontology ID")}>
+                        <input value={state.id} readOnly />
+                      </Field>
+                    </div>
+                    <Field label={t("Description")}>
+                      <textarea
+                        disabled={busy}
+                        rows={2}
+                        value={draft.description || ""}
+                        onChange={(e) =>
+                          setDraft({ ...draft, description: e.target.value })
+                        }
+                      />
+                    </Field>
+                    <div className="button-row">
                       <Button
-                        disabled={current === 0}
-                        onClick={() => setPage(current - 1)}
+                        primary
+                        disabled={!dirty || busy}
+                        onClick={() => action(() => save(draft))}
                       >
-                        Previous
+                        {t("Save draft")}
                       </Button>
-                      <span>{current + 1}</span>
                       <Button
-                        disabled={(current + 1) * 20 >= rows.length}
-                        onClick={() => setPage(current + 1)}
+                        disabled={!dirty || busy}
+                        onClick={() => setDraft(state.draft)}
                       >
-                        Next
+                        {t("Revert unsaved changes")}
                       </Button>
                     </div>
-                  )}
-                </>
+                  </section>
+                  <section>
+                    <h2>{t("Version adoption is explicit")}</h2>
+                    <p className="help">
+                      {t(
+                        "Publishing preserves older versions. Sources remain pinned until an administrator reviews the differences and publishes their mapping. Identity, uniqueness and cardinality are declarations, not verified data quality.",
+                      )}
+                    </p>
+                    <div className="button-row">
+                      <Button
+                        disabled={dirty || busy}
+                        onClick={() => {
+                          setDialog("import");
+                        }}
+                      >
+                        <Upload size={15} />
+                        {t("Import JSON")}
+                      </Button>
+                      <Button
+                        disabled={dirty || busy}
+                        onClick={() =>
+                          action(async () =>
+                            downloadJSON(
+                              await api(endpoint + "/export"),
+                              "ontology.json",
+                            ),
+                          )
+                        }
+                      >
+                        <Download size={15} />
+                        {t("Export draft")}
+                      </Button>
+                      <Button
+                        disabled={!state.changed || dirty || busy}
+                        onClick={() => setDialog("discard")}
+                      >
+                        {t("Discard draft")}
+                      </Button>
+                      <Button
+                        disabled={dirty || busy}
+                        onClick={() => setDialog("archive")}
+                      >
+                        {state.archived ? t("Unarchive") : t("Archive")}
+                      </Button>
+                      <Button
+                        className="danger"
+                        disabled={dirty || busy || state.usage.length > 0}
+                        onClick={() => setDialog("delete")}
+                      >
+                        {t("Delete ontology")}
+                      </Button>
+                    </div>
+                  </section>
+                </div>
+              ) : tab === "Definitions" ? (
+                <OntologyDefinitions
+                  definition={draft}
+                  disabled={dirty || busy}
+                  onAdd={addDefinition}
+                  onEdit={editDefinition}
+                  onRemove={removeDefinition}
+                />
               ) : tab === "Versions" ? (
                 <>
                   <p className="help">
-                    Versions are immutable. Referenced versions cannot be
-                    deleted. The latest version remains available as the discard
-                    target.
+                    {t(
+                      "Versions are immutable. Referenced versions cannot be deleted. The latest version remains available as the discard target.",
+                    )}
                   </p>
                   {state.versions.map((v) => (
                     <div className="ontology-version-row" key={v}>
-                      <strong>Version {v}</strong>
+                      <strong>
+                        {t("Version ")}
+                        {v}
+                      </strong>
                       <Button
                         onClick={() =>
                           action(async () => {
@@ -607,7 +534,7 @@ export function Ontologies({
                           })
                         }
                       >
-                        View definition
+                        {t("View definition")}
                       </Button>
                       <Button
                         onClick={() =>
@@ -619,7 +546,7 @@ export function Ontologies({
                           )
                         }
                       >
-                        Export
+                        {t("Export")}
                       </Button>
                       <Button
                         className="danger"
@@ -637,7 +564,7 @@ export function Ontologies({
                           setDialog("delete-version");
                         }}
                       >
-                        Delete version
+                        {t("Delete version")}
                       </Button>
                     </div>
                   ))}
@@ -656,7 +583,7 @@ export function Ontologies({
                           })
                         }
                       >
-                        Load older versions
+                        {t("Load older versions")}
                       </Button>
                     )}
                 </>
@@ -664,39 +591,55 @@ export function Ontologies({
                 <>
                   {state.usage.length === 0 ? (
                     <Empty
-                      title="No data source bindings"
-                      description="Open a data source's Semantics page to map this ontology."
+                      title={t("No data source bindings")}
+                      description={t(
+                        "Open a data source's Semantics page to map this ontology.",
+                      )}
                     />
                   ) : (
                     <div className="table-scroll">
                       <table>
                         <thead>
                           <tr>
-                            <th>Data source</th>
-                            <th>Phase</th>
-                            <th>Pinned version</th>
+                            <th>{t("Data source")}</th>
+                            <th>{t("Published version")}</th>
+                            <th>{t("Draft version")}</th>
                             <th />
                           </tr>
                         </thead>
                         <tbody>
-                          {state.usage.map((u) => (
-                            <tr key={u.source_id + u.phase}>
+                          {[
+                            ...new Set(state.usage.map((u) => u.source_id)),
+                          ].map((sourceID) => (
+                            <tr key={sourceID}>
                               <td>
-                                {sources.find((s) => s.id === u.source_id)
-                                  ?.name || u.source_id}
+                                {sources.find((s) => s.id === sourceID)?.name ||
+                                  sourceID}
                               </td>
-                              <td>{u.phase}</td>
-                              <td>{u.version}</td>
+                              <td>
+                                {state.usage.find(
+                                  (u) =>
+                                    u.source_id === sourceID &&
+                                    u.phase === "published",
+                                )?.version || t("Not adopted")}
+                              </td>
+                              <td>
+                                {state.usage.find(
+                                  (u) =>
+                                    u.source_id === sourceID &&
+                                    u.phase === "draft",
+                                )?.version || t("No binding")}
+                              </td>
                               <td>
                                 <Button
                                   disabled={dirty}
                                   onClick={() =>
                                     navigate(
-                                      `/sources/${u.source_id}/semantics`,
+                                      `/sources/${sourceID}/semantics?tab=Ontology+mapping`,
                                     )
                                   }
                                 >
-                                  Open semantics
+                                  {t("Open semantics")}
                                 </Button>
                               </td>
                             </tr>
@@ -718,10 +661,23 @@ export function Ontologies({
           existing={editing.existing}
           definition={draft}
           onClose={() => setEditing(null)}
-          onSave={async (item) => {
+          onReload={async () => {
+            await reload();
+            setEditing(null);
+          }}
+          onSave={async (item, keepOpen) => {
             const entries = draft[editing.kind];
             if (!editing.existing && entries.some((v) => v.id === item.id))
-              throw new Error("This definition ID already exists.");
+              throw new Error(t("This definition ID already exists."));
+            if (
+              editing.existing &&
+              entries.filter((v) => v.id === item.id).length !== 1
+            )
+              throw new Error(
+                t(
+                  "This definition is missing or its ID is duplicated. Reload the ontology before editing.",
+                ),
+              );
             const next = {
               ...draft,
               [editing.kind]: editing.existing
@@ -729,7 +685,8 @@ export function Ontologies({
                 : [...entries, item],
             };
             await save(next);
-            setEditing(null);
+            if (editing.kind === "entities") setSelectedEntity(item.id);
+            if (!keepOpen) setEditing(null);
           }}
         />
       )}

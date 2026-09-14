@@ -36,12 +36,12 @@
       "readonly=1 and allow_ddl=0 enforced in connection settings"
     ],
     "server_version": "24.8.14.39",
-    "checked_at": "2026-09-12T02:24:11.235819777Z"
+    "checked_at": "2026-09-14T09:22:15.351908634Z"
   },
   "query_cases": 4,
-  "verified_at": "2026-09-12T02:24:11.253189263Z",
+  "verified_at": "2026-09-14T09:22:15.454939534Z",
   "version": "24.8.14.39",
   "image_id": "sha256:b002e56ed5c16e224c312527f6fcba7e77216fec5d7a88a7828f59efc614feb5",
-  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
+  "implementation_sha256": "852303d31393378fd7d7699c09a4349b3aa454b0d01604673ff7f0cbffdf5c14",
   "environment": "OrbStack Linux arm64"
 }

@@ -69,6 +69,10 @@ export interface Capability {
   verified_versions: string[];
 }
 export interface Audit {
+  event_kind: string;
+  resource_id?: string;
+  revision?: string;
+  changed_fields?: string;
   template_id?: string;
   template_version?: string;
   request_id: string;
@@ -110,6 +114,8 @@ export interface Session {
   csrf: string;
 }
 export interface Settings {
+  commit: string;
+  metadata_storage: string;
   version: string;
   public_url: string;
   mcp_url: string;

@@ -1,0 +1,400 @@
+{
+  "id": "retail-example",
+  "definition": {
+    "format_version": 1,
+    "name": "Retail demo · Customers and orders",
+    "description": "A small fictional USD retail example. 客户、订单、订单明细与商品。 Includes composite identity, native decimal amounts, UTC reporting conventions, enums and explicit relationship cardinality. Constraints describe the intended model; ontology validation does not validate every business row.",
+    "entities": [
+      {
+        "id": "Customer",
+        "name": "Customer",
+        "aliases": [
+          "客户",
+          "购买方"
+        ],
+        "description": "A registered customer. A customer may exist before placing an order. Names are labels, not identity keys.",
+        "identity": [
+          "customer_id"
+        ]
+      },
+      {
+        "id": "Order",
+        "name": "Order",
+        "aliases": [
+          "订单"
+        ],
+        "description": "A submitted order belonging to exactly one customer, containing at least one order line. Shopping carts are outside this example.",
+        "identity": [
+          "order_id"
+        ]
+      },
+      {
+        "id": "OrderLine",
+        "name": "Order line",
+        "aliases": [
+          "订单明细",
+          "订单行"
+        ],
+        "description": "One product and quantity within an order. Identity is the combination of order ID and line number; line numbers are not globally unique.",
+        "identity": [
+          "line_order_id",
+          "line_number"
+        ]
+      },
+      {
+        "id": "Product",
+        "name": "Product",
+        "aliases": [
+          "商品",
+          "产品"
+        ],
+        "description": "A catalog product identified independently of price. Order lines retain their original purchase prices even if the catalog later changes.",
+        "identity": [
+          "product_id"
+        ]
+      }
+    ],
+    "properties": [
+      {
+        "id": "customer_id",
+        "entity": "Customer",
+        "name": "Customer ID",
+        "aliases": [
+          "客户编号"
+        ],
+        "type": "integer",
+        "required": true,
+        "multiple": false,
+        "description": "Stable customer identifier.",
+        "unique": true,
+        "minimum": "1"
+      },
+      {
+        "id": "customer_name",
+        "entity": "Customer",
+        "name": "Display name",
+        "aliases": [
+          "客户名称"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Human-readable name; two customers may share a name."
+      },
+      {
+        "id": "customer_segment",
+        "entity": "Customer",
+        "name": "Segment",
+        "aliases": [
+          "客户分层"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Business class used for aggregate reporting.",
+        "enums": [
+          "consumer",
+          "business"
+        ]
+      },
+      {
+        "id": "customer_region",
+        "entity": "Customer",
+        "name": "Region",
+        "aliases": [
+          "地区"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Reporting region assigned to the customer, not a shipping address.",
+        "enums": [
+          "APAC",
+          "EMEA",
+          "AMER"
+        ]
+      },
+      {
+        "id": "customer_joined_at",
+        "entity": "Customer",
+        "name": "Joined at",
+        "aliases": [
+          "注册时间"
+        ],
+        "type": "datetime",
+        "required": true,
+        "multiple": false,
+        "description": "When the customer registration was accepted.",
+        "time_definition": "UTC instant stored as PostgreSQL timestamptz; explicit reporting timezone required for calendar grouping."
+      },
+      {
+        "id": "order_id",
+        "entity": "Order",
+        "name": "Order ID",
+        "aliases": [
+          "订单编号"
+        ],
+        "type": "integer",
+        "required": true,
+        "multiple": false,
+        "description": "Stable submitted-order identifier.",
+        "unique": true,
+        "minimum": "1"
+      },
+      {
+        "id": "order_placed_at",
+        "entity": "Order",
+        "name": "Placed at",
+        "aliases": [
+          "下单时间"
+        ],
+        "type": "datetime",
+        "required": true,
+        "multiple": false,
+        "description": "When the submitted order was accepted, not the payment or shipment time.",
+        "time_definition": "UTC instant. Example reports use inclusive start and exclusive end: [start_at, end_at)."
+      },
+      {
+        "id": "order_status",
+        "entity": "Order",
+        "name": "Status",
+        "aliases": [
+          "订单状态"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Current order status. Only paid orders contribute to the example paid-order amount metric.",
+        "enums": [
+          "pending",
+          "paid",
+          "cancelled"
+        ]
+      },
+      {
+        "id": "order_currency",
+        "entity": "Order",
+        "name": "Currency",
+        "aliases": [
+          "币种"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "This dataset uses only USD; currencies must not be summed together without an explicit conversion policy.",
+        "enums": [
+          "USD"
+        ]
+      },
+      {
+        "id": "order_gross_amount",
+        "entity": "Order",
+        "name": "Gross order amount",
+        "aliases": [
+          "订单原始金额"
+        ],
+        "type": "decimal",
+        "required": true,
+        "multiple": false,
+        "description": "Sum of original line quantity times unit price. Excludes taxes, shipping, discounts and refunds in this simplified example. It is not cash received or recognized accounting revenue.",
+        "unit": "USD",
+        "minimum": "0"
+      },
+      {
+        "id": "line_order_id",
+        "entity": "OrderLine",
+        "name": "Order ID",
+        "aliases": [
+          "所属订单编号"
+        ],
+        "type": "integer",
+        "required": true,
+        "multiple": false,
+        "description": "First component of the order-line identity.",
+        "minimum": "1"
+      },
+      {
+        "id": "line_number",
+        "entity": "OrderLine",
+        "name": "Line number",
+        "aliases": [
+          "订单行号"
+        ],
+        "type": "integer",
+        "required": true,
+        "multiple": false,
+        "description": "Second identity component; starts at one within each order.",
+        "minimum": "1"
+      },
+      {
+        "id": "line_quantity",
+        "entity": "OrderLine",
+        "name": "Quantity",
+        "aliases": [
+          "购买数量"
+        ],
+        "type": "integer",
+        "required": true,
+        "multiple": false,
+        "description": "Whole units purchased on this line.",
+        "unit": "items",
+        "minimum": "1"
+      },
+      {
+        "id": "line_unit_price",
+        "entity": "OrderLine",
+        "name": "Unit price",
+        "aliases": [
+          "成交单价"
+        ],
+        "type": "decimal",
+        "required": true,
+        "multiple": false,
+        "description": "Price captured when the order was submitted. It is not a current catalog price.",
+        "unit": "USD/item",
+        "minimum": "0"
+      },
+      {
+        "id": "line_amount",
+        "entity": "OrderLine",
+        "name": "Line amount",
+        "aliases": [
+          "订单行金额"
+        ],
+        "type": "decimal",
+        "required": true,
+        "multiple": false,
+        "description": "Quantity multiplied by the captured unit price; computed by PostgreSQL in the fixture.",
+        "unit": "USD",
+        "minimum": "0"
+      },
+      {
+        "id": "product_id",
+        "entity": "Product",
+        "name": "Product ID",
+        "aliases": [
+          "商品编号"
+        ],
+        "type": "integer",
+        "required": true,
+        "multiple": false,
+        "description": "Stable product identifier.",
+        "unique": true,
+        "minimum": "1"
+      },
+      {
+        "id": "product_sku",
+        "entity": "Product",
+        "name": "SKU",
+        "aliases": [
+          "商品编码"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Unique stock-keeping code in this example.",
+        "unique": true
+      },
+      {
+        "id": "product_name",
+        "entity": "Product",
+        "name": "Product name",
+        "aliases": [
+          "商品名称"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Human-readable catalog name; historical order lines resolve the current catalog label."
+      },
+      {
+        "id": "product_category",
+        "entity": "Product",
+        "name": "Category",
+        "aliases": [
+          "商品分类"
+        ],
+        "type": "string",
+        "required": true,
+        "multiple": false,
+        "description": "Single reporting category.",
+        "enums": [
+          "stationery",
+          "lighting",
+          "drinkware"
+        ]
+      },
+      {
+        "id": "product_active",
+        "entity": "Product",
+        "name": "Active",
+        "aliases": [
+          "在售状态"
+        ],
+        "type": "boolean",
+        "required": true,
+        "multiple": false,
+        "description": "Whether this product is currently offered. Historical order lines may reference inactive products."
+      }
+    ],
+    "relations": [
+      {
+        "id": "places",
+        "name": "places",
+        "aliases": [
+          "下单"
+        ],
+        "description": "One customer can place zero or more orders; each order belongs to exactly one customer.",
+        "from": "Customer",
+        "to": "Order",
+        "directed": true,
+        "from_cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "to_cardinality": {
+          "min": 0,
+          "max": null
+        }
+      },
+      {
+        "id": "contains",
+        "name": "contains",
+        "aliases": [
+          "包含明细"
+        ],
+        "description": "Each submitted order contains one or more lines; each line belongs to exactly one order.",
+        "from": "Order",
+        "to": "OrderLine",
+        "directed": true,
+        "from_cardinality": {
+          "min": 1,
+          "max": 1
+        },
+        "to_cardinality": {
+          "min": 1,
+          "max": null
+        }
+      },
+      {
+        "id": "refers_to",
+        "name": "refers to",
+        "aliases": [
+          "对应商品"
+        ],
+        "description": "Each line refers to exactly one product. A product can appear in zero or more order lines.",
+        "from": "OrderLine",
+        "to": "Product",
+        "directed": true,
+        "from_cardinality": {
+          "min": 0,
+          "max": null
+        },
+        "to_cardinality": {
+          "min": 1,
+          "max": 1
+        }
+      }
+    ]
+  }
+}

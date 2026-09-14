@@ -1,17 +1,23 @@
-# MCP DB Hub
+# ContextGate
 
-![MCP DB Hub — Your databases. Ready for agents.](docs/images/banner.svg)
+![ContextGate — Semantic Data Gateway for AI Agents](docs/images/banner.svg)
 
-[![Release](https://img.shields.io/github/v/release/SamuelSupe/mcpdbhub?color=438c91)](https://github.com/SamuelSupe/mcpdbhub/releases/latest)
-[![CI](https://github.com/SamuelSupe/mcpdbhub/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelSupe/mcpdbhub/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/SamuelSupe/contextGate?color=438c91)](https://github.com/SamuelSupe/contextGate/releases/latest)
+[![CI](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Databases](https://img.shields.io/badge/Databases-18_products-438c91)](docs/support-matrix.md)
 
-**Native database queries for agents, with explicit access to each data source.**
+**Semantic Data Gateway for AI Agents**
 
-A self-hosted, read-only MCP service written in Go. Configure connections and Agent grants through the embedded UI. Agents query in native database languages, with shared authorization, read-only protection, execution limits and auditing. No Node.js runtime is required.
+Understand your business. Query data safely.
 
-[简体中文](README.zh-CN.md) · [Download v0.3.0](https://github.com/SamuelSupe/mcpdbhub/releases/tag/v0.3.0) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+ContextGate helps Agents understand business concepts and access real data through controlled, verified queries. Define business terms, metrics and shared ontologies, map them to each data source, then publish tested native query templates. Authorization, read-only enforcement, query limits and audit logs govern execution. Written in Go with an embedded administration UI; no Node.js runtime is required. Agents connect through MCP over HTTP or stdio.
+
+**Context** is the business meaning: terms, metrics, ontologies, mappings and templates. **Gate** is the access boundary: grants, query protection, validation and auditing. Results keep their native structure; ContextGate does not store knowledge-graph instances or provide a reasoning engine.
+
+Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contextGate`; previous commits and releases remain available. The primary executable is `contextgate`, with `mcpdbhub` retained as an alias. Existing `MCPDBHUB_*` settings and telemetry attribute names remain supported. [Brand and compatibility](docs/brand/README.md).
+
+[简体中文](README.zh-CN.md) · [Download v0.4.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -21,7 +27,9 @@ A self-hosted, read-only MCP service written in Go. Configure connections and Ag
 
 | Capability | Behavior |
 |---|---|
+| Shared business ontologies | Reusable entities, properties and relationships, with explicit per-source mappings and pinned versions |
 | Semantic catalogs and templates | Per-source business definitions, verified native templates and optional templates-only Agent access |
+| Configuration MCP | Let trusted Agents prepare sources, semantic drafts, templates and ontologies; administrators review and publish |
 | Native reads | SQL, MongoDB, Redis, Search DSL, Cypher, CQL, InfluxQL and Flux |
 | Independent Agent access | Source grants, precise expiration, pause, rotation, revocation and OAuth |
 | Enforced read-only execution | Parsers and engine classification, read-only transactions/files, safe commands and fixed query APIs |
@@ -30,44 +38,78 @@ A self-hosted, read-only MCP service written in Go. Configure connections and Ag
 | Audit log export | Optional OTLP Logs over HTTP/protobuf or gRPC, encrypted headers, durable progress and delivery status |
 | Built-in administration | Embedded UI, encrypted credentials, schema preview, audit trail and local password recovery |
 
+## From a business question to a verified query
+
+1. **Connect** a database with its own read-only account and inspect connection evidence.
+2. **Describe** its business vocabulary, metrics and fields; optionally map a shared ontology to the source.
+3. **Verify and publish** native query templates with real example parameters.
+4. **Grant and connect** an Agent, then discover published concepts and execute templates through MCP.
+5. **Observe** query and configuration activity in the audit log, with optional OTLP Logs export.
+
+A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a trusted Agent prepare the first three steps. Create its dedicated, short-lived token in **Settings → Configuration MCP**. Source edits take effect immediately; semantic/ontology publication and query grants remain administrator actions.
+
+<details>
+<summary><strong>Explore the UI: ontologies, semantics and Agent grants</strong></summary>
+
+![Graphical ontology editor](docs/screenshots/ontology.png)
+
+![Semantic catalog and verified templates](docs/screenshots/semantics.png)
+
+![Per-Agent data source grants](docs/screenshots/agents.png)
+
+</details>
+
+## Operate and recover
+
+**0.4.0** includes management change records, encrypted semantic publication history with restore-to-draft, optional scheduled health checks, template regression cases, and PostgreSQL diagnostics and backup recovery verification. Start with **Health**, **Semantics → Publication history**, and **Settings → Deployment diagnostics**. See the [operations guide](docs/operations.md) for their scope and recovery steps.
+
 ## Download
 
-The release ships Linux **arm64 / amd64** archives with the program, private C++ runtime libraries, bilingual instructions, dependency licenses and `SHA256SUMS`. They require glibc ≥ 2.36. Extract and run `./mcpdbhub serve`. Follow the [installation guide](docs/install.md) for checksums, Agent setup, backups and upgrades.
+[**ContextGate 0.4.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
 
 ## Run
 
 ```sh
+git clone https://github.com/SamuelSupe/contextGate.git
+cd contextGate
 mkdir -p databases
+umask 077
+printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
 docker compose up --build -d
 docker compose logs hub
 ```
 
 Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to create the administrator password. Add a data source, test its connection and protection evidence, then create an agent and select its data sources. Agent tokens are displayed once.
 
-The Compose configuration publishes only a loopback port, runs as UID 10001, mounts database files read-only, and persists configuration in `hub-data`. Database files must be readable by UID 10001. Preserve the data volume when upgrading.
+Compose starts PostgreSQL on its private container network and waits for it to become healthy. Only ContextGate HTTP port is published to loopback. ContextGate runs as UID 10001 and mounts query database files read-only. Metadata persists in `hub-postgres`; the independent encryption key persists in `hub-data`. Preserve both volumes and the existing `.env` when restarting or upgrading; generate `.env` only for a new installation.
+
+**Storage change:** current source uses PostgreSQL exclusively for internal configuration, sessions, grants, catalogs and audit logs. It does not import old SQLite metadata. Initialize a fresh administrator and configure sources again. SQLite remains a read-only query data source. Versions through 0.3.0 use SQLite metadata. Read the [0.4.0 upgrade notes](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier) before switching.
 
 To build locally, install Go 1.26, a C/C++ toolchain, and Node.js 24, then run `make build`. CGO is required by SQLite and DuckDB. Build natively for Linux arm64 or amd64; `CGO_ENABLED=0` is unsupported.
 
 ```sh
-./bin/mcpdbhub serve --data-dir ./data --database-dir ./databases
+export MCPDBHUB_DATABASE_URL='postgres://mcpdbhub:REPLACE_ME@127.0.0.1:5432/mcpdbhub?sslmode=verify-full'
+./bin/contextgate serve --data-dir ./data --database-dir ./databases
 ```
 
-For a corporate build proxy, pass its CA with `docker build --secret id=build_ca,src=/path/to/ca.pem -t mcpdbhub:local .`. It is used only while downloading dependencies and is excluded from the runtime image. Database TLS certificates are configured separately in the UI.
+Create the PostgreSQL database beforehand and use a dedicated owner role with schema/table creation and read/write permissions. URL-encode special characters in connection credentials. For a local isolated database without TLS use `sslmode=disable`; remote deployments should verify the server certificate. `--database-url` is also accepted, but an environment variable avoids putting the connection secret in command arguments. `--data-dir` now holds the encryption key, not metadata.
+
+For a corporate build proxy, pass its CA with `docker build --secret id=build_ca,src=/path/to/ca.pem -t contextgate:local .`. It is used only while downloading dependencies and is excluded from the runtime image. Database TLS certificates are configured separately in the UI.
 
 ## Connect an agent
 
-![Native query preview with real sample data](docs/screenshots/query-preview.png)
+![Verified template query with real sample data](docs/screenshots/query-preview.png)
 
 Streamable HTTP and the stdio bridge share authorization, execution limits, and auditing. Fourteen tools expose four discovery operations, seven native query families, and three semantic catalog/template operations.
 
 ```json
-{"mcpServers":{"mcpdbhub":{"url":"http://127.0.0.1:8080/mcp","headers":{"Authorization":"Bearer <AGENT_TOKEN>"}}}}
+{"mcpServers":{"contextgate":{"url":"http://127.0.0.1:8080/mcp","headers":{"Authorization":"Bearer <AGENT_TOKEN>"}}}}
 ```
 
 For a stdio client:
 
 ```json
-{"mcpServers":{"mcpdbhub":{"command":"/absolute/path/mcpdbhub","args":["stdio","--url","http://127.0.0.1:8080/mcp"],"env":{"MCPDBHUB_TOKEN":"<AGENT_TOKEN>"}}}}
+{"mcpServers":{"contextgate":{"command":"/absolute/path/contextgate","args":["stdio","--url","http://127.0.0.1:8080/mcp"],"env":{"MCPDBHUB_TOKEN":"<AGENT_TOKEN>"}}}}
 ```
 
 The outer configuration format varies by client. Remote bridge URLs require HTTPS. The bridge writes only MCP protocol messages to stdout.
@@ -100,7 +142,12 @@ Execution combines statement parsing or engine classification, read-only transac
 
 Connectivity and privilege evidence are shown separately. “Account permissions unverified” means database-side grants require independent confirmation. InfluxDB 3 Core is explicitly labeled “query API isolation”: its admin token retains database administration privileges; only the adapter's fixed query APIs are available to agents.
 
-Configuration is stored in SQLite. Source credentials use AES-256-GCM; the master key is held in a separate `master.key` file or the `MCPDBHUB_MASTER_KEY` environment variable (standard Base64 of 32 bytes). Administrator passwords use Argon2id; agent and session tokens are hashed. Admin sessions use HttpOnly/SameSite cookies and CSRF checks. Audit records expire after 30 days and exclude results, plaintext parameters and full query text. Grant changes cancel affected work.
+Configuration is stored in PostgreSQL. Source credentials use AES-256-GCM; the master key is held in a separate `master.key` file or the `MCPDBHUB_MASTER_KEY` environment variable (standard Base64 of 32 bytes). Administrator passwords use Argon2id; agent and session tokens are hashed. Admin sessions use HttpOnly/SameSite cookies and CSRF checks. Audit records expire after 30 days and exclude results, plaintext parameters and full query text. Grant changes cancel affected work.
+
+
+## Configuration MCP
+
+Use **Settings → Configuration MCP** to connect a trusted configuration Agent. A dedicated, expiring token exposes tools for all data source connections, semantic drafts, template trials and shared ontologies/mappings. Source edits are immediate; administrators publish drafts and grant query access. See the [configuration guide](docs/configuration-mcp.md).
 
 ## Semantic catalogs and query templates
 
@@ -112,13 +159,15 @@ Version 0.2.0 adds independent business catalogs and verified native query templ
 
 ## Shared business ontologies
 
+![Shared business ontology with source and template mappings](docs/screenshots/ontology.png)
+
 Version 0.3.0 adds **Ontologies** and **Semantics → Ontology mapping**. Define Customer, Order, their properties and relationships once; map PostgreSQL tables and MongoDB documents independently to an explicitly selected, immutable ontology version. Agents discover only concepts mapped to their authorized source and receive native template results with `ontology_context`.
 
 Mappings publish atomically with the source catalog. Definition-only upgrades preserve template trial evidence and running queries; existing sources never follow the latest ontology automatically. Inheritance, identity and cardinality are declarative, without fact inference, federated queries or result conversion. See the [ontology guide](docs/ontologies.md), [PostgreSQL/MongoDB examples](examples/ontologies/) and [real verification record](docs/verification/ontology.json).
 
 ## OTLP audit logs
 
-Since v0.1.1, **Settings → Audit log export** supports OpenTelemetry Collector and compatible OTLP Logs receivers. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the existing sanitized SQLite audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
+Since v0.1.1, **Settings → Audit log export** supports OpenTelemetry Collector and compatible OTLP Logs receivers. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the persisted sanitized PostgreSQL audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
 
 ## OAuth
 
@@ -134,21 +183,26 @@ Clients can be pre-registered through the UI, use bounded dynamic registration a
 |---|---|---|
 | `MCPDBHUB_LISTEN` | `127.0.0.1:8080` | Listen address; `0.0.0.0:8080` inside the image |
 | `MCPDBHUB_PUBLIC_URL` | `http://127.0.0.1:8080` | Canonical public origin; remote origins require HTTPS |
-| `MCPDBHUB_DATA_DIR` | `./data` | Configuration and audit storage |
+| `MCPDBHUB_DATABASE_URL` | Required | PostgreSQL metadata connection; used by serve and reset-password |
+| `MCPDBHUB_DATA_DIR` | `./data` | Local encryption key directory |
 | `MCPDBHUB_DATABASE_DIR` | `databases` inside data directory | Allowed SQLite/DuckDB directory |
 | `MCPDBHUB_MASTER_KEY` | Separate key file | Optional externally supplied master key |
 
 Use an HTTPS reverse proxy for remote access, preserving the public Host and Authorization headers. Set the exact public URL. The admin UI and OAuth server share an origin. Health checks use `GET /healthz`.
 
-For a consistent backup, stop the service and copy both the configuration database and master key, keeping the key separately protected. Restores require a matching key; a missing key prevents startup. This release is single-instance and single-administrator. It does not implement multi-tenant RBAC, federated queries, shared-SQLite clustering, or automatic database privilege changes.
+For a consistent backup, stop ContextGate and use `pg_dump` to back up its PostgreSQL database. Back up the matching `master.key` or external master key separately. Restore the database with `pg_restore` and supply the same key; a missing or mismatched key prevents startup. ContextGate remains single-instance and single-administrator. PostgreSQL storage does not introduce multi-instance coordination, multi-tenant RBAC, federation or automatic database privilege changes.
 
 See [validation](docs/validation.md) for reproducible OrbStack integration tests and native Chrome UI evidence. Fixture setup writes only to dedicated disposable databases. The service's connection probe never attempts a write.
 
 ## Administrator workflows
 
+Use **Agent setup** from a data source to review connection evidence, executable templates, grants and real client query activity. Completed setup becomes a **Query workspace** with the selected Agent visible before previewing. Ontology cards link directly to **Queries and sources**, with published mapping and executable template counts. Save reusable business questions and review paired-run metrics in persistent, encrypted evaluation history. See the [workflow and evaluation guide](docs/agent-workflows.md).
+
 ![Per-Agent data source grants](docs/screenshots/agents.png)
 
-The administrator UI is in English. In **Data sources**, select an explicit authentication method. A blank credential keeps the value stored for that method; **Clear the stored credential** removes it. Switching methods removes credentials for the previous method. Connection status shows the last completed check and its timestamp; it is not a live health monitor. A saved configuration whose connection check fails stays open with the failure reason.
+The administrator UI defaults to English. In **Settings → Language**, choose **English** or **简体中文**; the change takes effect immediately and is remembered in this browser. Business definitions, query text, parameters and results retain their original content.
+
+In **Data sources**, select an explicit authentication method. A blank credential keeps the value stored for that method; **Clear the stored credential** removes it. Switching methods removes credentials for the previous method. Connection status shows the last completed check and its timestamp; it is not a live health monitor. A saved configuration whose connection check fails stays open with the failure reason.
 
 In **Agents**, **Pause / Resume** temporarily suspends access while retaining the token. **Revoke** permanently retires the credential and cancels in-flight queries. **Rotate token / Issue new token** replaces it while retaining Agent identity, grants and audit history. Save the new token and update your client; the previous token never becomes valid again. On the first upgrade, previously disabled Agents (shown as revoked in older versions) are permanently revoked. Active credentials are preserved.
 
@@ -168,7 +222,7 @@ InfluxDB discovery and the query preview use the configured 1.x, 2.x or 3 Core v
 
 ### Recover a forgotten administrator password
 
-Recovery requires local server access, the existing configuration directory and its matching master key. Stop the service first. The command reads the new password from standard input (12–256 bytes), never from a command argument. It preserves data sources, Agent credentials and audit history, and invalidates every administrator session.
+Recovery requires local server access, the same `MCPDBHUB_DATABASE_URL`, the existing key directory and its matching master key. Stop the service first. The command reads the new password from standard input (12–256 bytes), never from a command argument. It preserves data sources, Agent credentials and audit history, and invalidates every administrator session.
 
 For Docker Compose, run these commands in Bash or Zsh. The password prompt does not echo input or place the password in shell history:
 
@@ -180,10 +234,10 @@ unset hub_new_password
 docker compose up -d hub
 ```
 
-For a standalone binary, pipe the password to `mcpdbhub reset-password --data-dir /path/to/existing-data --password-stdin`, then restart the service. If you configured `MCPDBHUB_MASTER_KEY`, supply the same environment configuration to the recovery command. Do not delete the configuration database or master key to recover a password.
+Recovery must use the same `MCPDBHUB_DATABASE_URL` as the running service, in addition to the existing master key. For a standalone binary, pipe the password to `contextgate reset-password --data-dir /path/to/existing-data --password-stdin`, then restart the service. If you configured `MCPDBHUB_MASTER_KEY`, supply the same environment configuration to the recovery command. Do not delete the configuration database or master key to recover a password.
 
 ## Get involved
 
-[Report an issue](https://github.com/SamuelSupe/mcpdbhub/issues/new/choose) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
+[Report an issue](https://github.com/SamuelSupe/contextGate/issues/new/choose) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
 A project license has not yet been selected. Third-party licenses and notices are included with the source and distributions.

@@ -2,7 +2,7 @@ package engine
 
 import (
 	"context"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 )
 
 // Reserve all three limits together. A request waiting for its Agent or source

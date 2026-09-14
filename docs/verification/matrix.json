@@ -1,12 +1,12 @@
 {
   "result": "passed",
   "environment": "OrbStack Linux arm64",
-  "verified_at": "2026-09-12T02:30:29.644955+00:00",
+  "verified_at": "2026-09-14T09:25:36.566031+00:00",
   "products": 18,
   "version_cases": 20,
-  "query_cases": 132,
-  "denied_cases": 89,
-  "implementation_sha256": "6b4e7c5427f4a15480244011e4520d8c35a9e1051756548f153f39417ec7f131",
+  "query_cases": 135,
+  "denied_cases": 104,
+  "implementation_sha256": "852303d31393378fd7d7699c09a4349b3aa454b0d01604673ff7f0cbffdf5c14",
   "reports": [
     "postgres.json",
     "mysql.json",

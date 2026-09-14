@@ -4,10 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"github.com/SamuelSupe/mcpdbhub/internal/engine"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/secure"
-	"github.com/SamuelSupe/mcpdbhub/internal/store"
+	"github.com/SamuelSupe/contextGate/internal/engine"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
+	"github.com/SamuelSupe/contextGate/internal/store"
 	"github.com/ory/fosite"
 	"github.com/ory/fosite/compose"
 	"net/http"
@@ -165,6 +165,11 @@ func (s *Server) Consent(w http.ResponseWriter, r *http.Request) {
 	}
 	req := r.Clone(r.Context())
 	req.Method = http.MethodGet
+	// Authorization is reconstructed from the stored form, never the submitted
+	// consent body, which Fosite would otherwise try to parse again under the lock.
+	req.Body = http.NoBody
+	req.ContentLength = 0
+	req.Header.Del("Content-Type")
 	u := *r.URL
 	u.Path = "/oauth/authorize"
 	u.RawQuery = form.Encode()
@@ -240,13 +245,27 @@ type redirectRecorder struct{ header http.Header }
 func (r *redirectRecorder) Header() http.Header         { return r.header }
 func (r *redirectRecorder) Write(b []byte) (int, error) { return len(b), nil }
 func (r *redirectRecorder) WriteHeader(int)             {}
+
+func parseOAuthForm(r *http.Request) error {
+	if err := r.ParseForm(); err != nil {
+		return err
+	}
+	// Fosite reparses multipart forms too; finish network reads before tokenMu.
+	if err := r.ParseMultipartForm(1 << 20); err != http.ErrNotMultipart {
+		return err
+	}
+	return nil
+}
+
 func (s *Server) Token(w http.ResponseWriter, r *http.Request) {
-	s.tokenMu.Lock()
-	defer s.tokenMu.Unlock()
-	if e := r.ParseForm(); e != nil || r.PostForm.Get("resource") != s.Resource {
+	if e := parseOAuthForm(r); e != nil || r.PostForm.Get("resource") != s.Resource {
 		write(w, 400, map[string]any{"error": "invalid_target"})
 		return
 	}
+	// Network reads must finish before serializing token mutations; an
+	// unauthenticated slow upload must not delay other clients or revocations.
+	s.tokenMu.Lock()
+	defer s.tokenMu.Unlock()
 	id := r.PostForm.Get("client_id")
 	basicID, _, basic := r.BasicAuth()
 	if basic {
@@ -296,9 +315,12 @@ func (s *Server) Principal(ctx context.Context, token string) (model.Principal, 
 	return model.Principal{AgentID: a.ID}, nil
 }
 func (s *Server) Revoke(w http.ResponseWriter, r *http.Request) {
+	if err := parseOAuthForm(r); err != nil {
+		write(w, http.StatusBadRequest, map[string]any{"error": "invalid_request"})
+		return
+	}
 	s.tokenMu.Lock()
 	defer s.tokenMu.Unlock()
-	r.ParseForm()
 	token := r.PostForm.Get("token")
 	p, _ := s.Principal(r.Context(), token)
 	if p.AgentID == "" {

@@ -7,39 +7,14 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
-	"github.com/SamuelSupe/mcpdbhub/internal/ontology"
+	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/ontology"
 )
-
-func (s *Store) migrateOntologies() error {
-	if _, err := s.Get("ontologies_v1"); err == nil {
-		return nil
-	}
-	tx, err := s.DB.Begin()
-	if err != nil {
-		return err
-	}
-	defer tx.Rollback()
-	for _, q := range []string{
-		`CREATE TABLE ontologies(id TEXT PRIMARY KEY,revision INTEGER NOT NULL,value TEXT NOT NULL)`,
-		`CREATE TABLE ontology_versions(ontology_id TEXT NOT NULL REFERENCES ontologies(id) ON DELETE CASCADE,version INTEGER NOT NULL,value TEXT NOT NULL,PRIMARY KEY(ontology_id,version))`,
-		`CREATE TABLE ontology_bindings(source_id TEXT NOT NULL REFERENCES sources(id) ON DELETE CASCADE,phase TEXT NOT NULL,ontology_id TEXT NOT NULL,version INTEGER NOT NULL,PRIMARY KEY(source_id,phase))`,
-		`CREATE INDEX ontology_binding_reference ON ontology_bindings(ontology_id,version)`,
-		`ALTER TABLE audit ADD COLUMN ontology_id TEXT NOT NULL DEFAULT ''`,
-		`ALTER TABLE audit ADD COLUMN ontology_version TEXT NOT NULL DEFAULT ''`,
-		`INSERT INTO kv(key,value) VALUES('ontologies_v1','1')`,
-	} {
-		if _, err = tx.Exec(q); err != nil {
-			return err
-		}
-	}
-	return tx.Commit()
-}
 
 func (s *Store) Ontology(id string) (ontology.State, error) {
 	var out ontology.State
 	var sealed string
-	err := s.DB.QueryRow("SELECT value FROM ontologies WHERE id=?", id).Scan(&sealed)
+	err := s.DB.QueryRow("SELECT value FROM ontologies WHERE id=$1", id).Scan(&sealed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return out, model.Fail("not_found", "Ontology not found")
 	}
@@ -83,7 +58,7 @@ func (s *Store) Ontologies() ([]ontology.State, error) {
 func (s *Store) OntologyVersion(id string, version int64) (ontology.Version, error) {
 	var out ontology.Version
 	var sealed string
-	err := s.DB.QueryRow("SELECT value FROM ontology_versions WHERE ontology_id=? AND version=?", id, version).Scan(&sealed)
+	err := s.DB.QueryRow("SELECT value FROM ontology_versions WHERE ontology_id=$1 AND version=$2", id, version).Scan(&sealed)
 	if errors.Is(err, sql.ErrNoRows) {
 		return out, model.Fail("not_found", "Ontology version not found; repair the draft binding")
 	}
@@ -103,7 +78,7 @@ func (s *Store) OntologyVersions(id string, before int64) ([]string, error) {
 	if before <= 0 {
 		before = 1<<63 - 1
 	}
-	rows, err := s.DB.Query("SELECT version FROM ontology_versions WHERE ontology_id=? AND version<? ORDER BY version DESC LIMIT 100", id, before)
+	rows, err := s.DB.Query("SELECT version FROM ontology_versions WHERE ontology_id=$1 AND version<$2 ORDER BY version DESC LIMIT 100", id, before)
 	if err != nil {
 		return nil, err
 	}
@@ -148,9 +123,9 @@ func (s *Store) WriteOntology(st ontology.State, expected int64, publish bool) e
 		if count >= 200 {
 			return model.Fail("limit_exceeded", "At most 200 ontologies are supported")
 		}
-		result, err = tx.Exec("INSERT OR IGNORE INTO ontologies(id,revision,value) VALUES(?,?,?)", st.ID, st.Revision, sealed)
+		result, err = tx.Exec("INSERT INTO ontologies(id,revision,value) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING", st.ID, st.Revision, sealed)
 	} else {
-		result, err = tx.Exec("UPDATE ontologies SET revision=?,value=? WHERE id=? AND revision=?", st.Revision, sealed, st.ID, expected)
+		result, err = tx.Exec("UPDATE ontologies SET revision=$1,value=$2 WHERE id=$3 AND revision=$4", st.Revision, sealed, st.ID, expected)
 	}
 	if err != nil {
 		return err
@@ -171,7 +146,7 @@ func (s *Store) WriteOntology(st ontology.State, expected int64, publish bool) e
 		if err != nil {
 			return err
 		}
-		_, err = tx.Exec("INSERT INTO ontology_versions(ontology_id,version,value) VALUES(?,?,?)", st.ID, v.Version, s.Vault.Seal(b, "ontology-version:"+st.ID+":"+strconv.FormatInt(v.Version, 10)))
+		_, err = tx.Exec("INSERT INTO ontology_versions(ontology_id,version,value) VALUES($1,$2,$3)", st.ID, v.Version, s.Vault.Seal(b, "ontology-version:"+st.ID+":"+strconv.FormatInt(v.Version, 10)))
 		if err != nil {
 			return err
 		}
@@ -186,7 +161,7 @@ type OntologyUsage struct {
 }
 
 func (s *Store) OntologyUsage(id string) ([]OntologyUsage, error) {
-	rows, err := s.DB.Query("SELECT source_id,phase,version FROM ontology_bindings WHERE ontology_id=? ORDER BY source_id,phase", id)
+	rows, err := s.DB.Query("SELECT source_id,phase,version FROM ontology_bindings WHERE ontology_id=$1 UNION ALL SELECT source_id,'history:' || version::text,ontology_version FROM semantics_versions WHERE ontology_id=$1 ORDER BY source_id,phase", id)
 	if err != nil {
 		return nil, err
 	}
@@ -211,25 +186,25 @@ func (s *Store) DeleteOntologyVersion(id string, version, revision int64) error 
 		return model.Fail("conflict", "Ontology changed; reload before deleting")
 	}
 	var count int
-	q := "SELECT count(*) FROM ontology_bindings WHERE ontology_id=?"
+	q := "SELECT count(*) FROM (SELECT ontology_id,version FROM ontology_bindings UNION ALL SELECT ontology_id,ontology_version AS version FROM semantics_versions) AS refs WHERE ontology_id=$1"
 	args := []any{id}
 	if version > 0 {
-		q += " AND version=?"
+		q += " AND version=$2"
 		args = append(args, version)
 	}
 	if err = s.DB.QueryRow(q, args...).Scan(&count); err != nil {
 		return err
 	}
 	if count > 0 {
-		return model.Fail("conflict", "Referenced ontologies and versions cannot be deleted; remove draft and published bindings first")
+		return model.Fail("conflict", "Referenced ontologies and versions cannot be deleted; remove its source bindings, including retained semantic history, first")
 	}
 	if version == 0 {
-		_, err = s.DB.Exec("DELETE FROM ontologies WHERE id=?", id)
+		_, err = s.DB.Exec("DELETE FROM ontologies WHERE id=$1", id)
 		return err
 	}
 	if version == st.LatestVersion {
 		return model.Fail("conflict", "The latest version is the draft discard target; archive or delete an unreferenced ontology instead")
 	}
-	_, err = s.DB.Exec("DELETE FROM ontology_versions WHERE ontology_id=? AND version=?", id, version)
+	_, err = s.DB.Exec("DELETE FROM ontology_versions WHERE ontology_id=$1 AND version=$2", id, version)
 	return err
 }

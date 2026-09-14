@@ -2,7 +2,7 @@
 
 [English](architecture.md)
 
-单进程 Go 服务内嵌 React 静态资源。配置和审计保存在服务自己的 SQLite 中。用户数据库由管理员配置的账号访问；Agent 不获得连接凭证。
+单进程 Go 服务内嵌 React 静态资源。配置和审计保存在服务自己的 PostgreSQL 中。用户数据库由管理员配置的账号访问；Agent 不获得连接凭证。
 
 ```mermaid
 flowchart LR
@@ -14,7 +14,7 @@ flowchart LR
   MCP --> Execute
   Execute --> Adapters[7 个查询语言族适配器]
   Adapters --> DB[(用户数据库)]
-  Execute --> Store[(配置与审计 SQLite)]
+  Execute --> Store[(配置与审计 PostgreSQL)]
 ```
 
 ## 目录
@@ -77,7 +77,7 @@ Cypher 参数递归保留整数、小数、列表及 map 的原生类型，超�
 
 Agent Token 只保存 SHA-256；管理员密码为 Argon2id。数据库凭证和 OAuth 记录分别用带上下文 AAD 的 AES-256-GCM 加密。主密钥与配置数据库分开保存。审计只存身份、数据源、操作、带密钥查询指纹、耗时、数量和错误分类，保留 30 天。
 
-OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKCE S256、resource audience、管理员选择数据源、15 分钟 access token、30 天 refresh grant、刷新轮换和重放撤销。每次同意生成可在 Agent 页面撤销/缩小的数据源授权。token/revoke/consent 处理串行化关键状态变更，所有状态保存在 SQLite，重启恢复。
+OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKCE S256、resource audience、管理员选择数据源、15 分钟 access token、30 天 refresh grant、刷新轮换和重放撤销。每次同意生成可在 Agent 页面撤销/缩小的数据源授权。token/revoke/consent 处理串行化关键状态变更，所有状态保存在 PostgreSQL，重启恢复。
 
 公开元数据：`/.well-known/oauth-protected-resource`（也提供 `/mcp` 后缀）、`/.well-known/oauth-authorization-server`。预注册：管理页面；动态注册：`/oauth/register`；CIMD：公开 HTTPS 文档，client_id 必须等于文档 URL。最多 1,000 客户端。文档最多 64 KiB、5 秒、不跟随重定向，DNS 解析后的地址全部通过公网检查，并直接拨号该解析地址防止重绑定。回调使用精确匹配，无通配符。
 
@@ -85,11 +85,11 @@ OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKC
 
 ## OTLP 审计上报
 
-可选的 `internal/auditexport` 工作协程读取已提交审计，将配置、确认游标和发送状态加密保存在同一 SQLite KV 记录中，不在查询请求中执行网络上报。管理接口 `/api/settings/audit-export` 和 `/api/settings/audit-export/test` 复用管理员会话及 CSRF 校验；版本号阻止旧配置覆盖，变更取消正在发送的请求。详见[配置及发送语义](audit-export.zh-CN.md)。
+可选的 `internal/auditexport` 工作协程读取已提交审计，将配置、确认游标和发送状态加密保存在同一 PostgreSQL KV 记录中，不在查询请求中执行网络上报。管理接口 `/api/settings/audit-export` 和 `/api/settings/audit-export/test` 复用管理员会话及 CSRF 校验；版本号阻止旧配置覆盖，变更取消正在发送的请求。详见[配置及发送语义](audit-export.zh-CN.md)。
 
 ## 语义发布
 
-每个数据源独立保存加密草稿与发布条目，SQLite 事务与草稿修订控制原子发布和编辑冲突。模板仅绑定声明的 JSON Pointer 值位置，并复用现有执行引擎。试跑及发布证据绑定执行定义、连接、凭证和实际数据库版本；执行前与返回前检查授权和模板版本。仅模板模式在共享引擎中约束所有 Agent 入口。详细流程、结构导入边界、限制及示例见[语义目录说明](semantics.zh-CN.md)。
+每个数据源独立保存加密草稿与发布条目，PostgreSQL 事务与草稿修订控制原子发布和编辑冲突。模板仅绑定声明的 JSON Pointer 值位置，并复用现有执行引擎。试跑及发布证据绑定执行定义、连接、凭证和实际数据库版本；执行前与返回前检查授权和模板版本。仅模板模式在共享引擎中约束所有 Agent 入口。详细流程、结构导入边界、限制及示例见[语义目录说明](semantics.zh-CN.md)。
 
 ## 共享本体
 

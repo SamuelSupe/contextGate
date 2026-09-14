@@ -7,7 +7,7 @@ import (
 	"errors"
 	"fmt"
 	clickhouse "github.com/ClickHouse/clickhouse-go/v2"
-	"github.com/SamuelSupe/mcpdbhub/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	duckdb "github.com/duckdb/duckdb-go/v2"
 	"github.com/go-sql-driver/mysql"
 	"github.com/gocql/gocql"
@@ -177,7 +177,7 @@ func ErrorMessage(code string) string {
 	case "database_tls":
 		return "TLS verification failed. Check the CA certificate, hostname and certificate expiry."
 	case "database_dns":
-		return "The database hostname could not be resolved. Check DNS from the Hub server."
+		return "The database hostname could not be resolved. Check DNS from the ContextGate server."
 	case "database_connection":
 		return "The database could not be reached or opened. Check the host, port, database name and server availability."
 	case "database_authentication":

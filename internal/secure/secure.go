@@ -53,7 +53,7 @@ type Vault struct {
 	Key  []byte
 }
 
-func OpenVault(dir string) (*Vault, error) {
+func OpenVault(dir string, existing bool) (*Vault, error) {
 	if err := os.MkdirAll(dir, 0700); err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func OpenVault(dir string) (*Vault, error) {
 		var e error
 		key, e = os.ReadFile(path)
 		if os.IsNotExist(e) {
-			if _, stat := os.Stat(filepath.Join(dir, "hub.db")); stat == nil {
+			if existing {
 				return nil, errors.New("master key missing for existing configuration")
 			}
 			key = make([]byte, 32)

@@ -1,0 +1,100 @@
+{
+  "verified_at": "2026-09-14T07:31:31.882738+00:00",
+  "version": "0.4.0-dev",
+  "base_commit": "8d9aa0344944bdd9ebef17360c838970933c87bc",
+  "working_tree": "uncommitted local changes",
+  "environment": {
+    "backend": "OrbStack Linux containers",
+    "metadata": "PostgreSQL 17.11",
+    "browser": "Native Chrome via existing computer-use tooling",
+    "viewports": [
+      "desktop 1512x861",
+      "390x844"
+    ]
+  },
+  "gates": [
+    {
+      "command": "go test -race ./...",
+      "result": "passed",
+      "notes": "Run after frontend build completed; an earlier overlapping build invalidated go:embed inputs and was rerun."
+    },
+    {
+      "command": "go test -race ./internal/server",
+      "result": "passed",
+      "notes": "Repeated after the final audit source-association change."
+    },
+    {
+      "command": "npm test",
+      "result": "passed",
+      "tests": 8
+    },
+    {
+      "command": "npm run build",
+      "result": "passed",
+      "warnings": [
+        "One application chunk exceeds the 500 kB Vite advisory threshold."
+      ]
+    },
+    {
+      "command": "docker build -t mcpdbhub:product-ops .",
+      "result": "passed",
+      "architecture": "linux/arm64"
+    }
+  ],
+  "backend_behaviors": [
+    "Management changes create correlated, sanitized intent and outcome records and export through OTLP Logs.",
+    "Unavailable audit storage prevents a configuration mutation.",
+    "Publication history survives restart, requires matching revision for restore, forces new trials after restore, retains referenced ontology versions and is deleted with its data source.",
+    "Successful example and parameterized regression cases allow publication; a row-count mismatch blocks the draft while the existing published template remains executable.",
+    "Agent semantic details do not expose administrator regression parameters or expected values.",
+    "A real SQLite schema change produces a field delta; outdated baseline acceptance is rejected.",
+    "Datasource configuration changes make health evidence stale.",
+    "Encrypted backup verification rejects a corrupted encrypted record."
+  ],
+  "chrome_behaviors": [
+    "English and Chinese sign-in/setup controls and setup-code instructions.",
+    "History diff, confirmed restore as draft, fresh trial requirement, trial-all and publication.",
+    "Failed regression case reports an understandable reason and disables publication confirmation; the correction passes.",
+    "Agent identity preview returns PostgreSQL revenue rows 1/125.50 and 2/50.00 after service restart.",
+    "Scheduled checks explicitly enabled at 5 minutes; background worker executed at 2026-09-14T07:24:03Z without Check now.",
+    "PostgreSQL ALTER TABLE on a QA fixture detected added fulfilled_at timestamp with time zone; explicit acceptance cleared the difference.",
+    "Health schedule and saved evidence survive a restart.",
+    "Audit management-event and datasource filters show the baseline event; management details omit query-only fields.",
+    "PostgreSQL connection/key/schema diagnostics pass, and lack of TLS is displayed accurately for isolated QA PostgreSQL.",
+    "390 px health and semantic/history pages have no document horizontal overflow; Escape closes drawers/navigation.",
+    "No console errors or warnings observed after the final page reload."
+  ],
+  "database_fixture": {
+    "product": "PostgreSQL",
+    "table": "commerce.orders",
+    "rows_after_queries": 4,
+    "amount_sum_after_queries": "185.50",
+    "schema_changes": "Administrator-added QA columns used only to demonstrate drift; query checks did not modify rows."
+  },
+  "backup_restore": {
+    "checked_at": "2026-09-14T07:27:05.215602291Z",
+    "commit": "8d9aa0344944-dirty",
+    "records": {
+      "agents": 1,
+      "audit": 12,
+      "semantic_versions": 1,
+      "semantics": 1,
+      "sessions": 3,
+      "sources": 1
+    },
+    "source_connections_opened": 0,
+    "status": "passed",
+    "version": "0.4.0-dev"
+  },
+  "local_ui": {
+    "url": "http://localhost:19843",
+    "healthz": "passed",
+    "configuration": "Existing PostgreSQL metadata and key retained"
+  },
+  "not_verified": [
+    "The full 18-product / 20-version matrix was not rerun for this increment.",
+    "No new amd64 build, dist release, or GitHub download verification was performed.",
+    "Backup freshness is not monitored automatically; the tested restore is a one-time rehearsal.",
+    "Long-running multi-day scheduled monitoring was not exercised."
+  ]
+}
