@@ -83,4 +83,4 @@ First public release of MCP DB Hub.
 - Precise Agent expiration editing, empty-grant handling, isolated query admission and paged SQL metadata discovery.
 - Linux arm64 and amd64 distributions with bilingual instructions, dependency notices and SHA256 checksums.
 
-The service is single-instance and single-administrator. SQL/Cypher query pagination is explicit; SQL metadata supports continuation. It does not provide cross-database federation, arbitrary scripts or automatic database account management. See the [support matrix](docs/support-matrix.md) and [validation record](docs/validation.md) for tested versions and limits.
+At 0.1.0, the service was single-instance and single-administrator. Current account behavior is documented in the [administrator guide](docs/administrators.md). SQL/Cypher query pagination is explicit; SQL metadata supports continuation. It does not provide cross-database federation, arbitrary scripts or automatic database account management. See the [support matrix](docs/support-matrix.md) and [validation record](docs/validation.md) for tested versions and limits.

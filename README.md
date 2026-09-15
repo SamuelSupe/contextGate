@@ -67,7 +67,7 @@ A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a tr
 
 ## Operate and recover
 
-**0.4.0** includes management change records, encrypted semantic publication history with restore-to-draft, optional scheduled health checks, template regression cases, and PostgreSQL diagnostics and backup recovery verification. Start with **Health**, **Semantics → Publication history**, and **Settings → Deployment diagnostics**. See the [operations guide](docs/operations.md) for their scope and recovery steps.
+Operational tools include management change records, encrypted semantic publication history with restore-to-draft, optional scheduled health checks, template regression cases, and PostgreSQL diagnostics and backup recovery verification. Start with **Health**, **Semantics → Publication history**, and **Settings → Deployment diagnostics**. Global health-check policy and deployment diagnostics require a super administrator. See the [operations guide](docs/operations.md) for scope and recovery steps.
 
 ## Download
 
@@ -80,7 +80,9 @@ git clone https://github.com/SamuelSupe/contextGate.git
 cd contextGate
 mkdir -p databases
 umask 077
-printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+if [ ! -e .env ]; then
+  printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+fi
 docker compose up --build -d
 docker compose logs hub
 ```
@@ -89,7 +91,9 @@ Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to
 
 Compose starts PostgreSQL on its private container network and waits for it to become healthy. Only ContextGate HTTP port is published to loopback. ContextGate runs as UID 10001 and mounts query database files read-only. Metadata persists in `hub-postgres`; the independent encryption key persists in `hub-data`. Preserve both volumes and the existing `.env` when restarting or upgrading; generate `.env` only for a new installation.
 
-**Storage change:** current source uses PostgreSQL exclusively for internal configuration, sessions, grants, catalogs and audit logs. Upgrades from 0.4.x preserve the existing PostgreSQL store and its matching master key. It does not import old SQLite metadata; upgrades from 0.3.x or earlier require a fresh administrator and source configuration. SQLite remains a read-only query data source. Versions through 0.3.0 use SQLite metadata. Read the [0.4.0 upgrade notes](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier) before switching.
+**Upgrading to 0.6.0 from 0.4.x or 0.5.x:** back up and retain the PostgreSQL metadata store and matching master key. Sign in again with username `admin` and the existing password. All legacy Configuration MCP tokens are revoked; each administrator must issue a personal token and update their clients. Business configuration and query Agent/OAuth grants remain intact. Follow the [account upgrade checklist](docs/administrators.md#upgrade-from-050-or-an-earlier-postgresql-release).
+
+**From 0.3.x or earlier:** SQLite metadata is not imported. Initialize a fresh PostgreSQL store and reconfigure accounts, sources and grants as described in the [storage upgrade notes](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier). SQLite remains supported as a read-only query data source.
 
 To build locally, install Go 1.26, a C/C++ toolchain, and Node.js 24, then run `make build`. CGO is required by SQLite and DuckDB. Build natively for Linux arm64 or amd64; `CGO_ENABLED=0` is unsupported.
 
@@ -106,7 +110,7 @@ For a corporate build proxy, pass its CA with `docker build --secret id=build_ca
 
 ![Verified template query with real sample data](docs/screenshots/query-preview.png)
 
-Streamable HTTP and the stdio bridge share authorization, execution limits, and auditing. Fourteen tools expose four discovery operations, seven native query families, and three semantic catalog/template operations.
+Streamable HTTP and the stdio bridge share authorization, execution limits, and auditing. The `/mcp` endpoint exposes 15 tools: four discovery operations, eight native query tools (seven database families plus HTTP API), and three semantic catalog/template operations. Personal Configuration MCP uses a separate endpoint and [22 configuration tools](docs/configuration-mcp.md#tools-and-boundaries).
 
 ```json
 {"mcpServers":{"contextgate":{"url":"http://127.0.0.1:8080/mcp","headers":{"Authorization":"Bearer <AGENT_TOKEN>"}}}}
@@ -159,7 +163,7 @@ Use **Settings → My configuration MCP** to connect a trusted configuration Age
 
 ![Published semantic query templates — actual administration UI](docs/screenshots/semantics.png)
 
-Version 0.2.0 adds independent business catalogs and verified native query templates to every data source. Use **Data sources → Semantics** to import schema skeletons, define terms/fields/relationships/metrics, trial templates against the real database, and publish an Agent-visible snapshot. **Templates only** mode enforces curated query access across HTTP, stdio, OAuth and Agent previews.
+Every data source has an independent business catalog and verified native query templates. Use **Data sources → Semantics** to import schema skeletons, define terms/fields/relationships/metrics, trial templates against the real database, and publish an Agent-visible snapshot. **Templates only** mode enforces curated query access across HTTP, stdio, OAuth and Agent previews.
 
 `search_semantics`, `get_semantic_entry` and `execute_query_template` expose published content with bounded pagination, typed JSON Pointer bindings and execution versions. Connection, credential or observed database version changes require a new trial and publication. Template audit metadata also flows to OTLP Logs. See the [complete guide](docs/semantics.md) and [examples for all query families](examples/semantics/).
 
@@ -167,13 +171,13 @@ Version 0.2.0 adds independent business catalogs and verified native query templ
 
 ![Shared business ontology with source and template mappings](docs/screenshots/ontology.png)
 
-Version 0.3.0 adds **Ontologies** and **Semantics → Ontology mapping**. Define Customer, Order, their properties and relationships once; map PostgreSQL tables and MongoDB documents independently to an explicitly selected, immutable ontology version. Agents discover only concepts mapped to their authorized source and receive native template results with `ontology_context`.
+Use **Ontologies** and **Semantics → Ontology mapping** to share business definitions across sources. Define Customer, Order, their properties and relationships once; map PostgreSQL tables and MongoDB documents independently to an explicitly selected, immutable ontology version. Agents discover only concepts mapped to their authorized source and receive native template results with `ontology_context`.
 
 Mappings publish atomically with the source catalog. Definition-only upgrades preserve template trial evidence and running queries; existing sources never follow the latest ontology automatically. Inheritance, identity and cardinality are declarative, without fact inference, federated queries or result conversion. See the [ontology guide](docs/ontologies.md), [PostgreSQL/MongoDB examples](examples/ontologies/) and [real verification record](docs/verification/ontology.json).
 
 ## OTLP audit logs
 
-Since v0.1.1, **Settings → Audit log export** supports OpenTelemetry Collector and compatible OTLP Logs receivers. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the persisted sanitized PostgreSQL audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
+**Super administrators** can configure **Settings → Audit log export** for OpenTelemetry Collector and compatible OTLP Logs receivers. Export includes query, business configuration and account-security events. Configure HTTP/protobuf or gRPC, authentication headers and optional CA certificates; send a test log and monitor delivery. Export reads the persisted sanitized PostgreSQL audit trail asynchronously, with persisted progress and retries. Full queries, parameters, results and credentials are excluded. See [configuration, Collector example and delivery guarantees](docs/audit-export.md).
 
 ## OAuth
 
@@ -182,8 +186,6 @@ Ory Fosite implements authorization code grants with mandatory PKCE S256, explic
 Discovery is available at `/.well-known/oauth-protected-resource` and `/.well-known/oauth-authorization-server`. Both authorization and token requests must pass the exact public MCP URL in `resource`, such as `https://db.example.com/mcp`.
 
 Clients can be pre-registered through the UI, use bounded dynamic registration at `/oauth/register`, or supply an HTTPS Client ID Metadata Document. Metadata fetching rejects private addresses, redirects and oversized responses. Redirects require HTTPS, HTTP on a loopback IP, or a reverse-domain native application scheme. Redirect URIs match exactly. Revoke credentials at `/oauth/revoke`.
-
-**Since 0.6.0:** named administrator accounts, Super administrator/Administrator roles, personal Configuration MCP identities and attributable audit. Upgrading retains the old password under username `admin`, requires signing in again and revokes old configuration MCP tokens. [Upgrade and account guide](docs/administrators.md).
 
 ## Deployment and maintenance
 
@@ -216,7 +218,7 @@ In **Agents**, **Pause / Resume** temporarily suspends access while retaining th
 
 **Connect** remains available after creation, with HTTP/stdio connection values and recorded client activity. Activity covers the last 30 days and excludes administrator previews. **Explore data** supports clickable structure discovery, table/JSON results, native next-page cursors and cancellation. Select an Agent to check its data source grants; this is an administrator preview, not proof that a client has connected. Numeric query parameters are sent without JavaScript numeric conversion.
 
-**Audit log** filters by caller, data source, result, date range and request ID. Query failures and connection checks expose safe error categories and native codes when available. Request IDs correlate with audit details. Credentials, raw database error text, query text, parameters and results are never stored in the audit log.
+**Audit log** filters by administrator, configuration identity, entry point, caller, data source, result, date range and request ID. All administrators can view business/query events; only super administrators can view **Account security**. Query failures and connection checks expose safe error categories and native codes when available. Request IDs correlate with audit details. Credentials, raw database error text, query text, parameters and results are never stored in the audit log.
 
 ### Configuration changes and OAuth client management
 

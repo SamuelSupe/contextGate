@@ -2,7 +2,7 @@
 
 [简体中文](audit-export.zh-CN.md) · [README](../README.md)
 
-Available since v0.1.1. Enable **Settings → Audit log export** to send persisted database audit events to an OpenTelemetry Collector or another OTLP Logs receiver. Export is disabled by default and does not change the local audit log. It uses standard OTLP protobuf messages over HTTP or gRPC.
+As a **Super administrator**, enable **Settings → Audit log export** to send persisted query, configuration and account-security audit events to an OpenTelemetry Collector or another OTLP Logs receiver. Export is disabled by default and does not change the local audit log. It uses standard OTLP protobuf messages over HTTP or gRPC.
 
 ## Configure
 
@@ -33,16 +33,25 @@ Existing saved service names are retained during the ContextGate rename. The `mc
 
 ## Log fields
 
-Resource attributes are `service.name`, `service.version` and a persistent `service.instance.id`. Each log preserves the audit event timestamp; successful operations use INFO and failures use ERROR. The body is a fixed success/failure message.
+Resource attributes are `service.name`, `service.version` and a persistent `service.instance.id`. Each log preserves the audit event timestamp. Completed operations and pending intents use INFO; failures use ERROR. The body is a fixed completion, pending or failure message. An intent has `error_code=operation_pending`; correlate it with its outcome using `request_id`.
 
 | Attribute | Value |
 |---|---|
 | `event.name` | `mcpdbhub.audit` |
 | `mcpdbhub.audit.id` | Local audit record ID, int64 |
 | `mcpdbhub.audit.request_id` | Request correlation ID, when available |
-| `mcpdbhub.audit.agent_id` | Calling identity, when available |
+| `mcpdbhub.audit.agent_id` | Existing execution identity; selected query Agent for Agent-identity previews |
+| `mcpdbhub.audit.administrator_id` | Actual administrator ID, when attributable |
+| `mcpdbhub.audit.administrator_username` | Actual administrator username, when attributable |
+| `mcpdbhub.audit.actor_type` | Operator category |
+| `mcpdbhub.audit.configuration_agent_id` | Personal Configuration MCP identity, when used |
+| `mcpdbhub.audit.channel` | Entry point used by the operator |
+| `mcpdbhub.audit.event_kind` | Event category; `security` identifies restricted account events |
+| `mcpdbhub.audit.resource_id` | Affected configuration resource, when applicable |
+| `mcpdbhub.audit.revision` | Recorded revision or publication version, when applicable |
+| `mcpdbhub.audit.submitted_fields` | Submitted field categories, without values; not a value-level diff |
 | `mcpdbhub.audit.source_id` | Configured source ID |
-| `mcpdbhub.audit.operation` | Query, discovery or connection-check operation |
+| `mcpdbhub.audit.operation` | Query, discovery, connection check, configuration change or account-security operation |
 | `mcpdbhub.audit.ontology_id` | Adopted ontology ID for published template execution (since 0.3.0) |
 | `mcpdbhub.audit.ontology_version` | Ontology version captured at request start (since 0.3.0) |
 | `mcpdbhub.audit.template_id` | Template ID for execution or trial (since 0.2.0) |
@@ -55,7 +64,7 @@ Resource attributes are `service.name`, `service.version` and a persistent `serv
 | `mcpdbhub.audit.native_code` | Sanitized database error code, when available |
 | `mcpdbhub.audit.attributes_truncated` | Present and true if a string exceeded 2,048 characters |
 
-Export follows the existing database audit scope: query execution, discovery through the engine, administrator previews and connection checks. Login failures, rejected HTTP authentication and configuration changes are not a separate security-event feed. Full queries, parameter values, query results, database credentials and exporter authentication headers are excluded. Receiver error bodies are not exposed in status messages.
+Export includes persisted query/discovery records, administrator previews, connection checks, management intents/outcomes and account-security events such as recorded login failures and credential changes. It is not an HTTP access log and does not claim to capture every rejected request. Full queries, parameter values, query results, database credentials and exporter authentication headers are excluded. Receiver error bodies are not exposed in status messages.
 
 ## Delivery and retention
 
@@ -68,7 +77,7 @@ Export follows the existing database audit scope: query execution, discovery thr
 
 ## Administration API
 
-These endpoints require the administrator session; mutations also require `X-CSRF-Token`. Agent tokens cannot access them.
+These endpoints require a **super administrator** session; mutations also require `X-CSRF-Token`. Agent tokens cannot access them.
 
 | Method | Endpoint | Behavior |
 |---|---|---|

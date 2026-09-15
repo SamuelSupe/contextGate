@@ -4,7 +4,16 @@
 
 [0.6.0 发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0)包含多管理员、个人配置 MCP 身份及 Apache-2.0 许可证。发行附件记录源提交、原生双架构 CI、实际 Linux 发行包及独立 GitHub 下载回验。下方功能和 Chrome 验证来自发行前阶段，各记录保留原始摘要和范围。
 
-## 未发布的多管理员账号 — 2026-09-15
+[最终发行报告](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/release-verification.json)记录提交 `12ba67bfec87ec3a7ebe3cbebc498c0654faf7f6`、Apache-2.0 打包检查及通过的[原生 arm64/amd64 CI](https://github.com/SamuelSupe/contextGate/actions/runs/34957008947)。两种架构分别在构建后和独立 GitHub 下载后通过 **54 项检查**：
+
+| 架构 | 发行包检查 | GitHub 下载回验 | 本机执行环境 |
+| --- | --- | --- | --- |
+| Linux arm64 | [dist-arm64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/dist-arm64.json) | [download-arm64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/download-arm64.json) | OrbStack 原生 arm64 |
+| Linux amd64 | [dist-amd64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/dist-amd64.json) | [download-amd64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/download-amd64.json) | OrbStack amd64 仿真 |
+
+这些报告对应已发布制品，不包含 `main` 后续的文档修改；它们补充下方功能阶段的数据库矩阵，不代表在最终发行提交重新跑过一次完整矩阵。
+
+## 多管理员发行前验证 — 2026-09-15
 
 多管理员、个人配置 MCP 身份及审计归属已通过 OrbStack Go/race 检查，覆盖角色权限、临时密码限制、定向撤销、并发保护最后一个超级管理员、按实际操作者绑定游标及指定账号 CLI 恢复。真实 0.5.0 元数据副本升级后保留原密码和业务/查询配置，旧会话与配置 Token 失效；存储回归另外验证迁移失败回滚及重复打开。
 
@@ -12,13 +21,13 @@
 
 本机 Chrome 验证中英文登录、按角色显示设置、创建和编辑账号、一次性临时密码确认、首次登录限制、个人 Token 表单、两类管理员的审计筛选、键盘和 390×844 布局。最终浏览器警告/错误日志为空。密码修改及 Token 轮换提交通过 API/集成测试验证；Chrome 检查对应表单，没有提交新凭证。最终 UI 生产构建通过，功能阶段的 9 项现有 UI 测试通过。
 
-[管理员验收记录](verification/administrators.json)区分具体测试阶段及摘要。这是 0.5.0 之后的未提交功能，尚未执行新的原生 amd64 CI、dist 发布或 GitHub 下载回验。使用和升级说明见[管理员指南](administrators.zh-CN.md)。
+[管理员验收记录](verification/administrators.json)区分具体测试阶段及摘要。该功能阶段的代码尚未提交，原生 amd64 CI、dist 发布和 GitHub 下载回验当时尚未执行；后续最终发行检查已通过，见上方发行报告。使用和升级说明见[管理员指南](administrators.zh-CN.md)。
 
 ## ContextGate 0.5.0 — 2026-09-15
 
 OrbStack 隔离 PostgreSQL 元数据 schema 下，完整 Go 测试与 race 检查通过。TypeScript/Vite 生产构建、9 项 UI 工作流测试和 2 项无损请求测试通过；Vite 仍有已有的包大小提示。
 
-重新完成全部 **18 产品／20 版本**数据库矩阵：**135 个查询/错误场景、104 个拒绝操作场景**，验证原生/模板结果等价、真实 HTTP MCP、本体映射发现和测试数据未改变。[当前矩阵](verification/matrix.json) 记录实现摘要。HTTP API 隔离实例另外验证固定操作、无损值、分页、授权与模板执行，不代表认证任意上游 API。
+重新完成全部 **18 产品／20 版本**数据库矩阵：**135 个查询/错误场景、104 个拒绝操作场景**，验证原生/模板结果等价、真实 HTTP MCP、本体映射发现和测试数据未改变。[0.5.0 矩阵](https://github.com/SamuelSupe/contextGate/blob/v0.5.0/docs/verification/matrix.json)记录实现摘要。HTTP API 隔离实例另外验证固定操作、无损值、分页、授权与模板执行，不代表认证任意上游 API。
 
 本机 Chrome 实际操作业务目录预览、模板参数、HTTP API 模板生成/试跑/发布、按实体映射、真实单次回答评估、键盘与 390×844 中文布局。[产品流程](verification/product-workflows.json)和[UX 补充记录](verification/product-ux-fixes.json)保留具体范围，包括最终截屏工具的限制；未逐一重新测试所有外部 Agent 客户端。
 
@@ -37,20 +46,20 @@ OrbStack 隔离 PostgreSQL 元数据 schema 下，完整 Go 测试与 race 检�
 
 日期：2026-09-11 至 2026-09-15。后端与数据库测试运行于 OrbStack Linux arm64；管理界面通过本机 Chrome 实际操作验证，没有引入浏览器自动化框架。
 
-## 未发布的 PostgreSQL 元数据存储 — 2026-09-14
+## PostgreSQL 元数据发行前验证 — 2026-09-14
 
 - 内部 SQLite 存储已替换为 PostgreSQL 17.11。OrbStack `go test -race ./...` 使用隔离 PG schema 全部通过，覆盖 HTTP/stdio、OAuth、语义/本体发布、加密恢复、级联清理、评估历史和 OTLP。新增事务回归验证密码撤销与登录会话互斥、审计提交顺序；主密钥缺失或错误时拒绝打开已有元数据。
 - PostgreSQL、MongoDB、SQLite、DuckDB 的真实适配器/MCP/模板回归在 PG 元数据后端通过，包含拒绝写入和查询测试数据未变。八项前端测试、TypeScript/Vite 构建及 Docker 镜像构建通过；构建使用已有可信 CA，保留证书验证。
 - 非 root 镜像通过初始化、查询、Token 撤销、密码恢复、ContextGate 重启持久化、本体/模板执行，以及真实 Collector 的 OTLP HTTP/protobuf、gRPC 检查。接收端故障与 ContextGate 重启后，积压审计继续上报。[机器可读记录](verification/postgres-metadata.json)。
-- 本地 19843 已切换至新的 PG 元数据库；健康检查及数据库检查确认数据源/Agent 为空，本机 Chrome 显示管理员初始化页。旧 SQLite 元数据没有导入。本轮未重跑完整 18 产品矩阵、原生 amd64/远程 CI，也未发布新的 dist。
+- 该验证阶段的本地 19843 已切换至新的 PG 元数据库；健康检查及数据库检查确认数据源/Agent 为空，本机 Chrome 显示管理员初始化页。旧 SQLite 元数据没有导入。本轮未重跑完整 18 产品矩阵、原生 amd64/远程 CI，也未发布新的 dist。
 
-## 未发布的界面语言切换 — 2026-09-14
+## 界面语言发行前验证 — 2026-09-14
 
 - 八项前端测试及 TypeScript/Vite 生产构建通过，Go 内嵌可执行文件在 OrbStack 构建成功。聚焦回归覆盖翻译占位符、业务值保持原样、持久化语言值、浏览器存储不可用及无损查询参数。Vite 仍提示单个包超过建议大小。
 - 本机 Chrome 验证中英文切换、刷新后保留语言、未保存设置不丢失、导航和本体/模板编辑翻译，以及桌面和 390×844 布局。隔离 SQLite 模板在中文界面完成编辑、试跑、发布和授权 Agent 执行；参数类型保留原生枚举，整数 `9007199254740993` 和业务值 `Settings` 原样显示。浏览器警告/错误日志为空。
 - 此次 UI 改动未重跑完整外部数据库矩阵、Go race 或发行包验证，没有修改现有管理员凭证、授权及数据库配置。
 
-## 未发布的产品流程强化 — 2026-09-12
+## 产品流程发行前验证 — 2026-09-12
 
 ### OAuth 可用性与 SQL 锁定读取审查
 
@@ -83,7 +92,7 @@ Agent setup、概念用途联动和查询对照评估通过 server/engine 测试
 
 ## v0.3.0 共享业务本体 — 2026-09-12
 
-- OrbStack 最终矩阵全部通过：**18 个产品／20 个版本组合**，132 个原生查询/错误用例、89 个拒绝操作用例，以及七类模板原生结果等价与映射发现检查；目标数据未改变。[矩阵记录](verification/matrix.json)。
+- OrbStack 最终矩阵全部通过：**18 个产品／20 个版本组合**，132 个原生查询/错误用例、89 个拒绝操作用例，以及七类模板原生结果等价与映射发现检查；目标数据未改变。[矩阵记录](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json)。
 - 同一 Customer/Order 本体通过 PostgreSQL 表与 MongoDB 集合验证关联/聚合、精确 Decimal、空结果、参数拒绝、可见子集、固定版本和显式采用、并发编辑冲突、引用删除保护、归档、加密重启恢复。执行层还验证请求开始时的本体上下文及发布后旧游标拒绝。[业务与生命周期记录](verification/ontology.json)。
 - OrbStack 全部 Go race 检查、TypeScript/Vite 构建及已有无损参数测试通过。定义校验覆盖继承环、属性冲突、身份属性、关系端点、矛盾基数/范围及声明与发现状态。
 - 本机 Chrome 实际完成英文界面多语言定义编辑、错误基数修复、两源映射导入、试跑/发布、Agent 授权拒绝与可见定义、原生结果和本体引用。发布本体 v3 后两源保持 v2；PostgreSQL 显式查看差异并采用 v3，MongoDB 仍为 v2，模板执行版本保持 1，无需重新试跑。
@@ -92,18 +101,18 @@ Agent setup、概念用途联动和查询对照评估通过 server/engine 测试
 
 ## v0.2.0 语义目录与模板验证（历史草稿）
 
-- 在 OrbStack 重跑了全部 **18 个产品／20 个版本组合**。原生适配器/MCP 矩阵包含 132 个查询/错误用例和 89 个拒绝操作用例；各产品还比较了真实试跑、发布后的模板与原生查询结果，覆盖无损值、空结果、错误及支持的分页，目标数据未改变。[当前矩阵](verification/matrix.json) 和各产品记录保留实际实现摘要。
+- 在 OrbStack 重跑了全部 **18 个产品／20 个版本组合**。原生适配器/MCP 矩阵包含 132 个查询/错误用例和 89 个拒绝操作用例；各产品还比较了真实试跑、发布后的模板与原生查询结果，覆盖无损值、空结果、错误及支持的分页，目标数据未改变。此处保留 0.2.0 功能阶段结果；默认分支的 `verification/matrix.json` 已被后续验证更新，不应当作该构建的原始报告。
 - OrbStack `go test -race ./...` 通过，覆盖加密持久化与删除、编辑冲突、草稿隔离、试跑/发布门槛、连接/凭证/版本失效、说明性发布、任务取消、游标隔离、参数注入及禁止位置、OAuth 仅模板限制。
 - TypeScript/Vite 构建与两项 Node 无损请求测试通过。发行输入包含七类查询家族示例和中英文语义文档。
 - 本机 Chrome 已完成初始化、创建仅模板 SQLite 数据源、多语言概述和字段编辑、结构导入、参数化模板编辑、未试跑拒绝发布、试跑/发布及保留 `9007199254740993` 的预览。[桌面截图](screenshots/semantics.png) 来自该隔离实例。
 - 使用 Chrome 创建的 Agent Token 通过真实 HTTP/API 验证了语义发现、服务重启后模板执行、原生查询拒绝、JSON 导入导出往返及丢弃草稿。这些是 API 验证，未替代剩余浏览器操作。[语义验证记录](verification/semantics.json)。
 - Mac 在验证中锁屏，Agent 预览、JSON 往返、键盘/窄屏及最终控制台检查仍待完成，没有记为通过。该 0.2.0 发行版保留为草稿。上面的 0.3.0 Chrome 检查验证当前实现，不追溯标记旧构建通过。
 
-以下历史章节对应原版本；当前矩阵文件已更新为 0.2.0，0.1.0 证据保留在[原始标签](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json)。
+以下历史章节对应原版本；默认分支的矩阵文件可能被后续运行更新，应使用发行标签查看对应证据。0.1.0 矩阵保留在[原始标签](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json)。
 
-## 本轮真实验收
+## v0.1.0 真实验收
 
-18 个产品、20 个版本组合全部通过，共 132 个查询/错误场景与 89 个危险操作拒绝场景。网络数据库逐项通过原生适配器和 MCP HTTP 两层检查；SQLite/DuckDB 通过真实文件引擎及 MCP 检查。[机器可读汇总](verification/matrix.json)记录实现摘要和逐产品报告。
+18 个产品、20 个版本组合全部通过，共 132 个查询/错误场景与 89 个危险操作拒绝场景。网络数据库逐项通过原生适配器和 MCP HTTP 两层检查；SQLite/DuckDB 通过真实文件引擎及 MCP 检查。[机器可读汇总](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json)记录实现摘要和逐产品报告。
 
 本轮复现并修复：Search 忽略 size 及漏报截断、Cypher 数字变字符串、CQL Decimal/浮点/集合参数绑定失败、MongoDB distinct 数组与缺失字段语义错误。分页现在要求每页取完后的内容与完整基线一致；不能只有返回数量断言。
 
@@ -234,7 +243,7 @@ python3 scripts/check-recovery.py
 
 ## v0.1.0 发行前检查（2026-09-11）
 
-- 统一版本标识与公开 Go 模块路径后，在 OrbStack 重跑 18 产品、20 个版本组合：132 个查询/错误场景、89 个危险操作拒绝场景全部通过。源码摘要及逐产品原始证据已更新至 [matrix.json](verification/matrix.json)。
+- 统一版本标识与公开 Go 模块路径后，在 OrbStack 重跑 18 产品、20 个版本组合：132 个查询/错误场景、89 个危险操作拒绝场景全部通过。源码摘要及逐产品原始证据已更新至 [matrix.json](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json)。
 - Go 全量测试与竞态检查通过；包含真实 SQLite/DuckDB、HTTP MCP、stdio 桥接、OAuth、授权撤销和分页回归。PostgreSQL/TimescaleDB 的测试初始化也改为等待正式 TCP 服务，避免临时启动服务尚未安装扩展时抢先建表。
 - README 截图来自本机 Chrome 实际运行页面。使用独立配置卷、真实 PostgreSQL / SQLite / DuckDB 和示例数据，验证 3 个 Agent 的 MCP 查询以及授权下的收入聚合；截图未包含数据库或 Agent 凭证。
 - Linux 发行包构建方式、运行库要求、独立解包验收及发布步骤见 [发行流程](releasing.md)。每个最终发行包的下载摘要和验收记录随 GitHub Release 提供，历史修复记录保留其各自源码摘要。

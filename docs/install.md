@@ -4,6 +4,10 @@
 
 **ContextGate 0.6.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
 
+## Upgrade to 0.6.0
+
+For an existing 0.4.x/0.5.x PostgreSQL installation, back up the metadata database and matching master key, then retain both when replacing the application. Sign in again as `admin` with the existing password. All legacy Configuration MCP tokens are revoked; each administrator must issue a new personal token. Sources, semantics, ontologies and query Agent/OAuth grants remain intact. Follow the [administrator upgrade checklist](administrators.md#upgrade-from-050-or-an-earlier-postgresql-release).
+
 ## PostgreSQL metadata
 
 0.6.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
@@ -50,7 +54,9 @@ git clone https://github.com/SamuelSupe/contextGate.git
 cd contextGate
 mkdir -p databases
 umask 077
-printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+if [ ! -e .env ]; then
+  printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+fi
 docker compose up --build -d
 docker compose logs hub
 ```
@@ -63,7 +69,7 @@ For remote deployment, place the service behind HTTPS and set `MCPDBHUB_PUBLIC_U
 
 For current PostgreSQL storage, stop ContextGate and use `pg_dump` / `pg_restore` for the metadata database. Keep its matching `master.key` outside the program directory and protect it separately. If using `MCPDBHUB_MASTER_KEY`, back up that external key too. Restoring configuration requires the matching key.
 
-Before upgrading, preserve the old program and a stopped-service configuration backup. Start the new program with the same `MCPDBHUB_DATABASE_URL` and key directory. The SQLite-to-PostgreSQL change starts an empty store and requires reconfiguration; no import is provided. Never delete the key, database or volume to upgrade. If a migration has run, rollback requires restoring the configuration backup matching the old program.
+Before upgrading, preserve the old program and a stopped-service configuration backup. Start the new program with the same `MCPDBHUB_DATABASE_URL` and key directory. Only upgrades from 0.3.x or earlier require a fresh PostgreSQL store and reconfiguration; current PostgreSQL installations retain their metadata. Never delete the key, database or volume to upgrade. If a migration has run, rollback requires restoring the configuration backup matching the old program.
 
 For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, stop the service and supply a new password through stdin to `./contextgate reset-password --data-dir /existing/config --username admin --password-stdin`. The [recovery instructions](../README.md#recover-a-forgotten-administrator-password) show a prompt that does not echo input. Recovery preserves data sources and query Agent credentials while invalidating only the selected administrator’s sessions and Configuration MCP token.
 
@@ -80,5 +86,3 @@ For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, sto
 | Invalid cursor | Keep identity, parameters and limits identical; restart after expiration, upgrade or access changes |
 
 `BUILD.json` identifies the version, binary digest and source commit. See [validation](validation.md) for tested products/platforms and remaining limitations.
-
-[Administrator accounts and upgrade from 0.5.0](administrators.md)

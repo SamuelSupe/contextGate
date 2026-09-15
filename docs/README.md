@@ -2,7 +2,9 @@
 
 [简体中文](README.zh-CN.md) · [Project](../README.md) · [Download](https://github.com/SamuelSupe/contextGate/releases/latest)
 
-**Semantic Data Gateway for AI Agents.** Connect databases, describe business concepts, publish verified queries, and grant Agents controlled access.
+**Semantic Data Gateway for AI Agents.** Connect databases and HTTP APIs, describe business concepts, publish verified queries, and grant Agents controlled access.
+
+These guides describe **0.6.0**. For an older installation, use the documentation at its release tag; [validation](validation.md) separates final release checks from historical feature evidence.
 
 ## Start here
 
@@ -12,8 +14,8 @@
 | Install on Linux or Docker / OrbStack | [Installation](install.md) |
 | Complete the first source-to-Agent workflow | [Getting started](getting-started.md) |
 | Let an Agent configure ContextGate | [Configuration MCP](configuration-mcp.md) |
-| Upgrade from ContextGate 0.5.x | [0.6.0 release and upgrade notes](releases/0.6.0.md) |
-| Upgrade from MCP DB Hub | [0.4.0 release and upgrade notes](releases/0.4.0.md) |
+| Upgrade from ContextGate 0.4.x / 0.5.x | [0.6.0 release and upgrade notes](releases/0.6.0.md) |
+| Move from SQLite metadata (0.3.x or earlier) | [0.4.0 release and upgrade notes](releases/0.4.0.md) |
 
 ## Model and query your data
 
@@ -22,7 +24,7 @@
 | JSON REST APIs, read operations and API-backed templates | [HTTP API sources](http-api.md) |
 | Supported databases, versions and limitations | [Support matrix](support-matrix.md) |
 | Database permissions | [Read-only account examples](read-only-accounts.md) |
-| Business terms, metrics and native query templates | [Semantic catalogs](semantics.md) · [Seven-family examples](../examples/semantics/) |
+| Business terms, metrics and native query templates | [Semantic catalogs](semantics.md) · [Database examples](../examples/semantics/) · [HTTP API example](../examples/http-api/semantics.json) |
 | Search published business concepts and preview linked queries | [Business catalog workflow](getting-started.md#2-describe-and-verify) |
 | Shared entity, property and relationship definitions | [Ontologies and mappings](ontologies.md) |
 | Reuse one retail ontology across different databases | [Retail demo](../examples/ontologies/retail-demo/README.md) |

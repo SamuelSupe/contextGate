@@ -32,11 +32,12 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 |---|---|
 | 共享业务本体 | 复用实体、属性和关系定义；各数据源独立映射并固定采用版本 |
 | 语义目录与查询模板 | 维护业务术语和指标，发布经过真实试跑的模板，可启用仅模板访问 |
-| 原生读取 | SQL、MongoDB、Redis、Search DSL、Cypher、CQL、InfluxQL / Flux |
+| 原生读取 | SQL、MongoDB、Redis、Search DSL、Cypher、CQL、InfluxQL / Flux 及固定 JSON HTTP API 操作 |
 | Agent 独立授权 | 数据源级授权、精确到期、暂停、轮换、永久撤销与 OAuth |
 | 实际只读保护 | 解析器和引擎分类、只读事务/文件、命令白名单与固定读取 API |
 | 有界查询 | 超时、取消、并发隔离、结果大小限制、身份绑定的分页游标 |
 | 无损结果 | 保留大整数、Decimal、二进制和原生文档/图/时序结构 |
+| 独立管理员账号 | 超级管理员/管理员两级角色、个人配置 MCP 身份、操作者审计及定向凭证撤销 |
 | 一体化管理 | 内嵌 UI、加密凭证、结构预览、调用审计与本地密码恢复 |
 
 ## 配置 MCP
@@ -45,7 +46,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 运维与恢复
 
-**0.4.0** 包含管理变更记录、加密的语义发布历史与草稿恢复、可选定期健康检查、模板回归用例、PG 诊断及备份恢复回验。入口为“健康状态”“语义 → 发布历史”和“设置 → 部署诊断”。具体边界和恢复步骤见[运维指南](docs/operations.zh-CN.md)。
+运维能力包含管理变更记录、加密的语义发布历史与草稿恢复、可选定期健康检查、模板回归用例、PG 诊断及备份恢复回验。入口为“健康状态”“语义 → 发布历史”和“设置 → 部署诊断”。全局健康检查策略和部署诊断需要超级管理员权限。具体边界和恢复步骤见[运维指南](docs/operations.zh-CN.md)。
 
 ## 下载运行
 
@@ -58,7 +59,9 @@ git clone https://github.com/SamuelSupe/contextGate.git
 cd contextGate
 mkdir -p databases
 umask 077
-printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+if [ ! -e .env ]; then
+  printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+fi
 docker compose up --build -d
 docker compose logs hub
 ```
@@ -67,7 +70,9 @@ docker compose logs hub
 
 Compose 在私有容器网络启动 PostgreSQL，健康后再启动 ContextGate，仅发布 ContextGate 的本机 HTTP 端口。ContextGate 使用 UID 10001，查询数据库文件只读挂载。`hub-postgres` 保存元数据，`hub-data` 保存独立加密主密钥；重启和升级时保留两个卷及已有 `.env`，只在首次安装生成 `.env`。
 
-**存储变更：** 当前源码仅使用 PostgreSQL 保存配置、会话、授权、语义和审计，从 0.4.x 升级保留已有 PostgreSQL 与匹配的主密钥；从 0.3.x 及更早版本升级不迁移旧 SQLite 元数据，需要重新初始化管理员和配置数据源。SQLite 查询数据源仍然支持。0.3.0 及更早版本使用 SQLite 元数据；切换前请阅读[升级说明](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier)。
+**从 0.4.x 或 0.5.x 升级到 0.6.0：** 备份并保留 PostgreSQL 元数据库及匹配主密钥。使用用户名 `admin` 和原密码重新登录；所有旧配置 MCP Token 被撤销，每名管理员需要签发个人 Token 并更新客户端。业务配置、查询 Agent/OAuth 授权保持不变。参阅[账号升级清单](docs/administrators.zh-CN.md)。
+
+**从 0.3.x 或更早版本升级：** 不导入旧 SQLite 元数据，需要创建全新 PostgreSQL 存储并重新配置账号、数据源及授权。SQLite 只读查询数据源仍支持，详见[存储升级说明](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier)。
 
 本地编译需要 Go 1.26、C/C++ 工具链、Node.js 24（仅用于构建前端）。DuckDB 和 SQLite 使用 CGO，不能以 `CGO_ENABLED=0` 构建。Linux arm64/amd64 使用各自平台原生编译。
 
@@ -85,7 +90,7 @@ export MCPDBHUB_DATABASE_URL='postgres://mcpdbhub:REPLACE_ME@127.0.0.1:5432/mcpd
 
 ![经过验证的查询模板与真实样例结果](docs/screenshots/query-preview.png)
 
-支持 Streamable HTTP 和 stdio 桥接；二者使用同一个 HTTP 服务、同一套授权和审计。服务暴露 15 个 MCP 工具：4 个发现工具、8 个原生查询工具和 3 个语义目录/模板工具。
+支持 Streamable HTTP 和 stdio 桥接；二者使用同一个 HTTP 服务、同一套授权和审计。`/mcp` 提供 15 个工具：4 个发现工具、8 个原生查询工具（7 类数据库查询加 HTTP API）和 3 个语义目录/模板工具。个人配置 MCP 使用独立端点，提供 [22 个配置工具](docs/configuration-mcp.zh-CN.md#工具与边界)。
 
 HTTP 客户端配置示例（不同客户端的外层配置格式可能不同）：
 
@@ -108,6 +113,8 @@ stdio 客户端配置：
 查询工具分别为 `query_sql`、`query_mongodb`、`query_redis`、`query_search`、`query_cypher`、`query_cql`、`query_influxdb`、`query_http_api`。参数结构由 MCP 工具 schema 定义。Agent 不能传入连接地址、凭证或 HTTP 路径。
 
 ## 数据库与结果
+
+[HTTP API 数据源](docs/http-api.zh-CN.md)支持固定 GET 和管理员声明为只读的 POST JSON 操作，复用授权、语义目录、查询模板和本体映射；HTTP 方法本身不证明上游没有副作用。
 
 适配 PostgreSQL、MySQL、MariaDB、TiDB、CockroachDB、TimescaleDB、SQLite、DuckDB、ClickHouse、MongoDB、Redis、Valkey、Elasticsearch、OpenSearch、Neo4j、Cassandra、ScyllaDB、InfluxDB。InfluxDB 按 1.x、2.x、3 Core 分别验证。**正式验证状态以支持矩阵中的实际版本和证据为准。**
 
@@ -135,19 +142,19 @@ SQL 数据源的命名空间、表和字段发现支持 `next_cursor`，管理�
 
 ![已发布的语义查询模板，来自实际管理界面](docs/screenshots/semantics.png)
 
-0.2.0 为每个数据源增加独立的业务目录和已验证原生查询模板。在 **Data sources → Semantics** 导入结构骨架、维护术语/字段/关系/指标、真实试跑模板并发布快照。**Templates only** 模式统一限制 HTTP、stdio、OAuth 和 Agent 身份预览。
+每个数据源拥有独立的业务目录和已验证原生查询模板。在 **Data sources → Semantics** 导入结构骨架、维护术语/字段/关系/指标、真实试跑模板并发布快照。**Templates only** 模式统一限制 HTTP、stdio、OAuth 和 Agent 身份预览。
 
-新增 `search_semantics`、`get_semantic_entry`、`execute_query_template`，提供已发布语义、有界分页、类型化 JSON Pointer 参数绑定和执行版本校验。连接、凭证或已观察数据库版本变更后必须重新试跑并发布。模板审计信息同步到 OTLP Logs。详见[完整说明](docs/semantics.zh-CN.md)和[全部查询族示例](examples/semantics/)。
+`search_semantics`、`get_semantic_entry`、`execute_query_template`，提供已发布语义、有界分页、类型化 JSON Pointer 参数绑定和执行版本校验。连接、凭证或已观察数据库版本变更后必须重新试跑并发布。模板审计信息同步到 OTLP Logs。详见[完整说明](docs/semantics.zh-CN.md)和[全部查询族示例](examples/semantics/)。
 
 ## OTLP 审计上报
 
-v0.1.1 支持在 **Settings → Audit log export** 配置 OTLP Logs，通过 HTTP/protobuf 或 gRPC 上报到 OpenTelemetry Collector 或兼容接收端。支持认证 Header 加密、CA 证书、测试发送和状态查看；异步读取已有脱敏审计，持久化进度并重试，不发送完整查询、参数、结果或凭证。详见[配置、Collector 示例和发送语义](docs/audit-export.zh-CN.md)。
+**超级管理员**可在 **Settings → Audit log export** 配置 OTLP Logs，上报查询、业务配置及账号安全事件，通过 HTTP/protobuf 或 gRPC 上报到 OpenTelemetry Collector 或兼容接收端。支持认证 Header 加密、CA 证书、测试发送和状态查看；异步读取已有脱敏审计，持久化进度并重试，不发送完整查询、参数、结果或凭证。详见[配置、Collector 示例和发送语义](docs/audit-export.zh-CN.md)。
 
 ## 共享业务本体
 
 ![共享本体与数据源、查询模板映射](docs/screenshots/ontology.png)
 
-0.3.0 新增 **Ontologies** 与 **Semantics → Ontology mapping**。Customer、Order 等定义可以跨源复用，各源独立映射表、集合和字段，并显式选择不可变本体版本。Agent 仅发现其已授权源中映射的概念，模板保持原生结果并附加 `ontology_context`。
+通过 **Ontologies** 与 **Semantics → Ontology mapping** 维护共享业务定义。Customer、Order 等定义可以跨源复用，各源独立映射表、集合和字段，并显式选择不可变本体版本。Agent 仅发现其已授权源中映射的概念，模板保持原生结果并附加 `ontology_context`。
 
 映射与源语义目录原子发布。本体说明升级保留模板试跑证据及运行查询，已有源不会自动采用最新版。身份、继承和基数为声明性约束，不包含事实推理、跨库查询或结果转换。详见[本体指南](docs/ontologies.zh-CN.md)、[跨源复用示例](examples/ontologies/)及[真实验证记录](docs/verification/ontology.json)。
 
@@ -199,7 +206,7 @@ python3 scripts/matrix.py postgres mysql mongodb
 
 **Connect** 可随时重新打开，提供 HTTP/stdio 配置与最近 30 天真实客户端调用状态。**Explore data** 支持点击结构导航、表格/JSON 结果、原生游标翻页、取消查询及指定 Agent 权限预览。预览会标注为管理员操作，不计作客户端接入成功；大整数和 Decimal 查询参数不会经 JavaScript 数值转换。
 
-**Audit log** 支持按调用方、数据源、结果、时间范围和请求 ID 筛选。查询及连接检查提供脱敏错误分类和可用的原生错误码，通过请求 ID 关联审计详情。审计不保存凭证、数据库原始错误文本、完整查询、参数或结果。
+**Audit log** 支持按管理员、配置身份、入口、调用方、数据源、结果、时间范围和请求 ID 筛选。所有管理员可查看业务/查询事件，只有超级管理员可查看“账号安全”。查询及连接检查提供脱敏错误分类和可用的原生错误码，通过请求 ID 关联审计详情。审计不保存凭证、数据库原始错误文本、完整查询、参数或结果。
 
 ### 配置变更与 OAuth 客户端管理
 
@@ -227,8 +234,6 @@ docker compose up -d hub
 
 独立二进制部署将密码通过管道传给 `contextgate reset-password --data-dir /原配置目录 --username admin --password-stdin`，然后重启服务。若配置了 `MCPDBHUB_MASTER_KEY`，恢复命令必须使用相同环境配置。不要通过删除配置数据库或主密钥来恢复密码。
 
-**0.6.0 新增：** 新增实名管理员、两级角色、个人配置 MCP 身份与操作者审计。升级后原密码迁移至用户名 `admin`，需要重新登录；旧配置 MCP Token 全部失效。参阅[升级和账号指南](docs/administrators.zh-CN.md)。
-
 ## 参与项目
 
 [报告问题](https://github.com/SamuelSupe/contextGate/issues/new/choose) · [贡献指南](CONTRIBUTING.md) · [安全反馈](SECURITY.md) · [更新记录](CHANGELOG.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
@@ -236,5 +241,3 @@ docker compose up -d hub
 ContextGate 采用 [Apache License 2.0](LICENSE) 开源许可证。归属声明见 [NOTICE](NOTICE)；第三方组件保留各自许可证，详见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 数据源 **Agent setup** 串联连接证据、模板、授权和真实调用，完成后转为 **Query workspace**，预览前明确展示所选 Agent。本体卡片展示源映射和可执行模板数量，可直接打开 **Queries and sources**。业务问题支持保存复用，评估指标与人工评分以加密历史记录持久保存。参见[工作流与效果验证](docs/agent-workflows.zh-CN.md)。
-
-0.5.0 新增 [HTTP API 数据源](docs/http-api.zh-CN.md)：固定 GET 和管理员声明为只读的 POST JSON 操作，复用授权、语义目录、查询模板和本体映射。

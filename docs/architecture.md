@@ -2,18 +2,20 @@
 
 [简体中文](architecture.zh-CN.md)
 
-A single Go process embeds the React application. Configuration and audit records live in the service's own PostgreSQL database. User databases are accessed through administrator-configured accounts; agents never receive connection credentials.
+A single Go process embeds the React application. Configuration and audit records live in the service's own PostgreSQL database. Databases and HTTP APIs are accessed through administrator-configured credentials; Agents never receive those credentials.
 
 ```mermaid
 flowchart LR
-  UI[Admin UI] --> API[Session authentication and CSRF]
+  UI[Admin UI] --> API[Named accounts, roles and CSRF]
   Agent[Agent] --> MCP[Official MCP SDK / Streamable HTTP]
   CLI[stdio bridge] --> MCP
   OAuth[Ory Fosite / OAuth] --> MCP
+  SetupAgent[Configuration Agent] --> ConfigMCP[Personal token / mcp/config]
+  ConfigMCP --> API
   API --> Execute[Authorization and query execution]
   MCP --> Execute
-  Execute --> Adapters[Seven native query families]
-  Adapters --> DB[(User databases)]
+  Execute --> Adapters[Seven database query families and HTTP API]
+  Adapters --> DB[(Databases and declared HTTP APIs)]
   Execute --> Store[(Configuration and audit PostgreSQL)]
   Store --> Export[Optional audit export worker]
   Export --> OTLP[OTLP Logs receiver]
@@ -24,11 +26,11 @@ flowchart LR
 | Path | Responsibility |
 |---|---|
 | `cmd/mcpdbhub` | serve command and stdio-to-HTTP bridge |
-| `internal/server` | Admin HTTP API, setup, login, CSRF and UI routing |
-| `internal/mcpserver` | Fourteen MCP tools and JSON Schema validation |
+| `internal/server` | Admin HTTP API, named accounts, CSRF, UI routing and 22 Configuration MCP tools |
+| `internal/mcpserver` | Fifteen query MCP tools and JSON Schema validation |
 | `internal/engine` | Per-call authorization, connection lifecycle, concurrency, timeouts, cancellation, cursor protection and auditing |
 | `internal/semantic` | Catalog definitions, typed value binding and executable definition fingerprints |
-| `internal/adapter` | SQL, MongoDB, Redis, Search, Cypher, CQL and InfluxDB |
+| `internal/adapter` | SQL, MongoDB, Redis, Search, Cypher, CQL, InfluxDB and HTTP API |
 | `internal/auditexport` | Bounded OTLP Logs encoding, HTTP/gRPC delivery, encrypted configuration and durable progress |
 | `internal/oauth` | Fosite provider, persistence, consent, registration, refresh and revocation |
 | `internal/store`, `internal/secure` | Configuration transactions, encryption and hashing |
@@ -40,7 +42,8 @@ flowchart LR
 
 | Tool | Inputs |
 |---|---|
-| `list_namespaces` | source_id |
+| `list_data_sources` | Empty object |
+| `list_namespaces` | source_id; optional namespace |
 | `list_objects` | source_id, optional namespace |
 | `describe_object` | source_id, object, optional namespace |
 | `query_sql` | query, params or named_params |
@@ -50,13 +53,16 @@ flowchart LR
 | `query_cypher` | query, named_params |
 | `query_cql` | query, params, cursor |
 | `query_influxdb` | language: sql/influxql/flux, query, named_params |
+| `query_http_api` | operation: configured operation ID; optional scalar named_params |
 | `search_semantics` | source_id, optional keyword, kind, limit, cursor |
 | `get_semantic_entry` | source_id, entry_id |
 | `execute_query_template` | source_id, template_id, execution_version, parameters, optional cursor and tighter limits |
 
-Queries can tighten `max_rows`, `timeout_seconds` and `max_bytes`; native pagination uses `cursor`. Undeclared connection fields are rejected by the schema. Administrator previews, HTTP MCP and stdio share the execution layer.
+The `/mcp` endpoint exposes these 15 tools. The separate `/mcp/config` endpoint has [22 configuration tools](configuration-mcp.md#tools-and-boundaries), authenticated by a personal configuration token.
 
-Results appear in both `structuredContent` and JSON text. `data` preserves rows, documents, nodes/relationships/paths and time-series tags/columns. `columns` carries available driver-native types. Integers and decimals use strings to avoid JavaScript precision loss; MongoDB uses Canonical Extended JSON; binary values use Base64 and timestamps retain engine precision. Ordinary JSON numeric values are not first converted to float64.
+Queries and structure discovery can tighten `max_rows`, `timeout_seconds` and `max_bytes`; supported pagination uses `cursor`. SQL metadata pages use `max_rows`, not a separate `limit` field. Undeclared connection fields are rejected by the schema. Administrator previews, HTTP MCP and stdio share the execution layer.
+
+Results appear in both `structuredContent` and JSON text. `data` preserves rows, documents, nodes/relationships/paths time-series tags/columns and configured HTTP JSON structures. `columns` carries available driver-native types. Integers and decimals use strings to avoid JavaScript precision loss; MongoDB uses Canonical Extended JSON; binary values use Base64 and timestamps retain engine precision. Ordinary JSON numeric values are not first converted to float64.
 
 Cypher parameters recursively retain native integer, decimal, list and map types; integers outside int64 are rejected. CQL encodes Decimal, float/double and collections according to prepared-statement parameter types, avoiding premature float conversion of exact decimals. SQL exact decimals can also be supplied as decimal strings with explicit type binding.
 
@@ -76,13 +82,16 @@ AES-GCM cursors bind identity, source revision, original query/parameters/limits
 - MongoDB recursively rejects `$out/$merge/$where/$function/$accumulator/$eval` and exposes no RunCommand. Aggregation cannot spill to disk.
 - Redis/Valkey expose an explicit read-command allowlist and reject EVAL, FUNCTION, MODULE, CONFIG, writing commands, KEYS and blocking commands. Range reads have bounded return sizes.
 - Search constructs only fixed read paths and rejects arbitrary paths, scripts, remote indexes and stateful scroll/PIT.
+- HTTP API calls use fixed administrator-declared operations and scalar parameter slots. Agents cannot supply URLs, methods, headers or arbitrary body fragments. Redirects are rejected and outbound addresses are validated. Read-only behavior is declared by the administrator, not proven by the HTTP method. See [HTTP API limits](http-api.md).
 - Flux rejects import/package/option, network parameters, interpolation and non-allowlisted calls. Parameters bind through an extern literal AST compatible with OSS 2.x, without string concatenation. InfluxDB 3 Core uses fixed query APIs; its administrator token is not described as a database read-only credential.
 
 ## Administration and OAuth
 
-`/api/sources`, `/api/agents`, `/api/audit`, `/api/catalog` and `/api/settings` serve the five administration pages. `/api/setup` consumes a one-time setup code; `/api/login` creates a 12-hour session. Write endpoints check `X-CSRF-Token`, Host and Origin. Tokens are accepted only in the Authorization header. Remote public URLs require HTTPS.
+Management APIs cover data sources, semantic catalogs, ontologies, query Agents, evaluation, audit, health and settings. `/api/administrators` manages named accounts; `/api/configuration-agents` exposes the current administrator’s fixed configuration identity. Account administration, global settings and security-event access require `super_admin` on the server. `/api/setup` consumes a one-time setup code; `/api/login` creates a 12-hour session. Write endpoints check `X-CSRF-Token`, Host and Origin. Tokens are accepted only in the Authorization header. Remote public URLs require HTTPS.
 
-Agent tokens are stored as SHA-256 hashes; administrator passwords use Argon2id. Database credentials and OAuth records use AES-256-GCM with contextual AAD. The master key is stored separately from the configuration database. Auditing retains identity, source, operation, a keyed query fingerprint, duration, count and error category for 30 days.
+Named accounts use `super_admin` and `admin` roles and immutable usernames. Account/session security versions are rechecked at request entry, mutation commit and query return. Role changes, account disablement and administrative password resets revoke the target account’s sessions and configuration token and cancel its work; normal personal password changes preserve the current session and configuration token. Query Agent grants remain independent. Administrator and configuration credential versions also bind relevant cursors. See the [account model and migration](administrators.md).
+
+Agent tokens are stored as SHA-256 hashes; administrator passwords use Argon2id. Database credentials and OAuth records use AES-256-GCM with contextual AAD. The master key is stored separately from the configuration database. Auditing retains the actual administrator, configuration identity and effective query Agent, source/resource, operation, submitted field categories, revision, request ID, keyed query fingerprint, duration, count and error category where applicable, for 30 days. Management mutations record intent before execution and then outcome; account-security events are visible only to super administrators.
 
 [Ory Fosite](https://github.com/ory/fosite) provides authorization codes, PKCE S256, resource audiences, administrator source selection, 15-minute access tokens, 30-day refresh grants, rotation and replay revocation. Each consent creates source grants that can be revoked or narrowed on the Agents page. Token, revocation and consent handlers serialize critical state transitions; PostgreSQL persists state across restarts.
 
@@ -92,7 +101,7 @@ The implementation follows the [MCP authorization specification](https://modelco
 
 ## Audit export
 
-The optional worker reads committed audit rows and saves encrypted configuration, cursor and delivery status in one PostgreSQL KV record. It does not add network work to query execution. Administrator-only `/api/settings/audit-export` and `/api/settings/audit-export/test` endpoints share the existing session and CSRF boundary. Settings revisions prevent stale credential/configuration updates; changes cancel active export requests. See [OTLP configuration and delivery semantics](audit-export.md).
+The optional worker reads committed audit rows and saves encrypted configuration, cursor and delivery status in one PostgreSQL KV record. It does not add network work to query execution. Super-administrator-only `/api/settings/audit-export` and `/api/settings/audit-export/test` endpoints share the existing session and CSRF boundary. Settings revisions prevent stale credential/configuration updates; changes cancel active export requests. See [OTLP configuration and delivery semantics](audit-export.md).
 
 ## Semantic publication
 
@@ -101,5 +110,3 @@ Per-source encrypted draft and published entries are updated in one PostgreSQL t
 ## Shared ontologies
 
 Encrypted ontology drafts and immutable published versions live independently from source semantic snapshots. Each source snapshot pins one version and stores its own mappings; a transactional reference index protects versions from deletion. The engine builds the source-authorized concept projection only after authorization and captures ontology context at template request start. Definitions and mappings never compile queries or change native results. See [ontology storage, APIs and visibility boundaries](ontologies.md).
-
-Named accounts use `super_admin` and `admin` roles, immutable usernames and an individual configuration identity. Account/session security versions are rechecked at entry and commit; role/password-reset/disable operations revoke only the owner’s sessions and configuration token. Business resources and query grants remain shared. [Account model and migration](administrators.md).

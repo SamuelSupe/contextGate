@@ -10,6 +10,8 @@ Install ContextGate using the [installation guide](install.md). Open `http://127
 
 In **Data sources**, add a database connection with a dedicated database read-only account. The gateway's own PostgreSQL metadata account is separate and needs write privileges. Configure TLS, query limits and file roots where relevant. Save, test connectivity, and inspect read-only evidence. A successful connection with **Not verified** permissions is not proof of database read-only privileges.
 
+For a JSON REST API, choose **HTTP API**, declare fixed read-only operations and scalar parameters, then test the configured check operation. HTTP read-only behavior remains administrator-declared; follow the [HTTP API guide](http-api.md).
+
 Keep **Native queries and templates** while preparing the source, or choose **Templates only** when Agents should use exclusively published templates. The latter rejects native Agent queries even when the same Agent has source access.
 
 ## 2. Describe and verify

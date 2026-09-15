@@ -68,7 +68,7 @@ All database products supported by the source catalog are configurable. HTTP API
 
 Full source updates replace editable fields. `get_source_configuration` returns an editable `configuration` object: preserve its fields when calling `update_data_source`. Blank/omitted credentials retain stored credentials; `clear_password`, `clear_token`, or `auth_mode: "none"` explicitly remove them. TLS modes are `verify` and `disable`. SQLite/DuckDB paths must be under the administrator's configured file root.
 
-Full semantic and ontology draft saves replace their documents. Prefer entry-level edits for small catalog changes. Source summaries and ontology lists accept `offset` and `limit` (default 20, maximum 50). Restart list paging if concurrent edits change the list. Responses are capped at 4 MiB, requests at 1 MiB. Maximum concurrent configuration calls: two per token, eight per instance. Calls have a maximum two-minute deadline; database operations also obey the source's shorter timeout.
+Full semantic and ontology draft saves replace their documents. Prefer entry-level edits for small catalog changes. Source summaries and ontology lists accept `offset` and `limit` (default 20, maximum 50). Restart list paging if concurrent edits change the list. Responses are capped at 4 MiB, requests at 1 MiB. Maximum concurrent configuration calls: two per configuration identity, eight per instance. Calls have a maximum two-minute deadline; database operations also obey the source's shorter timeout.
 
 There are no tools for publishing, source/ontology deletion, Agent grants, token creation, system settings, arbitrary HTTP routes, or unrestricted native queries. Template trials permit administrator-style read-only execution to prepare verification; do not treat this broad configuration credential as a scoped query credential. Existing database credentials are never returned. Do not put credentials in ontology descriptions, template queries, examples or options.
 
@@ -76,7 +76,7 @@ Revocation cancels active configuration calls and nested trials and blocks queue
 
 ## Audit
 
-Configuration tool calls have a dedicated `cfg_…` identity and `configuration.<tool>` operation. Connection tests, structure discovery and template trials preserve that identity in their nested query audit. Creation/revocation of configuration credentials is also audited. Existing OTLP Logs export carries the same events. Audit excludes credential values, complete definitions, queries, parameters and results. Configuration tokens are stored as hashes; source credentials and semantic/ontology documents retain the existing encryption.
+Configuration tool calls record the owner’s administrator ID and username, personal `cfg_…` configuration identity, entry point and `configuration.<tool>` operation. Connection tests, structure discovery and template trials preserve this operator context in nested query audit. All administrators can inspect business configuration events; token issuance, rotation and revocation are account-security events visible only to super administrators. OTLP Logs carries both categories with the same attribution. Legacy events are not retrospectively assigned to an administrator. Audit excludes credential values, complete definitions, queries, parameters and results. Configuration tokens are stored as hashes; source credentials and semantic/ontology documents retain the existing encryption.
 
 ## Starter prompt
 

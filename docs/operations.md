@@ -18,7 +18,7 @@ All administrators share business configuration. Super administrators additional
 
 ## Focus audit activity
 
-**Audit log** starts with **Real Agent calls**. **Manual previews** includes administrator and selected-Agent previews; **System checks** contains new background/manual health-discovery events; **All activity** also exposes management changes. These are combinable with source, caller, result and time filters. Health checks never count as successful Agent onboarding.
+**Audit log** starts with **Real Agent calls**. **Manual previews** includes administrator and selected-Agent previews; **System checks** contains new background/manual health-discovery events; **All activity** also exposes management changes. Combine these views with administrator, configuration identity, entry point, source, caller, result and time filters. Account-security events are visible only to super administrators. Health checks never count as successful Agent onboarding.
 
 System-discovery events use `event_kind=system`, including the existing OTLP Logs attribute. This classification applies to newly recorded events; historical records retain their original classification. Event content and retention remain unchanged, and no query text or results are added to audit records.
 
@@ -34,7 +34,7 @@ Restoring the same execution definition retains its execution version when publi
 
 ## Check health
 
-**Health** brings together source connection evidence, changes to published object metadata, template validation, credentials expired or expiring within seven days, and OTLP delivery errors. Refresh reads saved evidence; **Check now** performs an actual read-only check. **Scheduled checks** are off by default, configurable from 5 to 1,440 minutes, and begin on the worker's next one-minute tick when due.
+**Health** brings together source connection evidence, changes to published object metadata, template validation, credentials expired or expiring within seven days, and OTLP delivery errors. Refresh reads saved evidence; **Check now** performs an actual read-only check. Only super administrators configure **Scheduled checks**. They are off by default, configurable from 5 to 1,440 minutes, and begin on the worker's next one-minute tick when due.
 
 Checks are sequential, respect source execution limits and use at most 30 seconds per source. Each check probes the connection and compares discoverable column/field names and native types for up to 20 explicitly published object references, including ontology mappings. They do not execute query templates, retrieve business samples, enumerate every database object, or prove business correctness. Redis/Valkey, Neo4j and InfluxDB field checks remain unverified because their discovery paths may inspect data; MongoDB evidence covers indexed fields, not all document fields. Coverage and check time are visible. A change includes up to ten added, removed or type-changed fields per object; large or unavailable field details are explicitly marked as limited. Configuration changes mark saved evidence stale; overdue periodic checks are labeled explicitly.
 
@@ -55,7 +55,7 @@ Adding or editing a regression contract requires a new successful trial. The con
 
 ## Diagnose PostgreSQL
 
-**Settings → Deployment diagnostics → Run diagnostics** checks the metadata connection, observed PostgreSQL version and TLS transport, key match, schema and pool usage. The copyable report contains no database address, credentials, source names or query data. The key check verifies the loaded key against metadata; it does not prove the key has been backed up. TLS transport evidence alone does not establish certificate verification policy. An unavailable metadata database can prevent administrator login; `/healthz`, container state and service startup logs remain the first checks in that case.
+For super administrators, **Settings → Deployment diagnostics → Run diagnostics** checks the metadata connection, observed PostgreSQL version and TLS transport, key match, schema and pool usage. The copyable report contains no database address, credentials, source names or query data. The key check verifies the loaded key against metadata; it does not prove the key has been backed up. TLS transport evidence alone does not establish certificate verification policy. An unavailable metadata database can prevent administrator login; `/healthz`, container state and service startup logs remain the first checks in that case.
 
 ## Back up and verify recovery
 
@@ -78,8 +78,10 @@ Backup freshness is not monitored by the service. Retain the verification output
 
 ## Verification record
 
+See [0.6.0 release validation](validation.md#contextgate-060--2026-09-15) for final CI and archive/download gates. The feature-stage records below retain their original scopes.
+
 [UX fix validation](verification/product-ux-fixes.json) records the follow-up catalog, authoring, single-answer evaluation and responsive checks, including the isolated runtime recovery and remaining browser limitations.
 
-[Product workflow validation](verification/product-workflows.json) records the Home, business catalog, publication review and audit-view checks for the current local increment, including tests not rerun.
+[Product workflow validation](verification/product-workflows.json) records the Home, business catalog, publication review and audit-view checks during the earlier 0.5.0 feature stage, including tests not rerun.
 
 [Earlier operations validation](verification/operations.json) records the previous backup, health and regression rollout, with its separate verification scope.

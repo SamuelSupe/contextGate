@@ -2,19 +2,23 @@
 
 [English](architecture.md)
 
-单进程 Go 服务内嵌 React 静态资源。配置和审计保存在服务自己的 PostgreSQL 中。用户数据库由管理员配置的账号访问；Agent 不获得连接凭证。
+单进程 Go 服务内嵌 React 静态资源。配置和审计保存在服务自己的 PostgreSQL 中。数据库和 HTTP API 使用管理员配置的凭证访问；Agent 不获得连接凭证。
 
 ```mermaid
 flowchart LR
-  UI[管理 UI] --> API[会话认证与 CSRF]
+  UI[管理 UI] --> API[管理员账号、角色与 CSRF]
   Agent[Agent] --> MCP[官方 MCP SDK / Streamable HTTP]
   CLI[stdio 桥接] --> MCP
   OAuth[Ory Fosite / OAuth] --> MCP
+  SetupAgent[配置 Agent] --> ConfigMCP[个人 Token / mcp/config]
+  ConfigMCP --> API
   API --> Execute[授权与执行引擎]
   MCP --> Execute
-  Execute --> Adapters[7 个查询语言族适配器]
-  Adapters --> DB[(用户数据库)]
+  Execute --> Adapters[7 类数据库查询与 HTTP API]
+  Adapters --> DB[(数据库与已声明 HTTP API)]
   Execute --> Store[(配置与审计 PostgreSQL)]
+  Store --> Export[可选审计上报协程]
+  Export --> OTLP[OTLP Logs 接收端]
 ```
 
 ## 目录
@@ -22,10 +26,12 @@ flowchart LR
 | 路径 | 职责 |
 |---|---|
 | `cmd/mcpdbhub` | serve 命令、stdio → HTTP 桥接 |
-| `internal/server` | 管理 HTTP API、初始化、登录、CSRF、UI 路由 |
-| `internal/mcpserver` | 14 个 MCP 工具及 JSON Schema 验证 |
+| `internal/server` | 管理 HTTP API、管理员账号、CSRF、UI 路由与 22 个配置 MCP 工具 |
+| `internal/mcpserver` | 15 个查询 MCP 工具及 JSON Schema 验证 |
 | `internal/engine` | 每次调用授权、连接生命周期、并发、超时、取消、游标封装、审计 |
-| `internal/adapter` | SQL、MongoDB、Redis、Search、Cypher、CQL、InfluxDB |
+| `internal/semantic` | 目录定义、类型化值绑定与执行定义指纹 |
+| `internal/adapter` | SQL、MongoDB、Redis、Search、Cypher、CQL、InfluxDB、HTTP API |
+| `internal/auditexport` | 有界 OTLP Logs 编码、HTTP/gRPC 发送、加密配置及持久化进度 |
 | `internal/oauth` | Fosite provider、持久化、同意、注册、刷新和撤销 |
 | `internal/store`、`internal/secure` | 配置事务、加密、散列 |
 | `web`、`internal/ui` | React/TS 源码、Go 内嵌构建产物 |
@@ -36,7 +42,8 @@ flowchart LR
 
 | 工具 | 输入 |
 |---|---|
-| `list_namespaces` | source_id |
+| `list_data_sources` | 空对象 |
+| `list_namespaces` | source_id、namespace（可选） |
 | `list_objects` | source_id、namespace（可选） |
 | `describe_object` | source_id、object、namespace（可选） |
 | `query_sql` | query、params 或 named_params |
@@ -46,10 +53,16 @@ flowchart LR
 | `query_cypher` | query、named_params |
 | `query_cql` | query、params、cursor |
 | `query_influxdb` | language: sql/influxql/flux、query、named_params |
+| `query_http_api` | operation：已配置操作 ID；named_params：可选标量参数 |
+| `search_semantics` | source_id，可选 keyword、kind、limit、cursor |
+| `get_semantic_entry` | source_id、entry_id |
+| `execute_query_template` | source_id、template_id、execution_version、parameters，可选 cursor 及更严格上限 |
 
-所有查询可收紧 `max_rows`、`timeout_seconds`、`max_bytes`；原生分页提供 `cursor`。不接受 schema 未声明的连接字段。管理查询、HTTP MCP 与 stdio 使用同一执行层。
+`/mcp` 提供上述 15 个工具。独立的 `/mcp/config` 通过个人配置 Token 认证，提供 [22 个配置工具](configuration-mcp.zh-CN.md#工具与边界)。
 
-结果同时放在 `structuredContent` 与 JSON 文本中。`data` 保留表行、文档、节点/关系/路径、时序标签/列信息。`columns` 提供驱动可得的原生类型。整数/Decimal 使用字符串避免 JavaScript 精度丢失；MongoDB 使用 Canonical Extended JSON；二进制采用 Base64，时间保留引擎提供的精度。JSON 对象的普通数字不会被先转成 float64。
+查询和结构发现可收紧 `max_rows`、`timeout_seconds`、`max_bytes`；支持分页的操作提供 `cursor`；SQL 元数据分页使用 `max_rows`，不使用单独的 `limit` 字段。不接受 schema 未声明的连接字段。管理查询、HTTP MCP 与 stdio 使用同一执行层。
+
+结果同时放在 `structuredContent` 与 JSON 文本中。`data` 保留表行、文档、节点/关系/路径、时序标签/列及已配置 HTTP JSON 结构。`columns` 提供驱动可得的原生类型。整数/Decimal 使用字符串避免 JavaScript 精度丢失；MongoDB 使用 Canonical Extended JSON；二进制采用 Base64，时间保留引擎提供的精度。JSON 对象的普通数字不会被先转成 float64。
 
 Cypher 参数递归保留整数、小数、列表及 map 的原生类型，超出 int64 的整数拒绝。CQL 根据预备语句参数类型编码 Decimal、float/double 与集合，避免把精确 Decimal 提前转成浮点数。SQL 的精确 Decimal 仍可通过十进制字符串与显式类型绑定传入。
 
@@ -69,13 +82,16 @@ Cypher 参数递归保留整数、小数、列表及 map 的原生类型，超�
 - MongoDB 递归拒绝 `$out/$merge/$where/$function/$accumulator/$eval`，不暴露 RunCommand。聚合不允许磁盘溢出。
 - Redis/Valkey 只开放显式读取命令，拒绝 EVAL、FUNCTION、MODULE、CONFIG、写命令、KEYS 与阻塞命令。范围读取被限制为有限返回量。
 - Search 仅构造固定读取路径，禁止任意路径、脚本、远程索引与有状态 scroll/PIT。
+- HTTP API 使用管理员声明的固定操作与标量参数槽，不接受 Agent 提交 URL、方法、Header 或任意请求体片段；禁止重定向并检查出站地址。只读行为由管理员声明，HTTP 方法本身不证明上游无副作用。详见 [HTTP API 限制](http-api.zh-CN.md)。
 - Flux 禁止 import/package/option、网络参数、插值和非白名单调用。参数用 extern 的字面量 AST 绑定，兼容 OSS 2.x；不拼接字符串。InfluxDB 3 Core 仅调用固定查询 API，不声称管理员 Token 是数据库只读凭证。
 
 ## 管理与 OAuth
 
-管理 API 的 `/api/sources`、`/api/agents`、`/api/audit`、`/api/catalog`、`/api/settings` 分别服务五个页面。`/api/setup` 消费一次性设置码；`/api/login` 建立 12 小时会话；写接口检查 `X-CSRF-Token`、Host 与 Origin。Token 只可放在 Authorization Header。远程公开地址必须使用 HTTPS。
+管理 API 覆盖数据源、语义目录、本体、查询 Agent、评估、审计、健康与设置。`/api/administrators` 管理账号，`/api/configuration-agents` 提供当前管理员的固定配置身份；账号管理、全局设置和安全审计由后端强制要求 `super_admin`。`/api/setup` 消费一次性设置码；`/api/login` 建立 12 小时会话；写接口检查 `X-CSRF-Token`、Host 与 Origin。Token 只可放在 Authorization Header。远程公开地址必须使用 HTTPS。
 
-Agent Token 只保存 SHA-256；管理员密码为 Argon2id。数据库凭证和 OAuth 记录分别用带上下文 AAD 的 AES-256-GCM 加密。主密钥与配置数据库分开保存。审计只存身份、数据源、操作、带密钥查询指纹、耗时、数量和错误分类，保留 30 天。
+多管理员使用 `super_admin` 与 `admin` 两级角色，用户名固定，每人对应独立配置身份。请求入口、变更提交点和返回查询结果前复查会话/凭证状态。角色调整、停用及管理员重置密码会撤销目标账号的会话、配置 Token 并取消其任务；本人正常改密保留当前会话与配置 Token。查询 Agent 授权独立。相关游标绑定管理员身份及配置凭证版本。详见[账号模型和升级](administrators.zh-CN.md)。
+
+Agent Token 只保存 SHA-256；管理员密码为 Argon2id。数据库凭证和 OAuth 记录分别用带上下文 AAD 的 AES-256-GCM 加密。主密钥与配置数据库分开保存。审计按操作记录实际管理员、配置身份及执行所用 Agent、数据源/资源、动作、提交字段类别、修订、请求 ID、带密钥查询指纹、耗时、数量和错误分类，保留 30 天。配置变更先记录意图再记录结果；账号安全事件仅超级管理员可见。
 
 OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKCE S256、resource audience、管理员选择数据源、15 分钟 access token、30 天 refresh grant、刷新轮换和重放撤销。每次同意生成可在 Agent 页面撤销/缩小的数据源授权。token/revoke/consent 处理串行化关键状态变更，所有状态保存在 PostgreSQL，重启恢复。
 
@@ -85,7 +101,7 @@ OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKC
 
 ## OTLP 审计上报
 
-可选的 `internal/auditexport` 工作协程读取已提交审计，将配置、确认游标和发送状态加密保存在同一 PostgreSQL KV 记录中，不在查询请求中执行网络上报。管理接口 `/api/settings/audit-export` 和 `/api/settings/audit-export/test` 复用管理员会话及 CSRF 校验；版本号阻止旧配置覆盖，变更取消正在发送的请求。详见[配置及发送语义](audit-export.zh-CN.md)。
+可选的 `internal/auditexport` 工作协程读取已提交审计，将配置、确认游标和发送状态加密保存在同一 PostgreSQL KV 记录中，不在查询请求中执行网络上报。管理接口 `/api/settings/audit-export` 和 `/api/settings/audit-export/test` 要求超级管理员会话及 CSRF 校验；版本号阻止旧配置覆盖，变更取消正在发送的请求。详见[配置及发送语义](audit-export.zh-CN.md)。
 
 ## 语义发布
 
@@ -94,5 +110,3 @@ OAuth 使用 [Ory Fosite](https://github.com/ory/fosite)，实现授权码、PKC
 ## 共享本体
 
 本体草稿及不可变发布版本独立加密保存；各源语义快照固定一个版本并独立保存映射。事务内引用索引保护已引用版本。执行层先授权再生成可见概念子集，并在模板请求开始时固定本体上下文，不编译查询或转换原生结果。详见[本体指南](ontologies.zh-CN.md)。
-
-多管理员使用 `super_admin` 与 `admin` 两级角色，用户名固定，每人对应独立配置身份。请求入口及提交点复查会话/凭证版本；角色调整、重置密码和停用仅撤销对应管理员的会话及配置 Token。业务资源与查询授权共享。详见[账号模型和升级](administrators.zh-CN.md)。

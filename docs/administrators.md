@@ -55,7 +55,7 @@ Select **Audit log → All activity** or **Management changes** to inspect busin
 
 Only super administrators can read **Account security**, including account creation, role/status edits, password/token changes and authentication events. Ordinary administrators cannot retrieve these events using alternate filters or direct API calls. A local password recovery is attributed to `local_operator` through `cli`, with the target account as the resource; server access does not prove a named UI identity.
 
-Records contain IDs, verified usernames, action, submitted field categories, revisions, request IDs, timing and outcome. They do not contain passwords, tokens, full definitions, query parameters or results. Changes record intent first and outcome second. If intent cannot be written, the change is refused. A failed outcome write leaves an identifiable pending event for investigation. New actor fields are also delivered through [OTLP Logs](audit-export.md).
+Records contain IDs, authenticated account usernames, action, submitted field categories, revisions, request IDs, timing and outcome. They do not contain passwords, tokens, full definitions, query parameters or results. Changes record intent first and outcome second. If intent cannot be written, the change is refused. A failed outcome write leaves an identifiable pending event for investigation. New actor fields are also delivered through [OTLP Logs](audit-export.md).
 
 ## Upgrade from 0.5.0 or an earlier PostgreSQL release
 

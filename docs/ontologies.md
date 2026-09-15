@@ -2,7 +2,7 @@
 
 [简体中文](ontologies.zh-CN.md) · [Commerce examples](../examples/ontologies/) · [Semantic catalogs and templates](semantics.md)
 
-Available in **0.3.0**. Define business entities, properties and relations once, then map each data source to one immutable ontology version. PostgreSQL can map `Customer` to `public.crm_customers`; MongoDB can map the same concept to `hubtest.buyers`. Agents use these definitions to find a source's native query templates. Results keep their native rows, documents, graph or time-series structure.
+Define business entities, properties and relations once, then map each data source to one immutable ontology version. PostgreSQL can map `Customer` to `public.crm_customers`; MongoDB can map the same concept to `hubtest.buyers`. Agents use these definitions to find a source's native query templates. Results keep their native rows, documents, graph or time-series structure.
 
 This is a definition and query-guidance feature. It does not store entity instances, infer facts, compile business concepts into queries, join across sources or normalize native results into unified entities. It does not implement full [OWL 2](https://www.w3.org/TR/owl2-overview/) or [SHACL](https://www.w3.org/TR/shacl/) conformance.
 
@@ -62,7 +62,7 @@ Definition, mapping-description and concept-association publications preserve qu
 
 ## MCP contract
 
-There are still **14 MCP tools**. The three semantic tools are extended:
+The query endpoint has **15 MCP tools**, including HTTP API reads. Ontologies reuse the existing semantic tools; they do not add a unified entity-query tool:
 
 | Tool | Ontology behavior |
 |---|---|

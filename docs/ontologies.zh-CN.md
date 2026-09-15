@@ -2,7 +2,7 @@
 
 [English](ontologies.md) · [Customer/Order 示例](../examples/ontologies/) · [语义目录与模板](semantics.zh-CN.md)
 
-**0.3.0** 增加“共享定义、独立映射、按数据源授权”的业务本体。统一定义 Customer、Order 和 Customer places Order，再分别映射 PostgreSQL 的表与字段、MongoDB 的集合与文档路径。Agent 根据业务概念找到当前源的原生查询模板，返回值仍保留原生结构。
+业务本体采用“共享定义、独立映射、按数据源授权”。统一定义 Customer、Order 和 Customer places Order，再分别映射 PostgreSQL 的表与字段、MongoDB 的集合与文档路径。Agent 根据业务概念找到当前源的原生查询模板，返回值仍保留原生结构。
 
 本功能提供定义与查询指导，不存储实体实例、不进行事实推理、不生成查询、不做跨源关联、不输出统一实体模型，也不宣称完整符合 OWL 2 或 SHACL。
 
@@ -68,7 +68,7 @@ Agent 的本体读取必须先通过 Data Source 授权，再生成该源的可�
 
 ## MCP、JSON 与持久化
 
-工具总数仍为 **14**：`list_data_sources` 增加采用本体摘要；`search_semantics` 增加 `entity_type`、`property`、`relation_type`；`get_semantic_entry` 返回定义、当前源映射、验证状态和关联模板；`execute_query_template` 输入兼容，结果增加 `ontology_context`，包含本体 ID、版本及显式概念引用。
+查询端点有 **15 个 MCP 工具**，含 HTTP API 读取。本体复用既有语义工具，不新增统一实体查询工具：`list_data_sources` 增加采用本体摘要；`search_semantics` 增加 `entity_type`、`property`、`relation_type`；`get_semantic_entry` 返回定义、当前源映射、验证状态和关联模板；`execute_query_template` 输入兼容，结果增加 `ontology_context`，包含本体 ID、版本及显式概念引用。
 
 本体引用使用独立命名空间：
 

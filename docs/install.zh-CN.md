@@ -4,6 +4,10 @@
 
 **ContextGate 0.6.0** 使用 `contextgate` 主命令，并保留 `mcpdbhub` 别名。
 
+## 升级到 0.6.0
+
+从 0.4.x/0.5.x PostgreSQL 部署升级时，先备份元数据库及匹配主密钥，更换程序后继续使用原库和密钥。以 `admin` 和原密码重新登录；所有旧配置 MCP Token 失效，每名管理员需重新签发个人 Token。数据源、语义、本体及查询 Agent/OAuth 授权保留。具体步骤见[管理员升级清单](administrators.zh-CN.md)。
+
 ## PostgreSQL 元数据
 
 0.6.0 必须配置 `MCPDBHUB_DATABASE_URL` 并预先创建 PostgreSQL 数据库；账号需要建表及读写权限。Compose 可自动创建专用数据库。`--data-dir` 仅保存独立加密主密钥，元数据由 PostgreSQL 保存。
@@ -50,7 +54,9 @@ git clone https://github.com/SamuelSupe/contextGate.git
 cd contextGate
 mkdir -p databases
 umask 077
-printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+if [ ! -e .env ]; then
+  printf 'MCPDBHUB_POSTGRES_PASSWORD=%s\n' "$(openssl rand -hex 24)" > .env
+fi
 docker compose up --build -d
 docker compose logs hub
 ```
@@ -63,7 +69,7 @@ docker compose logs hub
 
 当前 PG 存储请停止 ContextGate 后用 `pg_dump` / `pg_restore` 备份和恢复元数据库。将匹配的 `master.key` 放在程序目录外，单独备份并保护；如使用 `MCPDBHUB_MASTER_KEY`，另行备份该外部密钥。恢复时密钥必须与配置匹配。
 
-升级前保留旧程序和停止状态下的配置备份，新版本使用同一 `MCPDBHUB_DATABASE_URL` 和密钥目录启动。此次 SQLite 到 PG 变更从空库开始，不导入旧元数据，需要重新配置。不要删除主密钥、配置库或数据卷。数据库迁移后如需回退，应恢复与旧程序配套的配置备份。
+升级前保留旧程序和停止状态下的配置备份，新版本使用同一 `MCPDBHUB_DATABASE_URL` 和密钥目录启动。只有从 0.3.x 或更早版本升级才需要新建 PostgreSQL 存储并重新配置；现有 PostgreSQL 部署保留元数据。不要删除主密钥、配置库或数据卷。数据库迁移后如需回退，应恢复与旧程序配套的配置备份。
 
 忘记管理员密码时，保留同一 `MCPDBHUB_DATABASE_URL` 和主密钥，停止服务，通过 stdin 执行 `./contextgate reset-password --data-dir /原配置路径 --username admin --password-stdin`；具体无回显命令见 [恢复说明](../README.zh-CN.md#管理员忘记密码后的恢复)。原数据源与查询 Agent Token 保留，指定管理员的会话及配置 Token 失效。
 
@@ -80,5 +86,3 @@ docker compose logs hub
 | 游标无效 | 使用相同身份、参数和上限；过期、升级或授权改变后重新开始查询 |
 
 版本、二进制摘要与源码提交记录在包内 `BUILD.json`。已执行的产品/平台验收与剩余边界见 [验收说明](validation.zh-CN.md)。
-
-[管理员账号与 0.5.0 升级说明](administrators.zh-CN.md)

@@ -2,7 +2,7 @@
 
 [English](configuration-mcp.md)
 
-通过独立配置 MCP，让受信任的 Agent 配置 ContextGate 的数据源、语义目录、查询模板和共享本体。进入 **设置 → 我的配置 MCP**，创建命名 Token，选择有效期并复制 HTTP 或 stdio 接入配置。Token 只展示一次，默认有效 24 小时，最长 30 天，可随时撤销。
+通过独立配置 MCP，让受信任的 Agent 配置 ContextGate 的数据源、语义目录、查询模板和共享本体。进入 **设置 → 我的配置 MCP**，为本人的固定配置身份签发 Token，选择有效期并复制 HTTP 或 stdio 接入配置。Token 只展示一次，默认有效 24 小时，最长 30 天，可随时撤销。
 
 这是可以管理**所有数据源连接与共享草稿**的管理员级配置凭证。现有查询 Agent Token、OAuth 授权和管理员会话 Cookie 均不能访问配置 MCP；配置 Token 也不能用于查询端点或管理 REST API。
 
@@ -40,7 +40,7 @@ stdio 客户端在本机安装 ContextGate，可执行 `contextgate stdio --url 
 
 本体版本固定，数据源不会自动跟随升级。目录、模板和映射沿用原有原子发布流程，保存只更新草稿。发生修订冲突时重新读取并明确合并，不能盲目覆盖。
 
-支持清单中的全部产品均可配置，模板继续采用七类原生查询工具：SQL、MongoDB、Redis/Valkey、Search、Cypher、CQL、InfluxDB。复用现有适配器能力与安全限制。参见[各查询家族示例](../examples/semantics/)和[零售本体示例](../examples/ontologies/retail-demo/)。
+支持清单中的全部数据库产品均可配置，数据库模板采用七类原生查询工具：SQL、MongoDB、Redis/Valkey、Search、Cypher、CQL、InfluxDB。HTTP API 数据源也可创建和维护，使用第八类查询工具 `query_http_api`；固定请求契约、只读声明、API 版本与参数配置见 [HTTP API 数据源](http-api.zh-CN.md)。所有模板复用相应适配器能力与安全限制。参见[各查询家族示例](../examples/semantics/)和[零售本体示例](../examples/ontologies/retail-demo/)。
 
 ## 工具与边界
 
@@ -54,7 +54,7 @@ stdio 客户端在本机安装 ContextGate，可执行 `contextgate stdio --url 
 
 更新数据源使用读取返回的 `configuration` 和当前 `revision`，保留未修改字段。已有密码和数据库 Token 永不回显；空值或省略保留旧凭证，明确使用 clear_password、clear_token 或 auth_mode: none 才删除。TLS 模式为 verify、disable；SQLite/DuckDB 路径必须位于配置的文件根目录。
 
-完整草稿保存会替换文档，小改动优先使用条目编辑。数据源与本体摘要列表支持 offset/limit，默认 20、最多 50；并发编辑改变列表时重新开始分页。请求上限 1 MiB、响应上限 4 MiB，每 Token 最多同时 2 个配置调用、实例最多 8 个，最长 2 分钟；数据库操作还遵守更短的数据源超时。
+完整草稿保存会替换文档，小改动优先使用条目编辑。数据源与本体摘要列表支持 offset/limit，默认 20、最多 50；并发编辑改变列表时重新开始分页。请求上限 1 MiB、响应上限 4 MiB，每个配置身份最多同时 2 个配置调用、实例最多 8 个，最长 2 分钟；数据库操作还遵守更短的数据源超时。
 
 不开放发布、删除数据源或本体、修改 Agent 授权、创建自身凭证、系统设置、任意 HTTP 路径和任意原生查询工具。模板试跑具备管理员式的受控只读执行能力，不应将配置 Token 当作有数据源范围限制的查询凭证。不要在定义、查询文本、示例参数或 options 中保存秘密。
 
@@ -62,10 +62,8 @@ stdio 客户端在本机安装 ContextGate，可执行 `contextgate stdio --url 
 
 ## 审计
 
-配置调用使用独立 cfg_… 身份及 configuration.<tool> 操作名；连接检测、结构发现和模板试跑保留同一身份。Token 创建和撤销也写入审计，沿用现有 OTLP Logs 上报。不记录凭证、完整定义、查询文本、参数和结果。配置 Token 仅保存哈希，数据库凭证及语义／本体内容沿用原有加密存储。
+配置调用记录所属管理员 ID、用户名、个人 `cfg_…` 配置身份、入口及 `configuration.<tool>` 操作名；连接检测、结构发现和模板试跑保留同一操作者上下文。所有管理员可查看业务配置审计；Token 签发、轮换和撤销属于仅超级管理员可见的账号安全事件。OTLP Logs 上报两类事件及相同的身份归属；历史事件不追溯认定具体管理员。不记录凭证、完整定义、查询文本、参数和结果。配置 Token 仅保存哈希，数据库凭证及语义／本体内容沿用原有加密存储。
 
 ## 起始提示词
 
 > 请使用 ContextGate 配置 MCP 帮我配置数据源、语义目录、查询模板和本体映射。先调用 get_configuration_guide 并检查已有配置。缺少只读凭证或业务定义时向我询问，保留无关配置。校验本体后请管理员发布，再检查映射并试跑启用的模板。最后给出变更摘要、当前修订号和供管理员审核发布的链接。
-
-HTTP API 数据源也可以通过配置 MCP 创建和维护，查询工具为 `query_http_api`。固定请求契约、只读声明、API 版本与参数配置见 [HTTP API 数据源](http-api.zh-CN.md)。

@@ -2,7 +2,9 @@
 
 [简体中文](support-matrix.zh-CN.md)
 
-Verified on 2026-09-11 with isolated OrbStack Linux arm64 instances: **18 products and 20 product/version combinations**, counting InfluxDB 1.x, 2.x and 3 Core separately. Each product passed independent checks for connectivity, discovery, parameterized queries, types, empty results, errors, rejected operations, unchanged target data, row limits and cancellation. Passing records are in [verification](verification/); reproduction steps are in [validation](validation.md).
+The supported database versions cover **18 products and 20 product/version combinations**, counting InfluxDB 1.x, 2.x and 3 Core separately. The latest full matrix ran in isolated OrbStack Linux arm64 instances on **2026-09-15**, during 0.6.0 administrator feature verification: 135 query/error cases and 104 denied operations. It covers connectivity, discovery, parameters/types, empty/error results, rejected operations, unchanged fixture data, limits, cancellation and native/template equivalence. The [feature record](verification/administrators.json) preserves its exact digest; query/adapter code did not change afterward. Final release checks and reproduction instructions are in [validation](validation.md).
+
+**HTTP API sources** are an additional connector, not a nineteenth database product. Fixed GET/POST JSON operations were verified against isolated fixtures; read-only behavior of arbitrary upstream APIs is not certified. See [HTTP API capabilities and limits](http-api.md).
 
 Verification covers the versions and capabilities below. It does not establish compatibility with other versions, distributions, authorization plugins or cluster topologies.
 

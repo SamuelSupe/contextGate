@@ -4,7 +4,16 @@
 
 The [0.6.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) includes named administrator accounts, personal Configuration MCP identities and Apache-2.0 licensing. Its validation attachments record the release commit, both native CI architectures, actual Linux archives and independent GitHub download checks. The implementation and Chrome evidence below comes from the preceding feature verification; each record retains its original digest and scope.
 
-## Unreleased administrator accounts — 2026-09-15
+The [final release report](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/release-verification.json) identifies commit `12ba67bfec87ec3a7ebe3cbebc498c0654faf7f6`, Apache-2.0 packaging and the passing [native arm64/amd64 CI](https://github.com/SamuelSupe/contextGate/actions/runs/34957008947). Each architecture passed **54 checks** both on its built archive and after an independent GitHub download:
+
+| Architecture | Archive checks | GitHub download checks | Local execution |
+| --- | --- | --- | --- |
+| Linux arm64 | [dist-arm64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/dist-arm64.json) | [download-arm64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/download-arm64.json) | OrbStack native arm64 |
+| Linux amd64 | [dist-amd64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/dist-amd64.json) | [download-amd64.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/download-amd64.json) | OrbStack amd64 emulation |
+
+These reports cover the published archives, not subsequent documentation edits on `main`. They complement the feature-stage database matrix below; they are not a new full-matrix run on the final release commit.
+
+## Pre-release administrator verification — 2026-09-15
 
 Multi-administrator accounts, personal Configuration MCP identities and attributable audit passed OrbStack Go/race checks, including role boundaries, temporary-password restrictions, targeted revocation, concurrent last-super-administrator protection, operator-bound cursors and named CLI recovery. A real 0.5.0 metadata copy retained its password and business/query configuration while invalidating legacy sessions and configuration tokens. Transactional rollback and repeated migration/reopen passed store regressions.
 
@@ -12,13 +21,13 @@ The **18-product / 20-version** matrix passed **135 query/error cases and 104 de
 
 Local Chrome verified English/Chinese login and role-based settings, account creation/editing, one-time temporary-password acknowledgement, first-login restrictions, personal-token forms, ordinary/super audit filters, keyboard controls and 390×844 layouts. Final browser warning/error logs were empty. Password-change and token-rotation submissions were exercised through API/integration tests; Chrome inspected their forms without submitting new credentials. The final UI production build passed; the existing nine UI tests passed during the feature stage.
 
-The [administrator verification record](verification/administrators.json) distinguishes each test stage and digest. This is an uncommitted feature after 0.5.0, with no new native amd64 CI, dist release or GitHub download verification. See the [account and upgrade guide](administrators.md).
+The [administrator verification record](verification/administrators.json) distinguishes each test stage and digest. At that feature stage the work was uncommitted after 0.5.0, and native amd64 CI, dist publication and GitHub download verification had not yet run. Those final release gates subsequently passed as recorded above. See the [account and upgrade guide](administrators.md).
 
 ## ContextGate 0.5.0 — 2026-09-15
 
 The complete Go and race suites passed in OrbStack with isolated PostgreSQL metadata schemas. The TypeScript/Vite production build, nine UI workflow tests and two lossless request tests passed; Vite retains its bundle-size advisory.
 
-The full **18-product / 20-version** database matrix passed again: **135 query/error cases and 104 denied operations**, native/template equivalence, real HTTP MCP, pinned ontology discovery and unchanged fixture data. The [current matrix](verification/matrix.json) records the implementation digest. HTTP API fixtures additionally cover fixed operations, lossless values, pagination, authorization and template execution; they do not certify arbitrary upstream APIs.
+The full **18-product / 20-version** database matrix passed again: **135 query/error cases and 104 denied operations**, native/template equivalence, real HTTP MCP, pinned ontology discovery and unchanged fixture data. The [0.5.0 matrix](https://github.com/SamuelSupe/contextGate/blob/v0.5.0/docs/verification/matrix.json) records the implementation digest. HTTP API fixtures additionally cover fixed operations, lossless values, pagination, authorization and template execution; they do not certify arbitrary upstream APIs.
 
 Local Chrome exercised business catalog previews, template parameters, HTTP API authoring/trial/publication, focused ontology mapping, real single-answer evaluation, keyboard interaction and 390×844 Chinese layouts. The [workflow](verification/product-workflows.json) and [UX follow-up](verification/product-ux-fixes.json) records retain their exact scope, including the final screenshot-capture limitation. This release does not claim a new test of every external Agent application.
 
@@ -37,20 +46,20 @@ Dual-architecture CI and independently downloaded archive results are attached t
 
 The records below describe checks performed from 2026-09-11 through 2026-09-15. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
 
-## Unreleased PostgreSQL metadata — 2026-09-14
+## Pre-release PostgreSQL metadata verification — 2026-09-14
 
 - PostgreSQL 17.11 replaced internal SQLite storage. OrbStack `go test -race ./...` passed with isolated PostgreSQL schemas, including HTTP/stdio, OAuth, semantic/ontology publication, encrypted recovery, cascade cleanup, evaluation history and OTLP. New transaction regressions protect login/password revocation and audit commit order; missing or incorrect master keys block reopening.
 - Actual PostgreSQL, MongoDB, SQLite and DuckDB adapter/MCP/template checks passed using PostgreSQL metadata, including denied operations and unchanged query fixture data. The eight frontend tests, TypeScript/Vite build and Docker image build passed. The build used the existing trusted build CA; certificate verification remained enabled.
 - The non-root image passed initialization, queries, token revocation, password recovery, ContextGate restart persistence, ontology/template execution, and OTLP HTTP/protobuf and gRPC against a real Collector. Pending audit delivery survived receiver failure and ContextGate restart. [Machine-readable record](verification/postgres-metadata.json).
-- Local port 19843 now uses a fresh PostgreSQL store. Health checks and database inspection confirmed an empty source/Agent store; local Chrome displayed administrator initialization. Old SQLite metadata was not imported. This round did not run the full 18-product matrix, native amd64/remote CI or a new dist release.
+- At that verification stage, local port 19843 used a fresh PostgreSQL store. Health checks and database inspection confirmed an empty source/Agent store; local Chrome displayed administrator initialization. Old SQLite metadata was not imported. This round did not run the full 18-product matrix, native amd64/remote CI or a new dist release.
 
-## Unreleased UI languages — 2026-09-14
+## Pre-release UI language verification — 2026-09-14
 
 - All eight frontend tests and the TypeScript/Vite production build passed; the embedded Go executable built in OrbStack. Focused regressions cover translation placeholders, opaque business values, preference persistence input, unavailable browser storage and lossless query parameters. Vite reports its existing single-bundle size advisory.
 - Local Chrome verified English/Simplified Chinese switching, persistence after reload, preservation of unsaved settings, translated navigation and ontology/template editing, and desktop/390×844 layouts. An isolated SQLite template was edited, trialled, published and executed as an authorized Agent in Chinese. Parameter types remained native enum values; the exact integer `9007199254740993` and business value `Settings` were unchanged. Browser warning/error logs were empty.
 - This UI change did not repeat the full external database matrix, Go race suite or release packaging. Existing administrator credentials, grants and database configuration were not changed.
 
-## Unreleased product workflows — 2026-09-12
+## Pre-release product workflow verification — 2026-09-12
 
 ### OAuth availability and SQL locking review
 
@@ -92,14 +101,14 @@ These checks validate workflow behavior and measurement accuracy. They do not me
 
 ## v0.2.0 semantic catalogs and templates (historical draft)
 
-- The complete **18-product / 20-version** OrbStack matrix was rerun on the current implementation. Native adapter/MCP acceptance includes 132 query/error cases and 89 denied-operation cases. Each product also compares trialled, published template results with its native calls, including lossless values, empty/error cases and supported cursor pages. Target data remained unchanged. [Current matrix](verification/matrix.json) and individual reports retain the implementation digest.
+- The complete **18-product / 20-version** OrbStack matrix was rerun on the current implementation. Native adapter/MCP acceptance includes 132 query/error cases and 89 denied-operation cases. Each product also compares trialled, published template results with its native calls, including lossless values, empty/error cases and supported cursor pages. Target data remained unchanged. This paragraph preserves the 0.2.0 feature-stage result; the rolling `verification/matrix.json` now contains later evidence and must not be read as that build’s report.
 - OrbStack `go test -race ./...` passed, including encrypted snapshot recovery/deletion, stale-save conflicts, draft isolation, trial/publish gating, connection/credential/version invalidation, description-only publication, active-query cancellation, cursor isolation, parameter injection/forbidden binding targets and OAuth templates-only enforcement.
 - TypeScript/Vite and both existing Node lossless request tests passed. Seven-family example catalogs and English/Chinese guides are included in the dist packaging inputs.
 - Local Chrome completed administrator setup, SQLite source creation in templates-only mode, multilingual overview/field editing, metadata import, parameterized template editing, rejection before trial, successful trial/publication and native-structured preview retaining `9007199254740993`. The [desktop capture](screenshots/semantics.png) comes from that actual isolated configuration.
 - A real HTTP/API follow-up with the Chrome-created Agent token verified semantic discovery, template execution after service restart, native-query denial, JSON export/import round-trip and discard. These are API checks, not a substitute for the remaining browser interactions. [Detailed semantic record](verification/semantics.json).
 - Remaining Chrome checks (Agent preview, JSON round-trip, keyboard/narrow viewport and final console inspection) are pending because the Mac became locked. They are not reported as passed. That 0.2.0 release remained a draft. The new 0.3.0 browser checks above cover the current implementation; they do not relabel the older build as tested.
 
-Historical sections below refer to their original versions. The current matrix files now describe 0.3.0; v0.1.0 matrix evidence remains available [at its immutable tag](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json).
+Historical sections below refer to their original versions. Matrix files in the default branch can be replaced by subsequent runs; use release-tag links for version-specific evidence. The v0.1.0 matrix remains available [at its immutable tag](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json).
 
 ## v0.1.1 release scope
 
@@ -107,7 +116,7 @@ v0.1.1 adds OTLP audit log export. The [OTLP checks below](#otlp-audit-export--2
 
 ## v0.1.0 release verification
 
-All **18 products / 20 version combinations** passed, with **132 query/error cases and 89 rejected-operation cases**. Network databases were exercised through their native adapters and MCP HTTP; SQLite/DuckDB used real file engines and MCP. The [machine-readable matrix](verification/matrix.json) identifies the implementation digest and individual reports.
+All **18 products / 20 version combinations** passed, with **132 query/error cases and 89 rejected-operation cases**. Network databases were exercised through their native adapters and MCP HTTP; SQLite/DuckDB used real file engines and MCP. The [machine-readable matrix](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json) identifies the implementation digest and individual reports.
 
 The published release also passed native Linux amd64 and arm64 [GitHub CI](https://github.com/SamuelSupe/contextGate/actions/runs/34586762536). Both actual Linux distribution archives were independently extracted and run in clean Debian containers. After upload, all four assets were downloaded from GitHub and matched their local hashes; both downloaded archives passed the 16-check installation workflow. Local amd64 archive execution used OrbStack emulation on arm64. Native amd64 CI did not repeat the full external database matrix.
 
@@ -245,7 +254,7 @@ This round used isolated configuration/database files and did not alter the orig
 
 ## Release preparation — 2026-09-11
 
-- After unifying version identifiers and the public Go module path, the full 18-product/20-version OrbStack matrix passed again: 132 query/error cases and 89 rejected-operation cases. [matrix.json](verification/matrix.json) and the individual records carry the implementation digest.
+- After unifying version identifiers and the public Go module path, the full 18-product/20-version OrbStack matrix passed again: 132 query/error cases and 89 rejected-operation cases. [v0.1.0 matrix](https://github.com/SamuelSupe/contextGate/blob/v0.1.0/docs/verification/matrix.json) and the individual records carry the implementation digest.
 - Full Go and race checks passed, including real SQLite/DuckDB, HTTP MCP, stdio, OAuth, revocation and pagination. PostgreSQL/TimescaleDB fixture initialization also waits for the final TCP server, avoiding premature table creation before extensions are installed.
 - README images came from actual local Chrome sessions with an isolated configuration volume, real PostgreSQL/SQLite/DuckDB and sample data. Three Agents completed MCP queries, including authorized revenue aggregation. Captures contain no database or Agent credentials.
 - Final archive checks, GitHub download verification and platform scope are listed at the top of this page and in the release's validation attachment. Historical records continue to identify their own source digests.

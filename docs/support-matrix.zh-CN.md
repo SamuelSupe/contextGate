@@ -2,7 +2,9 @@
 
 [English](support-matrix.md)
 
-2026-09-11，OrbStack Linux arm64 独立实例验收。**18 个产品、20 个产品/版本组合**；InfluxDB 1.x、2.x、3 Core 分开计算。每个产品均有独立连接、结构发现、参数化查询、类型、空结果、错误、危险操作拒绝、目标数据不变、行数限制及取消检查。原始通过记录在 [verification](verification/)，复现方式见 [validation](validation.zh-CN.md)。
+支持的数据库版本覆盖 **18 个产品、20 个产品/版本组合**，InfluxDB 1.x、2.x、3 Core 分开计算。最近一次完整矩阵于 **2026-09-15** 在 OrbStack Linux arm64 隔离实例中执行，属于 0.6.0 多管理员功能阶段：135 个查询/错误用例、104 个拒绝操作用例，覆盖连接、结构发现、参数与类型、空结果和错误、危险操作拒绝、测试数据未改变、限制、取消及原生/模板等价。[功能记录](verification/administrators.json)保留实际摘要，此后查询及适配器代码未变。最终发行检查及复现步骤见[验收记录](validation.zh-CN.md)。
+
+**HTTP API 数据源**是额外的连接类型，不计为第 19 个数据库产品。固定 GET/POST JSON 操作通过隔离实例验证，不代表认证任意上游 API 的只读行为。详见 [HTTP API 能力与限制](http-api.zh-CN.md)。
 
 “已验收”仅指表中版本及所述能力，不推断其他版本、发行版、权限插件或集群拓扑兼容性。
 

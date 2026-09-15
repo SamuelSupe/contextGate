@@ -11,6 +11,7 @@ make ui
 export MCPDBHUB_TEST_DATABASE_URL='postgres://test:REPLACE_ME@127.0.0.1:5432/mcpdbhub_test?sslmode=disable'
 go test ./...
 go test -race ./...
+npm --prefix web test
 node --test web/test/query.test.mjs
 make build
 ```

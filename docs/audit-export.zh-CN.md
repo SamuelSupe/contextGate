@@ -2,7 +2,7 @@
 
 [English](audit-export.md) · [README](../README.zh-CN.md)
 
-此功能从 v0.1.1 开始提供。通过 **Settings → Audit log export**，把已持久化的数据库审计事件以标准 OTLP Logs protobuf 上报到 OpenTelemetry Collector 或其他兼容接收端，支持 HTTP 和 gRPC。默认关闭，本地审计继续保留。
+以**超级管理员**身份进入 **Settings → Audit log export**，把已持久化的查询、配置变更和账号安全审计事件以标准 OTLP Logs protobuf 上报到 OpenTelemetry Collector 或其他兼容接收端，支持 HTTP 和 gRPC。默认关闭，本地审计继续保留。
 
 ## 配置
 
@@ -31,11 +31,11 @@ docker run --rm --name collector --network hub-telemetry \
 
 ## 字段与隐私
 
-Resource 包含 `service.name`、`service.version`、持久化的 `service.instance.id`。时间保留审计事件原始时间；成功为 INFO，失败为 ERROR，正文是固定的成功或失败说明。
+Resource 包含 `service.name`、`service.version`、持久化的 `service.instance.id`。时间保留审计事件原始时间；完成及待确认意图为 INFO，失败为 ERROR，正文为固定的完成、待确认或失败说明。意图记录使用 `error_code=operation_pending`，通过相同 `request_id` 关联最终结果。
 
 日志属性以 `mcpdbhub.audit.` 为前缀，包括 `id`、`request_id`、`agent_id`、`source_id`、`operation`、`template_id`、`template_version`、`query_fingerprint`、`elapsed_ms`、`rows`、`preview`、`error_code`、`native_code`。缺失的字符串属性不发送。超出 2,048 字符的字符串会截断，并设置 `attributes_truncated=true`。`event.name` 为 `mcpdbhub.audit`。0.2.0 起，模板执行和试跑包含模板 ID；已发布模板执行还包含执行版本。0.3.0 起，已发布模板执行还包含请求开始时采用的 `ontology_id`、`ontology_version`。本体定义及语义全文不写入日志。完整类型说明见[英文字段表](audit-export.md#log-fields)。
 
-范围沿用现有数据库审计：查询、经执行引擎的结构发现、管理员预览和连接检测。不新增登录失败、HTTP 认证拒绝或配置变更的安全事件流。不发送完整查询、参数值、查询结果、数据库凭证或上报认证 Header；状态信息不回传接收端原始错误正文。
+上报包含已持久化的查询、经执行引擎的结构发现、管理员预览、连接检测、管理变更意图及结果，以及已记录的登录失败和凭证变更等账号安全事件。它不是 HTTP 访问日志，不声称捕获每一条被拒绝的请求。不发送完整查询、参数值、查询结果、数据库凭证或上报认证 Header；状态信息不回传接收端原始错误正文。
 
 ## 发送语义
 
@@ -48,7 +48,7 @@ Resource 包含 `service.name`、`service.version`、持久化的 `service.insta
 
 ## 管理 API
 
-`GET /api/settings/audit-export` 返回脱敏配置和实时状态；`PUT` 同一路径保存；`POST /api/settings/audit-export/test` 发送合成日志。均要求管理员会话，修改及测试还要求 `X-CSRF-Token`；Agent Token 无权访问。
+`GET /api/settings/audit-export` 返回脱敏配置和实时状态；`PUT` 同一路径保存；`POST /api/settings/audit-export/test` 发送合成日志。均要求超级管理员会话，修改及测试还要求 `X-CSRF-Token`；Agent Token 无权访问。
 
 提交 GET 返回的 `config.revision`，旧版本返回 409。省略 `headers` 保留原值，`{}` 或 `clear_headers: true` 清除。无效配置返回 400。测试返回 `accepted`、`message`、`checked_at`，HTTP 200 本身不代表接收成功。请求示例见[英文说明](audit-export.md#administration-api)。
 
@@ -56,4 +56,4 @@ ContextGate 改名保留已有的服务名配置，`mcpdbhub.audit.*` 属性和�
 
 ### 管理员归属
 
-保留 `mcpdbhub.audit.agent_id` 原语义；同一前缀下新增 `administrator_id`、`administrator_username`、`actor_type`、`configuration_agent_id` 和 `channel`。Agent 身份预览同时保留实际管理员及执行所用 Agent。安全事件使用 `event_kind=security`，仅超级管理员可在管理 API 查看或配置上报。Collector 接收安全及业务/查询事件，应相应控制读取权限。旧审计不追溯归属。不导出密码、Token、定义、查询参数或结果。
+保留 `mcpdbhub.audit.agent_id` 原语义；同一前缀下新增 `administrator_id`、`administrator_username`、`actor_type`、`configuration_agent_id` 和 `channel`；`event_kind` 表示事件类别，`resource_id`、`revision`、`submitted_fields` 记录资源、版本和提交字段类别，不包含字段值，也不是值级差异。Agent 身份预览同时保留实际管理员及执行所用 Agent。安全事件使用 `event_kind=security`，仅超级管理员可在管理 API 查看或配置上报。Collector 接收安全及业务/查询事件，应相应控制读取权限。旧审计不追溯归属。不导出密码、Token、定义、查询参数或结果。
