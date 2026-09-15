@@ -32,8 +32,13 @@ func (in *sourceInput) credentials(old *model.Source) error {
 		in.Username = ""
 	case "password":
 		in.Token = ""
+	case "service_account":
+		if in.Kind != "bigquery" {
+			return model.Fail("invalid_input", "Service account JSON is only supported for BigQuery.")
+		}
+		in.Token, in.Username = "", ""
 	case "token":
-		if in.Kind != "influxdb" && in.Kind != "elasticsearch" && in.Kind != "opensearch" && in.Kind != "http_api" {
+		if in.Kind != "snowflake" && in.Kind != "databricks" && in.Kind != "bigquery" && in.Kind != "influxdb" && in.Kind != "elasticsearch" && in.Kind != "opensearch" && in.Kind != "http_api" {
 			return model.Fail("invalid_input", "This database does not support token authentication.")
 		}
 		in.Username = ""

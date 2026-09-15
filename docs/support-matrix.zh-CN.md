@@ -2,7 +2,7 @@
 
 [English](support-matrix.md)
 
-支持的数据库版本覆盖 **18 个产品、20 个产品/版本组合**，InfluxDB 1.x、2.x、3 Core 分开计算。最近一次完整矩阵于 **2026-09-15** 在 OrbStack Linux arm64 隔离实例中执行，属于 0.6.0 多管理员功能阶段：135 个查询/错误用例、104 个拒绝操作用例，覆盖连接、结构发现、参数与类型、空结果和错误、危险操作拒绝、测试数据未改变、限制、取消及原生/模板等价。[功能记录](verification/administrators.json)保留实际摘要，此后查询及适配器代码未变。最终发行检查及复现步骤见[验收记录](validation.zh-CN.md)。
+支持的数据库版本覆盖 **18 个产品、20 个产品/版本组合**，InfluxDB 1.x、2.x、3 Core 分开计算。最近一次完整矩阵于 **2026-09-15** 在 OrbStack Linux arm64 隔离实例中执行，属于 0.6.0 多管理员功能阶段：135 个查询/错误用例、104 个拒绝操作用例，覆盖连接、结构发现、参数与类型、空结果和错误、危险操作拒绝、测试数据未改变、限制、取消及原生/模板等价。[功能记录](verification/administrators.json)保留实际摘要；这是 0.6.0 发行基线记录，不覆盖后续预览适配器。最终发行检查及复现步骤见[验收记录](validation.zh-CN.md)。
 
 **HTTP API 数据源**是额外的连接类型，不计为第 19 个数据库产品。固定 GET/POST JSON 操作通过隔离实例验证，不代表认证任意上游 API 的只读行为。详见 [HTTP API 能力与限制](http-api.zh-CN.md)。
 
@@ -30,6 +30,18 @@
 | InfluxDB 1.x | 1.8.10 | InfluxQL、聚合；`$name` 条件绑定 | 显式查询 | 仅 SELECT + 固定 /query；专用 READ 用户 |
 | InfluxDB 2.x | 2.7.12 | 只读 Flux、聚合；`params.name` 字面量 AST | 显式查询 | 禁导入/网络/插值/写入；bucket read Token |
 | InfluxDB 3 Core | 3.11.2 | SQL 与 InfluxQL 固定 API；`$name` | 显式查询 | **查询 API 隔离**；管理员 Token 本身具有管理权限 |
+
+
+## 尚未发布的云数仓预览
+
+| 连接器 | 接口 / 参数 | 真实云环境验证 |
+|---|---|---|
+| Snowflake | SQL API；`?` 与 params | 未验证 |
+| Databricks SQL | Statement Execution API；`:name` 与 named_params | 未验证 |
+| Google BigQuery | Jobs API、dry-run SELECT；`@name` 与 named_params | 未验证 |
+| Amazon Redshift | PostgreSQL 协议、只读事务；`$1` 与 params | 未验证 |
+
+四个预览适配器已实现，但不计入上述已验证数量，不包含在现有 v0.6.0 下载包中。云 REST 模拟测试验证请求/响应处理，不能证明产品兼容。结构发现、认证方式、受限 SQL 子集、计费上限和手工维护的云连接版本见[云数仓指南](cloud-warehouses.zh-CN.md)。
 
 ## 读取边界
 

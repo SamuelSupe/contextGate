@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Add preview Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift sources through `query_sql`, with connection forms, Configuration MCP guidance and native semantic-template examples.
+- Add bounded cloud SQL execution, native parameter binding, metadata discovery, cancellation and BigQuery service-account token refresh / dry-run SELECT checks / billed-byte limits.
+- Preview status remains explicit: no real cloud environment or vendor version has been verified, and the verified product matrix is unchanged. See the [cloud warehouse guide](docs/cloud-warehouses.md).
+
 ## 0.6.0 — 2026-09-15
 
 - Adopt the Apache License 2.0 for ContextGate, with project attribution and retained third-party notices in source, images and distributions.

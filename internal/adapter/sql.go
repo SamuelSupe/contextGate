@@ -54,7 +54,7 @@ func openSQL(ctx context.Context, s model.Source) (Connection, error) {
 		return nil, e
 	}
 	switch s.Kind {
-	case "postgres", "timescaledb", "cockroachdb":
+	case "postgres", "timescaledb", "cockroachdb", "redshift":
 		u := &url.URL{Scheme: "postgres", Host: address(s), Path: "/" + s.Database, User: url.UserPassword(s.Username, s.Password)}
 		p := u.Query()
 		p.Set("sslmode", "disable")
@@ -66,6 +66,9 @@ func openSQL(ctx context.Context, s model.Source) (Connection, error) {
 		cfg.TLSConfig = tc
 		cfg.ConnectTimeout = 10 * time.Second
 		cfg.RuntimeParams["application_name"] = "contextgate"
+		if s.Kind == "redshift" {
+			cfg.DefaultQueryExecMode = pgx.QueryExecModeExec
+		}
 		db = stdlib.OpenDB(*cfg)
 	case "mysql", "mariadb", "tidb":
 		cfg := mysql.NewConfig()
@@ -222,6 +225,14 @@ func (c *sqlConn) Probe(ctx context.Context) (model.Probe, error) {
 		}
 		p.PermissionStatus = "engine_enforced"
 		p.Evidence = append(p.Evidence, "transaction_read_only=on for every query; account grants are not inferred")
+	case "redshift":
+		tx, e := c.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
+		if e != nil {
+			return p, e
+		}
+		defer tx.Rollback()
+		p.PermissionStatus = "engine_enforced"
+		p.Evidence = append(p.Evidence, "BEGIN READ ONLY accepted; every query starts a read-only transaction; account grants are not verified")
 	case "mysql", "mariadb":
 		tx, e := c.db.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 		if e != nil {
@@ -297,7 +308,7 @@ func (c *sqlConn) Query(ctx context.Context, q model.Query, l model.Limits) (*mo
 			}
 		}
 	}
-	if c.s.Kind == "postgres" || c.s.Kind == "timescaledb" || c.s.Kind == "cockroachdb" || c.s.Kind == "mysql" || c.s.Kind == "mariadb" {
+	if c.s.Kind == "postgres" || c.s.Kind == "timescaledb" || c.s.Kind == "cockroachdb" || c.s.Kind == "redshift" || c.s.Kind == "mysql" || c.s.Kind == "mariadb" {
 		tx, err := conn.BeginTx(ctx, &sql.TxOptions{ReadOnly: true})
 		if err != nil {
 			return nil, err
@@ -305,6 +316,11 @@ func (c *sqlConn) Query(ctx context.Context, q model.Query, l model.Limits) (*mo
 		defer tx.Rollback()
 		if c.s.Kind == "postgres" || c.s.Kind == "timescaledb" {
 			if _, err = tx.ExecContext(ctx, "SELECT set_config('statement_timeout',$1,true),set_config('search_path','pg_catalog,public',true)", strconv.Itoa(l.TimeoutSeconds*1000)); err != nil {
+				return nil, err
+			}
+		}
+		if c.s.Kind == "redshift" {
+			if _, err = tx.ExecContext(ctx, "SET LOCAL statement_timeout TO "+strconv.Itoa(l.TimeoutSeconds*1000)); err != nil {
 				return nil, err
 			}
 		}

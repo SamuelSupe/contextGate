@@ -15,6 +15,7 @@
 | 从 ContextGate 0.4.x / 0.5.x 升级 | [0.6.0 发行与升级说明](releases/0.6.0.zh-CN.md) |
 | 从 0.3.x 或更早的 SQLite 元数据升级 | [0.4.0 发行与升级说明（英文）](releases/0.4.0.md) |
 | JSON REST API、只读操作与查询模板 | [HTTP API 数据源](http-api.zh-CN.md) |
+| 云数仓预览配置 | [Snowflake、Databricks、BigQuery、Redshift](cloud-warehouses.zh-CN.md) · [示例](../examples/cloud-warehouses/README.md) |
 | 数据库版本与读取能力 | [支持矩阵](support-matrix.zh-CN.md) · [只读账号](read-only-accounts.zh-CN.md) |
 | 术语、指标与原生模板 | [语义目录](semantics.zh-CN.md) · [数据库示例](../examples/semantics/) · [HTTP API 示例](../examples/http-api/semantics.json) |
 | 查找已发布业务概念与关联查询 | [业务目录与首次使用](getting-started.zh-CN.md) |

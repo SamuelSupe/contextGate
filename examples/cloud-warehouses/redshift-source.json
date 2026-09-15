@@ -1,0 +1,13 @@
+{
+  "enabled": false,
+  "query_access_mode": "templates_only",
+  "tls_mode": "verify",
+  "name": "Redshift preview",
+  "kind": "redshift",
+  "host": "cluster.region.redshift.amazonaws.com",
+  "port": 5439,
+  "database": "analytics",
+  "username": "contextgate_reader",
+  "password": "REPLACE_WITH_READER_PASSWORD",
+  "auth_mode": "password"
+}

@@ -1,3 +1,4 @@
+import { CloudSQLFields, isCloudSQL } from "./CloudSQLFields";
 import { HTTPAPIEditor, initialHTTPAPI } from "./HTTPAPIEditor";
 import { SourceChangeImpact } from "./SourceChangeImpact";
 import { t } from "./i18n";
@@ -58,6 +59,7 @@ export function SourceEditor({
     if (error) errorRef.current?.scrollIntoView({ block: "start" });
   }, [error]);
   const httpAPI = form.kind === "http_api";
+  const cloudSQL = isCloudSQL(form.kind);
   const local = ["sqlite", "duckdb"].includes(form.kind);
   const field = <K extends keyof Source>(k: K, v: Source[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -206,21 +208,43 @@ export function SourceEditor({
             value={form.kind}
             onChange={(e) => {
               const c = catalog.find((c) => c.kind === e.target.value)!;
+              const options: Record<string, string> =
+                c.kind === "bigquery"
+                  ? { location: "US", maximum_bytes_billed: "1073741824" }
+                  : c.kind === "snowflake"
+                    ? {
+                        schema: "PUBLIC",
+                        token_type: "PROGRAMMATIC_ACCESS_TOKEN",
+                      }
+                    : c.kind === "databricks"
+                      ? { schema: "default" }
+                      : {};
               setForm((f) => ({
                 ...f,
                 kind: c.kind,
                 port: c.port,
+                host:
+                  c.kind === "bigquery"
+                    ? "bigquery.googleapis.com"
+                    : isCloudSQL(c.kind) || isCloudSQL(f.kind)
+                      ? ""
+                      : f.host,
+                tls_mode: isCloudSQL(c.kind) ? "verify" : f.tls_mode,
                 version:
                   c.kind === "influxdb"
                     ? "2"
-                    : c.kind === "http_api"
+                    : c.kind === "http_api" || isCloudSQL(c.kind)
                       ? "1"
                       : undefined,
                 http_api: c.kind === "http_api" ? initialHTTPAPI() : undefined,
-                options: {},
-                auth_mode: ["influxdb", "http_api"].includes(c.kind)
-                  ? "token"
-                  : "password",
+                options,
+                auth_mode:
+                  c.kind === "bigquery"
+                    ? "service_account"
+                    : isCloudSQL(c.kind) ||
+                        ["influxdb", "http_api"].includes(c.kind)
+                      ? "token"
+                      : "password",
                 clear_password: false,
                 clear_token: false,
                 password: "",
@@ -236,6 +260,13 @@ export function SourceEditor({
             ))}
           </select>
         </Field>
+        {(cloudSQL || form.kind === "redshift") && (
+          <p className="notice">
+            {t(
+              "Preview connector — implemented, but not verified against a real cloud environment. Review the source limitations before enabling Agent access.",
+            )}
+          </p>
+        )}
         {form.kind === "influxdb" ? (
           <Field label={t("InfluxDB version")}>
             <select
@@ -312,7 +343,16 @@ export function SourceEditor({
                 <Field label={t("Host")} required>
                   <input
                     required
-                    placeholder="db.internal"
+                    placeholder={
+                      form.kind === "snowflake"
+                        ? "org-account.snowflakecomputing.com"
+                        : form.kind === "databricks"
+                          ? "your-workspace.cloud.databricks.com"
+                          : form.kind === "redshift"
+                            ? "cluster.region.redshift.amazonaws.com"
+                            : "db.internal"
+                    }
+                    readOnly={form.kind === "bigquery"}
                     value={form.host || ""}
                     onChange={(e) => field("host", e.target.value)}
                   />
@@ -323,6 +363,7 @@ export function SourceEditor({
                     type="number"
                     min={1}
                     max={65535}
+                    readOnly={cloudSQL}
                     value={form.port || ""}
                     onChange={(e) => field("port", Number(e.target.value))}
                   />
@@ -332,17 +373,23 @@ export function SourceEditor({
             <div className="field-grid">
               {!httpAPI && (
                 <Field
+                  required={cloudSQL}
                   label={
-                    ["elasticsearch", "opensearch"].includes(form.kind)
-                      ? t("Index / index pattern")
-                      : ["cassandra", "scylla"].includes(form.kind)
-                        ? t("Keyspace")
-                        : ["redis", "valkey"].includes(form.kind)
-                          ? t("Database index")
-                          : t("Database")
+                    form.kind === "bigquery"
+                      ? t("Billing project ID")
+                      : form.kind === "databricks"
+                        ? t("Catalog")
+                        : ["elasticsearch", "opensearch"].includes(form.kind)
+                          ? t("Index / index pattern")
+                          : ["cassandra", "scylla"].includes(form.kind)
+                            ? t("Keyspace")
+                            : ["redis", "valkey"].includes(form.kind)
+                              ? t("Database index")
+                              : t("Database")
                   }
                 >
                   <input
+                    required={cloudSQL}
                     value={form.database || ""}
                     onChange={(e) => field("database", e.target.value)}
                   />
@@ -373,13 +420,27 @@ export function SourceEditor({
                   setProbe(undefined);
                 }}
               >
-                <option value="none">{t("None")}</option>
-                <option value="password">{t("Username and password")}</option>
+                {!cloudSQL && (
+                  <>
+                    <option value="none">{t("None")}</option>
+                    <option value="password">
+                      {t("Username and password")}
+                    </option>
+                  </>
+                )}
+                {form.kind === "bigquery" && (
+                  <option value="service_account">
+                    {t("Google service account JSON")}
+                  </option>
+                )}
                 {[
                   "influxdb",
                   "elasticsearch",
                   "opensearch",
                   "http_api",
+                  "snowflake",
+                  "databricks",
+                  "bigquery",
                 ].includes(form.kind) ? (
                   <option value="token">{t("Token")}</option>
                 ) : null}
@@ -389,9 +450,11 @@ export function SourceEditor({
               <>
                 <Field
                   label={
-                    form.auth_mode === "token"
-                      ? t("Access token")
-                      : t("Password")
+                    form.auth_mode === "service_account"
+                      ? t("Google service account JSON")
+                      : form.auth_mode === "token"
+                        ? t("Access token")
+                        : t("Password")
                   }
                   hint={
                     savedSource
@@ -403,29 +466,52 @@ export function SourceEditor({
                         )
                   }
                 >
-                  <input
-                    type="password"
-                    autoComplete="new-password"
-                    disabled={
-                      form.auth_mode === "token"
-                        ? form.clear_token
-                        : form.clear_password
-                    }
-                    value={
-                      (form.auth_mode === "token"
-                        ? form.token
-                        : form.password) || ""
-                    }
-                    onChange={(e) => {
-                      const token = form.auth_mode === "token";
-                      setForm((f) => ({
-                        ...f,
-                        [token ? "token" : "password"]: e.target.value,
-                        [token ? "clear_token" : "clear_password"]: false,
-                      }));
-                      setProbe(undefined);
-                    }}
-                  />
+                  {form.auth_mode === "service_account" ? (
+                    <textarea
+                      rows={6}
+                      autoComplete="off"
+                      spellCheck={false}
+                      disabled={form.clear_password}
+                      value={form.password || ""}
+                      placeholder={
+                        savedSource
+                          ? t("Leave blank to keep stored service account JSON")
+                          : '{"type":"service_account", ...}'
+                      }
+                      onChange={(e) => {
+                        setForm((f) => ({
+                          ...f,
+                          password: e.target.value,
+                          clear_password: false,
+                        }));
+                        setProbe(undefined);
+                      }}
+                    />
+                  ) : (
+                    <input
+                      type="password"
+                      autoComplete="new-password"
+                      disabled={
+                        form.auth_mode === "token"
+                          ? form.clear_token
+                          : form.clear_password
+                      }
+                      value={
+                        (form.auth_mode === "token"
+                          ? form.token
+                          : form.password) || ""
+                      }
+                      onChange={(e) => {
+                        const token = form.auth_mode === "token";
+                        setForm((f) => ({
+                          ...f,
+                          [token ? "token" : "password"]: e.target.value,
+                          [token ? "clear_token" : "clear_password"]: false,
+                        }));
+                        setProbe(undefined);
+                      }}
+                    />
+                  )}
                 </Field>
                 {savedSource && (
                   <label className="check-row">
@@ -480,9 +566,17 @@ export function SourceEditor({
                 />
               </Field>
             )}
+            {cloudSQL && (
+              <CloudSQLFields
+                source={form}
+                option={option}
+                version={(value) => field("version", value)}
+              />
+            )}
             <Field label={t("TLS mode")} required>
               <select
                 value={form.tls_mode}
+                disabled={cloudSQL}
                 onChange={(e) => field("tls_mode", e.target.value)}
               >
                 <option value="verify">{t("Verify certificate")}</option>

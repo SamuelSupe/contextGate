@@ -122,6 +122,8 @@ SQL 支持原生关联、子查询、只读 CTE、聚合和窗口函数。MongoD
 
 返回值包含 `format`、`data`、可用的原生类型信息、`row_count`、`elapsed_ms`、`truncated`、`bytes`，原生分页可返回 `next_cursor`。MCP 同时返回结构化内容与 JSON 文本，兼容仅读取文本的客户端。64 位整数和 Decimal 使用字符串，二进制使用带 `encoding: base64` 的对象，时间保留可用精度。MongoDB 使用规范 Extended JSON；Flux 保留每张表的列名和类型。某些引擎/API 不提供计算列的精确类型，不能将缺失类型解释为字符串类型。
 
+**尚未发布的预览连接器：** Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 已接入同一 `query_sql`、语义模板及本体流程。没有真实云环境验证，不计入已验证产品清单，也不包含在现有 v0.6.0 下载包中。[云数仓配置与限制](docs/cloud-warehouses.zh-CN.md) · [示例](examples/cloud-warehouses/README.md)。
+
 默认上限为 30 秒、1,000 条、5 MiB，管理员可提高至 120 秒、10,000 条、20 MiB。Agent 可通过 `max_rows`、`timeout_seconds`、`max_bytes` 收紧限制。字节预算包含 MCP 的两种结果表示，因此实际数据可小于配置上限。单行或原生响应过大时可能返回明确的大小错误；不会把不完整 JSON 当完整结果。
 
 游标绑定 Agent、数据源版本、操作、完整查询与参数，5 分钟过期。续页必须使用相同参数和限制，仅替换 `cursor`。SQL/Cypher 查询分页由查询显式表达；MongoDB 使用原生游标，5 分钟过期、每数据源最多 64 个，续页一次消费。搜索 `search_after` 需要稳定排序，不提供跨页快照隔离。Redis SCAN 的 COUNT 是提示值，若单批超限会标记截断并不返回会跳过数据的游标。

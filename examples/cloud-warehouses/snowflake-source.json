@@ -1,0 +1,20 @@
+{
+  "enabled": false,
+  "query_access_mode": "templates_only",
+  "tls_mode": "verify",
+  "name": "Snowflake preview",
+  "kind": "snowflake",
+  "host": "org-account.snowflakecomputing.com",
+  "port": 443,
+  "database": "ANALYTICS",
+  "version": "1",
+  "auth_mode": "token",
+  "token": "REPLACE_WITH_READER_PAT",
+  "options": {
+    "warehouse": "COMPUTE_WH",
+    "schema": "PUBLIC",
+    "role": "CONTEXTGATE_READER",
+    "token_type": "PROGRAMMATIC_ACCESS_TOKEN",
+    "read_only_confirmed": "true"
+  }
+}

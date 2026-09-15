@@ -1,0 +1,29 @@
+{
+  "format_version": 2,
+  "overview": "Customer order totals. Adapt the physical table and business definition to your source.",
+  "entries": [
+    {
+      "id": "customer-order-total",
+      "kind": "template",
+      "name": "Customer order total",
+      "description": "Sum of the amount column for one customer. Review currency, order status and time scope before publishing.",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\":\"WITH totals AS (SELECT customer_id, SUM(amount) AS total FROM orders WHERE customer_id = :customer_id GROUP BY customer_id) SELECT customer_id, total FROM totals\",\"named_params\":{\"customer_id\":0}}",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "type": "integer",
+            "required": true,
+            "pointers": [
+              "/named_params/customer_id"
+            ]
+          }
+        ],
+        "example_json": "{\"customer_id\":9007199254740993}",
+        "result_description": "Native customer_id and total columns; an unknown customer returns zero rows."
+      }
+    }
+  ]
+}

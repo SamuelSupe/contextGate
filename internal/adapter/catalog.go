@@ -35,6 +35,10 @@ var verifiedJSON []byte
 func Catalog() []Capability {
 	out := []Capability{
 		{"http_api", "HTTP API", "http_api", "query_http_api", 443, "declared_read_api", true, "configured opaque token", map[string]any{"operation": "list_customers", "named_params": map[string]any{}}, []string{"Administrator-declared GET and read-only POST JSON operations only; redirects and arbitrary URLs are denied", "Read-only behavior and response fields are declared by the administrator, not verified against upstream permissions", "API contract version must be updated when the upstream contract changes"}, nil},
+		{"snowflake", "Snowflake (preview)", "sql", "query_sql", 443, "select_guard_reader_role", true, "explicit SQL; bounded result partitions", map[string]any{"query": "SELECT CAST(? AS BIGINT) AS value", "params": []any{42}}, []string{"Preview: no real Snowflake environment has been verified", "Restricted SELECT subset; dedicated reader role required; account grants remain unverified", "SQL API with OAuth/PAT; engine upgrades require manually updating the connection contract version"}, nil},
+		{"databricks", "Databricks SQL (preview)", "sql", "query_sql", 443, "select_guard_reader_role", true, "explicit SQL; bounded result chunks", map[string]any{"query": "SELECT CAST(:value AS BIGINT) AS value", "named_params": map[string]any{"value": 42}}, []string{"Preview: no real Databricks environment has been verified", "SQL warehouse Statement Execution API with bearer token; restricted SELECT subset", "Exact decimal parameters require explicit DECIMAL(precision,scale); dedicated reader role required"}, nil},
+		{"bigquery", "Google BigQuery (preview)", "sql", "query_sql", 443, "select_guard_reader_role", true, "explicit SQL; bounded job result pages", map[string]any{"query": "SELECT @value AS value", "named_params": map[string]any{"value": 42}}, []string{"Preview: no real BigQuery environment has been verified", "Restricted GoogleSQL SELECT subset plus dry-run statement classification", "Service account JSON or bearer token; maximum billed bytes applies; account grants remain unverified"}, nil},
+		{"redshift", "Amazon Redshift (preview)", "sql", "query_sql", 5439, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT CAST($1 AS BIGINT) AS value", "params": []any{42}}, []string{"Preview: no real Redshift environment has been verified", "PostgreSQL wire protocol with database username/password; no IAM/Data API authentication", "Restricted PostgreSQL SELECT subset; dedicated read-only transaction per query; native-only syntax may be rejected"}, nil},
 		{"postgres", "PostgreSQL", "sql", "query_sql", 5432, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT $1::bigint AS value", "params": []any{42}}, []string{"Custom functions and external access are denied"}, nil},
 		{"mysql", "MySQL", "sql", "query_sql", 3306, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT ? AS value", "params": []any{42}}, nil, nil},
 		{"mariadb", "MariaDB", "sql", "query_sql", 3306, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT ? AS value", "params": []any{42}}, nil, nil},
@@ -151,6 +155,9 @@ func Open(ctx context.Context, s model.Source) (Connection, error) {
 	}
 	switch c.Family {
 	case "sql":
+		if CloudSQL(s.Kind) {
+			return openCloud(ctx, s)
+		}
 		return openSQL(ctx, s)
 	case "mongodb":
 		return openMongo(ctx, s)
@@ -193,7 +200,11 @@ func ValidateSource(s *model.Source, fileRoot string) error {
 		s.Options = map[string]string{}
 	}
 	for k, v := range s.Options {
-		if !wordset("org bucket auth_source replica_set sentinel_master")[k] || len(v) > 1024 {
+		allowed := wordset("org bucket auth_source replica_set sentinel_master")
+		if CloudSQL(s.Kind) {
+			allowed = cloudOptions(s.Kind)
+		}
+		if !allowed[k] || len(v) > 1024 {
 			return errors.New("unsupported connection option")
 		}
 	}
@@ -238,6 +249,9 @@ func ValidateSource(s *model.Source, fileRoot string) error {
 		s.Host = ""
 		s.Port = 0
 	} else {
+		if s.Kind == "bigquery" && s.Host == "" {
+			s.Host = "bigquery.googleapis.com"
+		}
 		if s.Host == "" || strings.ContainsAny(s.Host, "/\\?#@\r\n\t ") {
 			return errors.New("host must be a hostname or IP, without a URL, path or credentials")
 		}
@@ -250,6 +264,9 @@ func ValidateSource(s *model.Source, fileRoot string) error {
 	}
 	if strings.ContainsAny(s.Database, "\x00\r\n") {
 		return errors.New("invalid database")
+	}
+	if CloudSQL(s.Kind) {
+		return validateCloud(s)
 	}
 	if s.Kind == "influxdb" && s.Version == "" {
 		s.Version = "2"

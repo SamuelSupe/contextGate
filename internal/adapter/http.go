@@ -47,6 +47,9 @@ func (c *httpConn) request(ctx context.Context, method, path string, query url.V
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
+	if c.s.Kind == "snowflake" && c.s.Options["token_type"] != "" {
+		req.Header.Set("X-Snowflake-Authorization-Token-Type", c.s.Options["token_type"])
+	}
 	if c.s.Kind == "influxdb" && c.s.Version == "2" {
 		req.Header.Set("Accept", "application/csv")
 	}

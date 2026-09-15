@@ -38,7 +38,7 @@ export interface Source {
   query_revision: string;
   capability?: Capability;
   has_secret: boolean;
-  auth_mode?: "none" | "password" | "token";
+  auth_mode?: "none" | "password" | "token" | "service_account";
   clear_password?: boolean;
   clear_token?: boolean;
   probe?: Probe;

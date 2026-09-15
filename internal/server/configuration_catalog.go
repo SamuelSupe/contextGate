@@ -52,7 +52,7 @@ type configurationSource struct {
 	Enabled         bool                 `json:"enabled"`
 	Limits          *model.Limits        `json:"limits,omitempty" jsonschema:"Omit on create for defaults. Preserve existing limits when updating."`
 	QueryAccessMode string               `json:"query_access_mode,omitempty" jsonschema:"native_and_templates (default) or templates_only. Changes take effect immediately."`
-	AuthMode        string               `json:"auth_mode,omitempty" jsonschema:"none, password or token. none explicitly removes existing credentials."`
+	AuthMode        string               `json:"auth_mode,omitempty" jsonschema:"none, password, token, or service_account (BigQuery JSON in password). none explicitly removes existing credentials."`
 	ClearPassword   bool                 `json:"clear_password,omitempty"`
 	ClearToken      bool                 `json:"clear_token,omitempty"`
 }

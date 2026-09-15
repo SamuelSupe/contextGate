@@ -1,0 +1,18 @@
+{
+  "enabled": false,
+  "query_access_mode": "templates_only",
+  "tls_mode": "verify",
+  "name": "Databricks preview",
+  "kind": "databricks",
+  "host": "your-workspace.cloud.databricks.com",
+  "port": 443,
+  "database": "main",
+  "version": "1",
+  "auth_mode": "token",
+  "token": "REPLACE_WITH_READER_ACCESS_TOKEN",
+  "options": {
+    "warehouse_id": "REPLACE_WITH_WAREHOUSE_ID",
+    "schema": "default",
+    "read_only_confirmed": "true"
+  }
+}

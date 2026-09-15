@@ -3,8 +3,12 @@ package server
 import (
 	"bytes"
 	"context"
+	"crypto/rand"
+	"crypto/rsa"
+	"crypto/x509"
 	"database/sql"
 	"encoding/json"
+	"encoding/pem"
 	"net/http"
 	"net/url"
 	"os"
@@ -295,5 +299,82 @@ func TestConfigurationMCPPostgresLosslessTemplateAndMapping(t *testing.T) {
 		if !bytes.Contains(raw, []byte(want)) {
 			t.Fatal("PostgreSQL configuration lost native value or ontology context", want)
 		}
+	}
+}
+
+func TestCloudConfigurationCredentialsAndSharedAccessBoundary(t *testing.T) {
+	h := newHub(t)
+	credential := h.json("POST", "/api/configuration-agents", map[string]any{"name": "Cloud configuration"}, 200)
+	session := configurationClient(t, h, credential["token"].(string))
+	key, err := rsa.GenerateKey(rand.Reader, 2048)
+	if err != nil {
+		t.Fatal(err)
+	}
+	der, err := x509.MarshalPKCS8PrivateKey(key)
+	if err != nil {
+		t.Fatal(err)
+	}
+	keyJSON, _ := json.Marshal(map[string]string{"type": "service_account", "client_email": "fixture@test-project.iam.gserviceaccount.com", "private_key": string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: der}))})
+	for _, kind := range []string{"snowflake", "databricks", "bigquery", "redshift"} {
+		t.Run(kind, func(t *testing.T) {
+			cfg := map[string]any{"name": kind, "kind": kind, "host": "warehouse.example.invalid", "database": "test-project", "auth_mode": "token", "token": "cloud-secret-fixture", "tls_mode": "verify", "enabled": false}
+			switch kind {
+			case "snowflake":
+				cfg["options"] = map[string]string{"warehouse": "WH", "role": "READER", "read_only_confirmed": "true"}
+			case "databricks":
+				cfg["options"] = map[string]string{"warehouse_id": "warehouse1", "read_only_confirmed": "true"}
+			case "bigquery":
+				cfg["host"] = "bigquery.googleapis.com"
+				cfg["auth_mode"] = "service_account"
+				cfg["token"] = ""
+				cfg["password"] = string(keyJSON)
+				cfg["options"] = map[string]string{"location": "US", "read_only_confirmed": "true"}
+			case "redshift":
+				cfg["auth_mode"] = "password"
+				cfg["username"] = "reader"
+				cfg["password"] = "cloud-secret-fixture"
+				cfg["token"] = ""
+			}
+			created := configurationValue(t, session, "create_data_source", map[string]any{"configuration": cfg}, false)
+			id := created["id"].(string)
+			read := configurationValue(t, session, "get_source_configuration", map[string]any{"source_id": id}, false)
+			raw, _ := json.Marshal(read)
+			if bytes.Contains(raw, []byte("cloud-secret-fixture")) || bytes.Contains(raw, []byte("PRIVATE KEY")) || read["has_secret"] != true {
+				t.Fatal("cloud credential exposed or lost")
+			}
+			before, err := h.s.Store.Source(id)
+			if err != nil {
+				t.Fatal(err)
+			}
+			editable := read["configuration"].(map[string]any)
+			editable["name"] = kind + " renamed"
+			configurationValue(t, session, "update_data_source", map[string]any{"source_id": id, "revision": read["revision"], "configuration": editable}, false)
+			current := configurationValue(t, session, "get_source_configuration", map[string]any{"source_id": id}, false)
+			public := current["configuration"].(map[string]any)
+			public["revision"] = current["revision"]
+			public["name"] = kind + " updated through UI API"
+			public = h.json("PUT", "/api/sources/"+id, public, 200)
+			stored, err := h.s.Store.Source(id)
+			if err != nil || stored.Password != before.Password || stored.Token != before.Token || stored.AuthMode != before.AuthMode {
+				t.Fatal("blank credential roundtrip changed cloud authentication")
+			}
+			if kind == "bigquery" {
+				public["auth_mode"] = "token"
+				public["token"] = "replacement-cloud-secret"
+				public = h.json("PUT", "/api/sources/"+id, public, 200)
+				stored, _ = h.s.Store.Source(id)
+				if stored.Password != "" || stored.Token != "replacement-cloud-secret" {
+					t.Fatal("old service account survived method switch")
+				}
+				public["auth_mode"] = "service_account"
+				h.json("PUT", "/api/sources/"+id, public, 400)
+			}
+			unauthorized := h.json("POST", "/api/agents", map[string]any{"name": kind + " unauthorized", "enabled": true, "sources": []string{}}, 200)
+			denied := call(t, h.mcp(unauthorized["token"].(string)), "query_sql", map[string]any{"source_id": id, "query": "SELECT 1"}, true)
+			wire, _ := json.Marshal(denied)
+			if bytes.Contains(wire, []byte("cloud-secret")) || bytes.Contains(wire, []byte("PRIVATE KEY")) {
+				t.Fatal("query boundary leaked credential")
+			}
+		})
 	}
 }

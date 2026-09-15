@@ -22,6 +22,7 @@ These guides describe **0.6.0**. For an older installation, use the documentatio
 | Area | Guide |
 | --- | --- |
 | JSON REST APIs, read operations and API-backed templates | [HTTP API sources](http-api.md) |
+| Preview cloud warehouse setup | [Snowflake, Databricks, BigQuery, Redshift](cloud-warehouses.md) · [Examples](../examples/cloud-warehouses/README.md) |
 | Supported databases, versions and limitations | [Support matrix](support-matrix.md) |
 | Database permissions | [Read-only account examples](read-only-accounts.md) |
 | Business terms, metrics and native query templates | [Semantic catalogs](semantics.md) · [Database examples](../examples/semantics/) · [HTTP API example](../examples/http-api/semantics.json) |

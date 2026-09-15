@@ -2,7 +2,7 @@
 
 [简体中文](support-matrix.zh-CN.md)
 
-The supported database versions cover **18 products and 20 product/version combinations**, counting InfluxDB 1.x, 2.x and 3 Core separately. The latest full matrix ran in isolated OrbStack Linux arm64 instances on **2026-09-15**, during 0.6.0 administrator feature verification: 135 query/error cases and 104 denied operations. It covers connectivity, discovery, parameters/types, empty/error results, rejected operations, unchanged fixture data, limits, cancellation and native/template equivalence. The [feature record](verification/administrators.json) preserves its exact digest; query/adapter code did not change afterward. Final release checks and reproduction instructions are in [validation](validation.md).
+The supported database versions cover **18 products and 20 product/version combinations**, counting InfluxDB 1.x, 2.x and 3 Core separately. The latest full matrix ran in isolated OrbStack Linux arm64 instances on **2026-09-15**, during 0.6.0 administrator feature verification: 135 query/error cases and 104 denied operations. It covers connectivity, discovery, parameters/types, empty/error results, rejected operations, unchanged fixture data, limits, cancellation and native/template equivalence. The [feature record](verification/administrators.json) preserves its exact digest. This records the 0.6.0 release baseline, not the later preview adapters. Final release checks and reproduction instructions are in [validation](validation.md).
 
 **HTTP API sources** are an additional connector, not a nineteenth database product. Fixed GET/POST JSON operations were verified against isolated fixtures; read-only behavior of arbitrary upstream APIs is not certified. See [HTTP API capabilities and limits](http-api.md).
 
@@ -30,6 +30,18 @@ Verification covers the versions and capabilities below. It does not establish c
 | InfluxDB 1.x | 1.8.10 | InfluxQL, aggregation; `$name` condition parameters | Explicit query | SELECT only and fixed /query path; dedicated READ user |
 | InfluxDB 2.x | 2.7.12 | Read-only Flux, aggregation; `params.name` literal AST | Explicit query | Imports/network/interpolation/writes denied; bucket-read token |
 | InfluxDB 3 Core | 3.11.2 | Fixed SQL and InfluxQL APIs; `$name` | Explicit query | **Query API isolation**; the administrator token itself retains administration privileges |
+
+
+## Unreleased cloud previews
+
+| Connector | Interface / binding | Real vendor verification |
+|---|---|---|
+| Snowflake | SQL API; `?` and positional params | Not verified |
+| Databricks SQL | Statement Execution API; `:name` and named_params | Not verified |
+| Google BigQuery | Jobs API, dry-run SELECT; `@name` and named_params | Not verified |
+| Amazon Redshift | PostgreSQL protocol, read-only transactions; `$1` and positional params | Not verified |
+
+These four previews are implemented but excluded from the verified counts and existing v0.6.0 downloads. Cloud REST fixtures validate request/response handling, not vendor compatibility. Discovery, auth methods, conservative SQL subsets, billing limits and manual cloud contract versions are documented in the [cloud warehouse guide](cloud-warehouses.md).
 
 ## Read boundaries
 

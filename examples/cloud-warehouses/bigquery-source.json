@@ -1,0 +1,19 @@
+{
+  "enabled": false,
+  "query_access_mode": "templates_only",
+  "tls_mode": "verify",
+  "name": "BigQuery preview",
+  "kind": "bigquery",
+  "host": "bigquery.googleapis.com",
+  "port": 443,
+  "database": "your-project-id",
+  "version": "1",
+  "auth_mode": "token",
+  "token": "REPLACE_WITH_READER_ACCESS_TOKEN",
+  "options": {
+    "schema": "sales",
+    "location": "US",
+    "maximum_bytes_billed": "1073741824",
+    "read_only_confirmed": "true"
+  }
+}

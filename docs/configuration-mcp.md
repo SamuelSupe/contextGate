@@ -81,3 +81,5 @@ Configuration tool calls record the owner’s administrator ID and username, per
 ## Starter prompt
 
 > Use ContextGate Configuration MCP to configure my data source, semantic catalog, query templates and ontology mapping. Start with get_configuration_guide and inspect existing configuration. Ask me for missing read-only credentials and business definitions. Preserve unrelated configuration. Validate the ontology and ask the administrator to publish it before mapping; then check mappings and trial enabled templates. Return a change summary, current revisions and review links for administrator publication.
+
+Preview cloud warehouse fields and credentials are described in the [cloud warehouse guide](cloud-warehouses.md), with [source and semantic examples](../examples/cloud-warehouses/README.md). BigQuery service account JSON is stored in the encrypted `password` field with `auth_mode: "service_account"`; the configuration guide tool also exposes the connector-specific options. These connectors are not yet verified against real vendor environments.

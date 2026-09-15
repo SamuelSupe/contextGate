@@ -183,7 +183,9 @@ func guardSQL(kind, q string) error {
 		}
 	}
 	switch kind {
-	case "postgres", "timescaledb", "cockroachdb":
+	case "snowflake", "databricks", "bigquery":
+		return guardCloudSQL(kind, q)
+	case "postgres", "timescaledb", "cockroachdb", "redshift":
 		b, e := pgquery.ParseToJSON(q)
 		if e != nil {
 			return model.Fail("invalid_query", "query could not be parsed as PostgreSQL SQL")

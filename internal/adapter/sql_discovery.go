@@ -59,6 +59,21 @@ func (c *sqlConn) discoverRows(ctx context.Context, op, ns, obj string, limit, o
 	}
 	ispg := c.s.Kind == "postgres" || c.s.Kind == "timescaledb" || c.s.Kind == "cockroachdb"
 	switch c.s.Kind {
+	case "redshift":
+		if ns == "" {
+			ns = "public"
+		}
+		switch op {
+		case "namespaces":
+			rows, e = query("SELECT schema_name, 'schema' FROM svv_redshift_schemas WHERE database_name=current_database() ORDER BY schema_name")
+		case "objects":
+			rows, e = query("SELECT table_name, table_type FROM svv_redshift_tables WHERE database_name=current_database() AND schema_name=$1 ORDER BY table_name", ns)
+		case "describe":
+			rows, e = query("SELECT column_name, data_type FROM svv_redshift_columns WHERE database_name=current_database() AND schema_name=$1 AND table_name=$2 ORDER BY ordinal_position", ns, obj)
+		default:
+			return nil, errors.New("unknown discovery operation")
+		}
+
 	case "sqlite":
 		if op == "namespaces" {
 			if offset > 0 {

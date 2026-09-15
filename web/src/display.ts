@@ -9,6 +9,13 @@ const labels: Record<string, string> = {
   search_after: "search_after cursor",
   read_only_transaction: "Read-only transaction",
   select_privileges: "SELECT-only account",
+  select_guard_reader_role: "Restricted SELECT and dedicated reader role",
+  "explicit SQL; bounded result partitions":
+    "Explicit SQL pagination · bounded partitions",
+  "explicit SQL; bounded result chunks":
+    "Explicit SQL pagination · bounded chunks",
+  "explicit SQL; bounded job result pages":
+    "Explicit SQL pagination · bounded job pages",
   read_only_file: "Read-only database file",
   readonly_setting: "Engine read-only setting",
   read_role: "Read role and operation restrictions",
