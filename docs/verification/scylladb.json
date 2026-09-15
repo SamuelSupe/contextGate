@@ -36,12 +36,12 @@
       "Only a single CQL SELECT is exposed; provision a SELECT-only account externally"
     ],
     "server_version": "2026.2.5-0.20260815.d50c7da866e2",
-    "checked_at": "2026-09-15T07:57:18.556013693Z"
+    "checked_at": "2026-09-15T12:46:46.122146363Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-15T07:57:18.626181099Z",
+  "verified_at": "2026-09-15T12:46:46.19244031Z",
   "version": "2026.2.5-0.20260815.d50c7da866e2",
   "image_id": "sha256:62dcb58bdc1d1e9aad47c2af02a6a36e8f7a0a61ab5ac13b447898f87d3730c8",
-  "implementation_sha256": "03bf9b11ecf18e8cc5d76de584ab63f5ec03df1dfd52cedcad1d6f0b2bc2c680",
+  "implementation_sha256": "4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0",
   "environment": "OrbStack Linux arm64"
 }

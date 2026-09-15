@@ -36,12 +36,12 @@
       "Explicit read command allowlist; database account permissions have not been inferred"
     ],
     "server_version": "7.4.6",
-    "checked_at": "2026-09-15T07:55:12.688872303Z"
+    "checked_at": "2026-09-15T12:44:41.954343308Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-15T07:55:12.692373426Z",
+  "verified_at": "2026-09-15T12:44:41.95808996Z",
   "version": "7.4.6",
   "image_id": "sha256:3b73847e72874be07e6657b129a94761662b79bc0f679273757d4218573b2a98",
-  "implementation_sha256": "03bf9b11ecf18e8cc5d76de584ab63f5ec03df1dfd52cedcad1d6f0b2bc2c680",
+  "implementation_sha256": "4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0",
   "environment": "OrbStack Linux arm64"
 }

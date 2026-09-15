@@ -1,5 +1,13 @@
 # 验收与复现 / Validation
 
+## ContextGate 0.7.0 — 2026-09-15
+
+针对 0.7.0 实现重新执行开源数据库 **18 产品／20 版本**矩阵，**135 个查询/错误用例、104 个拒绝操作用例**全部通过。[矩阵记录](verification/matrix.json)保留实现摘要 `4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0`，覆盖真实原生适配器、HTTP MCP、经过试跑的模板/原生等价、固定版本的本体映射、只读拒绝、限制/取消及数据未改变。历史 0.6.0 证据保留在对应发行标签与下方章节。
+
+Snowflake、Databricks SQL、BigQuery 和 Redshift 为 **Preview，尚未在真实厂商环境验证**。本地模拟 API 测试覆盖参数精度、语义绑定、提交前 SQL 拒绝、异步轮询/分页、dry run 拒绝、取消、TLS 验证、凭证脱敏及服务账号令牌生命周期。使用 PostgreSQL 的配置测试验证加密保存和 UI/配置 MCP 凭证更新。功能已通过 OrbStack Go/race、vet、前端测试和生产构建；本机 Chrome 检查四种数据源表单、BigQuery 认证切换/错误、中英文及 390px 布局。详见[云数仓指南](cloud-warehouses.zh-CN.md)。这些模拟测试不证明云端兼容性或计费安全。
+
+[0.7.0 发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0)附件中的[最终报告](https://github.com/SamuelSupe/contextGate/releases/download/v0.7.0/release-verification.json)记录实际提交、原生 amd64/arm64 CI 和实际发行包/下载回验。报告名称为 `dist-arm64.json`、`dist-amd64.json`、`download-arm64.json`、`download-amd64.json`。包测试覆盖 HTTP/stdio、PostgreSQL/HTTP API 查询、模板/本体、管理员访问和恢复、两种 OTLP 协议。本地 amd64 包通过 OrbStack 仿真执行；包验证不连接真实云数仓。
+
 ## ContextGate 0.6.0 — 2026-09-15
 
 [0.6.0 发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0)包含多管理员、个人配置 MCP 身份及 Apache-2.0 许可证。发行附件记录源提交、原生双架构 CI、实际 Linux 发行包及独立 GitHub 下载回验。下方功能和 Chrome 验证来自发行前阶段，各记录保留原始摘要和范围。

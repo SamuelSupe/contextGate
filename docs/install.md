@@ -1,16 +1,18 @@
 # Install ContextGate
 
-[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0)
+[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0)
 
-**ContextGate 0.6.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
+**ContextGate 0.7.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
 
-## Upgrade to 0.6.0
+## Upgrade to 0.7.0
+
+From **0.6.x**, back up the PostgreSQL metadata database and matching master key, stop the service, then replace the package while preserving both and the deployment configuration. No new metadata migration or forced token rotation is introduced. See the [0.7.0 upgrade notes](releases/0.7.0.md#upgrade).
 
 For an existing 0.4.x/0.5.x PostgreSQL installation, back up the metadata database and matching master key, then retain both when replacing the application. Sign in again as `admin` with the existing password. All legacy Configuration MCP tokens are revoked; each administrator must issue a new personal token. Sources, semantics, ontologies and query Agent/OAuth grants remain intact. Follow the [administrator upgrade checklist](administrators.md#upgrade-from-050-or-an-earlier-postgresql-release).
 
 ## PostgreSQL metadata
 
-0.6.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
+0.7.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
 
 **Upgrading from 0.3.0 or earlier:** there is no SQLite metadata import or fallback. Initialize a fresh PostgreSQL store, administrator, data sources and grants. Preserve the old database and key backup; do not point the new service at old metadata. SQLite remains a read-only query data source. See the [upgrade checklist](releases/0.4.0.md#upgrading-from-03x-or-earlier).
 
@@ -22,11 +24,11 @@ Check `uname -m`: choose `linux-amd64` for `x86_64`, or `linux-arm64` for `aarch
 
 ```sh
 # Linux arm64 example; replace arm64 with amd64 for x86_64.
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/contextgate-0.6.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.7.0/contextgate-0.7.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.7.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf contextgate-0.6.0-linux-arm64.tar.gz
-cd contextgate-0.6.0-linux-arm64
+tar -xzf contextgate-0.7.0-linux-arm64.tar.gz
+cd contextgate-0.7.0-linux-arm64
 ./contextgate version
 mkdir -p data databases
 # Use a pre-created PostgreSQL database and its dedicated owner role.

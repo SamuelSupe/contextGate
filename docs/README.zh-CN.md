@@ -4,7 +4,7 @@
 
 **Agent 语义数据网关：** 连接数据库与 HTTP API，描述业务概念，发布经过验证的查询，为 Agent 授予受控访问权限。
 
-本文档面向 **0.6.0**；旧版本请查看对应发行标签中的文档。[验收记录](validation.zh-CN.md)区分最终发行验证与历史功能证据。
+本文档面向 **0.7.0**；旧版本请查看对应发行标签中的文档。[验收记录](validation.zh-CN.md)区分最终发行验证与历史功能证据。
 
 | 使用目标 | 文档 |
 | --- | --- |
@@ -12,7 +12,7 @@
 | Linux / Docker / OrbStack 安装 | [安装指南](install.zh-CN.md) |
 | 从数据源配置到 Agent 查询 | [首次使用](getting-started.zh-CN.md) |
 | 让 Agent 配置 ContextGate | [配置 MCP](configuration-mcp.zh-CN.md) |
-| 从 ContextGate 0.4.x / 0.5.x 升级 | [0.6.0 发行与升级说明](releases/0.6.0.zh-CN.md) |
+| 从 ContextGate 0.4.x / 0.5.x / 0.6.x 升级 | [0.7.0 发行与升级说明](releases/0.7.0.zh-CN.md) |
 | 从 0.3.x 或更早的 SQLite 元数据升级 | [0.4.0 发行与升级说明（英文）](releases/0.4.0.md) |
 | JSON REST API、只读操作与查询模板 | [HTTP API 数据源](http-api.zh-CN.md) |
 | 云数仓预览配置 | [Snowflake、Databricks、BigQuery、Redshift](cloud-warehouses.zh-CN.md) · [示例](../examples/cloud-warehouses/README.md) |

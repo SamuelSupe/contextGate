@@ -33,11 +33,11 @@
       "Database opened READ_ONLY; external file access and extensions disabled"
     ],
     "server_version": "v1.5.5",
-    "checked_at": "2026-09-15T07:57:30.046196652Z"
+    "checked_at": "2026-09-15T12:46:58.916499225Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-15T07:57:30.056964549Z",
+  "verified_at": "2026-09-15T12:46:58.937363881Z",
   "version": "v1.5.5",
-  "implementation_sha256": "03bf9b11ecf18e8cc5d76de584ab63f5ec03df1dfd52cedcad1d6f0b2bc2c680",
+  "implementation_sha256": "4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0",
   "environment": "OrbStack Linux arm64"
 }

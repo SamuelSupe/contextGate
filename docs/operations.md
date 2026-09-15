@@ -78,7 +78,7 @@ Backup freshness is not monitored by the service. Retain the verification output
 
 ## Verification record
 
-See [0.6.0 release validation](validation.md#contextgate-060--2026-09-15) for final CI and archive/download gates. The feature-stage records below retain their original scopes.
+See [0.7.0 release validation](validation.md#contextgate-070--2026-09-15) for final CI and archive/download gates. The feature-stage records below retain their original scopes.
 
 [UX fix validation](verification/product-ux-fixes.json) records the follow-up catalog, authoring, single-answer evaluation and responsive checks, including the isolated runtime recovery and remaining browser limitations.
 

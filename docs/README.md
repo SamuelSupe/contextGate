@@ -4,7 +4,7 @@
 
 **Semantic Data Gateway for AI Agents.** Connect databases and HTTP APIs, describe business concepts, publish verified queries, and grant Agents controlled access.
 
-These guides describe **0.6.0**. For an older installation, use the documentation at its release tag; [validation](validation.md) separates final release checks from historical feature evidence.
+These guides describe **0.7.0**. For an older installation, use the documentation at its release tag; [validation](validation.md) separates final release checks from historical feature evidence.
 
 ## Start here
 
@@ -14,7 +14,7 @@ These guides describe **0.6.0**. For an older installation, use the documentatio
 | Install on Linux or Docker / OrbStack | [Installation](install.md) |
 | Complete the first source-to-Agent workflow | [Getting started](getting-started.md) |
 | Let an Agent configure ContextGate | [Configuration MCP](configuration-mcp.md) |
-| Upgrade from ContextGate 0.4.x / 0.5.x | [0.6.0 release and upgrade notes](releases/0.6.0.md) |
+| Upgrade from ContextGate 0.4.x / 0.5.x / 0.6.x | [0.7.0 release and upgrade notes](releases/0.7.0.md) |
 | Move from SQLite metadata (0.3.x or earlier) | [0.4.0 release and upgrade notes](releases/0.4.0.md) |
 
 ## Model and query your data

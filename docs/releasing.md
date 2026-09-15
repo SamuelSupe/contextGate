@@ -4,7 +4,7 @@ Release artifacts come from the same versioned Docker build as the runtime image
 
 The default `README.md`, installation guide, release notes and templates use English. Chinese documentation lives in `.zh-CN.md` files. Existing `.en.md` URLs point readers to the canonical English pages. Published tags and distribution assets retain their original contents; documentation updates are delivered on the default branch and in subsequent packages.
 
-The examples below use **0.6.0**; update the version for subsequent releases. New artifacts and launchers use `contextgate`; an additional `mcpdbhub` launcher preserves existing scripts.
+The examples below use **0.7.0**; update the version for subsequent releases. New artifacts and launchers use `contextgate`; an additional `mcpdbhub` launcher preserves existing scripts.
 
 ## Prepare and verify
 
@@ -17,13 +17,13 @@ The examples below use **0.6.0**; update the version for subsequent releases. Ne
 ## Build dist
 
 ```sh
-python3 scripts/dist.py --version 0.6.0
-# Equivalent: make dist VERSION=0.6.0
+python3 scripts/dist.py --version 0.7.0
+# Equivalent: make dist VERSION=0.7.0
 # A single architecture, optionally using a trusted build-download CA:
-python3 scripts/dist.py --version 0.6.0 --arch arm64 --build-ca /path/to/trusted-ca.pem
+python3 scripts/dist.py --version 0.7.0 --arch arm64 --build-ca /path/to/trusted-ca.pem
 ```
 
-The script writes `dist/contextgate-0.6.0-linux-{arm64,amd64}.tar.gz` and `dist/SHA256SUMS`. These archives require glibc 2.36 or newer. Keep the launcher, executable and private libraries together. `BUILD.json` includes the source commit, platform, binary hash and source image ID. On an arm64 machine, amd64 builds run through Docker's architecture support; do not describe emulation as native hardware validation.
+The script writes `dist/contextgate-0.7.0-linux-{arm64,amd64}.tar.gz` and `dist/SHA256SUMS`. These archives require glibc 2.36 or newer. Keep the launcher, executable and private libraries together. `BUILD.json` includes the source commit, platform, binary hash and source image ID. On an arm64 machine, amd64 builds run through Docker's architecture support; do not describe emulation as native hardware validation.
 
 ## Validate the actual archives
 
@@ -31,17 +31,17 @@ With the retained, isolated PostgreSQL fixture available:
 
 ```sh
 python3 scripts/check-package.py \
-  --archive dist/contextgate-0.6.0-linux-arm64.tar.gz \
-  --otlp --report artifacts/release-0.6.0/dist-arm64.json
+  --archive dist/contextgate-0.7.0-linux-arm64.tar.gz \
+  --otlp --report artifacts/release-0.7.0/dist-arm64.json
 python3 scripts/check-package.py \
-  --archive dist/contextgate-0.6.0-linux-amd64.tar.gz \
-  --otlp --report artifacts/release-0.6.0/dist-amd64.json
+  --archive dist/contextgate-0.7.0-linux-amd64.tar.gz \
+  --otlp --report artifacts/release-0.7.0/dist-amd64.json
 ```
 
-Each command unpacks into a fresh directory, verifies its manifest/hash, and runs its launcher inside a clean Debian container. It checks version, UID, runtime libraries, no Node runtime, bootstrap, HTTP/stdio MCP discovery and PostgreSQL queries, restart persistence, revocation and password recovery. The semantic flow requires a real trial before publication, executes templates over both HTTP and stdio, denies native queries in templates-only mode and recovers publication proof after restart. The ontology flow imports semantic v1, publishes a source mapping in v2 without changing the execution version, checks filtered Agent discovery, preserves ontology context across HTTP/stdio and restart, and verifies bilingual ontology guides. With `--otlp`, it also starts an isolated Collector 0.160.0 and verifies HTTP/protobuf, gRPC, encrypted-header redaction, pending records across restart, and recovery after receiver downtime, plus template and ontology correlation attributes and parameter redaction. Configuration MCP checks cover HTTP/stdio discovery, separate credentials, draft/trial/mapping preparation, restart, revocation and OTLP correlation. The HTTP API workflow starts the bundled fixture, compares GET/POST and paginated native results, requires a trial before template publication, checks templates-only access and the authorized business catalog, and captures/reviews a real single-answer evaluation. The package must include the documentation hub, release notes, HTTP API examples, getting-started and configuration/operations guides. It cleans up its own containers, volume and extraction directory. `--image contextgate:0.6.0-arm64` verifies an image instead of an archive.
+Each command unpacks into a fresh directory, verifies its manifest/hash, and runs its launcher inside a clean Debian container. It checks version, UID, runtime libraries, no Node runtime, bootstrap, HTTP/stdio MCP discovery and PostgreSQL queries, restart persistence, revocation and password recovery. The semantic flow requires a real trial before publication, executes templates over both HTTP and stdio, denies native queries in templates-only mode and recovers publication proof after restart. The ontology flow imports semantic v1, publishes a source mapping in v2 without changing the execution version, checks filtered Agent discovery, preserves ontology context across HTTP/stdio and restart, and verifies bilingual ontology guides. With `--otlp`, it also starts an isolated Collector 0.160.0 and verifies HTTP/protobuf, gRPC, encrypted-header redaction, pending records across restart, and recovery after receiver downtime, plus template and ontology correlation attributes and parameter redaction. Configuration MCP checks cover HTTP/stdio discovery, separate credentials, draft/trial/mapping preparation, restart, revocation and OTLP correlation. The HTTP API workflow starts the bundled fixture, compares GET/POST and paginated native results, requires a trial before template publication, checks templates-only access and the authorized business catalog, and captures/reviews a real single-answer evaluation. The package must include the documentation hub, release notes, HTTP API examples, getting-started and configuration/operations guides. It cleans up its own containers, volume and extraction directory. `--image contextgate:0.7.0-arm64` verifies an image instead of an archive.
 
 ## Publish
 
-Push the reviewed commit to `main` and require both CI architecture jobs to pass. Create an annotated `v0.6.0` tag at that commit. Create the GitHub Release as a draft, attach both archives, `SHA256SUMS` and the actual validation records, then download those assets again and compare hashes. Verify the local, remote branch and dereferenced tag commits before publishing the Release as latest.
+Push the reviewed commit to `main` and require both CI architecture jobs to pass. Create an annotated `v0.7.0` tag at that commit. Create the GitHub Release as a draft, attach both archives, `SHA256SUMS` and the actual validation records, then download those assets again and compare hashes. Verify the local, remote branch and dereferenced tag commits before publishing the Release as latest.
 
 Do not attach configuration databases, master keys, fixture manifests, tokens, local logs or build caches. Do not move a published tag to another commit. Keep historical verification records tied to the source they actually tested.

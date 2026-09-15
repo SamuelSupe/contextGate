@@ -18,7 +18,7 @@ ContextGate helps Agents understand business concepts and access real data throu
 
 Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contextGate`; previous commits and releases remain available. The primary executable is `contextgate`, with `mcpdbhub` retained as an alias. Existing `MCPDBHUB_*` settings and telemetry attribute names remain supported. [Brand and compatibility](docs/brand/README.md).
 
-[简体中文](README.zh-CN.md) · [Download v0.6.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.7.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -26,7 +26,7 @@ Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contex
 
 ## What you get
 
-**New in [0.6.0](docs/releases/0.6.0.md):** work with named administrator accounts, issue a personal Configuration MCP token, and trace changes to their actual operator. Two roles separate shared business administration from account and system security. ContextGate is now licensed under **Apache-2.0**.
+**New in [0.7.0](docs/releases/0.7.0.md):** connect Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift through preview adapters. Use native SQL parameters, semantic templates and ontology mappings with the existing authorization and audit controls. Cloud compatibility remains unverified; see the [setup guide and limits](docs/cloud-warehouses.md).
 
 | Capability | Behavior |
 |---|---|
@@ -71,7 +71,7 @@ Operational tools include management change records, encrypted semantic publicat
 
 ## Download
 
-[**ContextGate 0.6.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
+[**ContextGate 0.7.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
 
 ## Run
 
@@ -91,7 +91,9 @@ Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to
 
 Compose starts PostgreSQL on its private container network and waits for it to become healthy. Only ContextGate HTTP port is published to loopback. ContextGate runs as UID 10001 and mounts query database files read-only. Metadata persists in `hub-postgres`; the independent encryption key persists in `hub-data`. Preserve both volumes and the existing `.env` when restarting or upgrading; generate `.env` only for a new installation.
 
-**Upgrading to 0.6.0 from 0.4.x or 0.5.x:** back up and retain the PostgreSQL metadata store and matching master key. Sign in again with username `admin` and the existing password. All legacy Configuration MCP tokens are revoked; each administrator must issue a personal token and update their clients. Business configuration and query Agent/OAuth grants remain intact. Follow the [account upgrade checklist](docs/administrators.md#upgrade-from-050-or-an-earlier-postgresql-release).
+**From 0.6.x:** back up and preserve the PostgreSQL metadata database, matching master key and deployment settings, then replace the stopped service with 0.7.0. This release adds no metadata migration or forced credential rotation. See the [upgrade notes](docs/releases/0.7.0.md#upgrade).
+
+**From 0.4.x or 0.5.x:** back up and retain the PostgreSQL metadata store and matching master key. Sign in again with username `admin` and the existing password. All legacy Configuration MCP tokens are revoked; each administrator must issue a personal token and update their clients. Business configuration and query Agent/OAuth grants remain intact. Follow the [account upgrade checklist](docs/administrators.md#upgrade-from-050-or-an-earlier-postgresql-release).
 
 **From 0.3.x or earlier:** SQLite metadata is not imported. Initialize a fresh PostgreSQL store and reconfigure accounts, sources and grants as described in the [storage upgrade notes](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier). SQLite remains supported as a read-only query data source.
 
@@ -134,7 +136,7 @@ Start with `list_data_sources`; it returns only authorized sources, with capabil
 
 Adapters cover PostgreSQL, MySQL, MariaDB, TiDB, CockroachDB, TimescaleDB, SQLite, DuckDB, ClickHouse, MongoDB, Redis, Valkey, Elasticsearch, OpenSearch, Neo4j, Cassandra, ScyllaDB, and InfluxDB. InfluxDB 1.x, 2.x and 3 Core are tested separately. **The support matrix identifies actual verified versions; protocol compatibility alone is not a support claim.**
 
-**Unreleased previews:** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift now use the same `query_sql`, semantics/templates and ontology workflow. No real cloud environment is verified; these are separate from the tested product list and existing v0.6.0 downloads. [Cloud warehouse setup and limits](docs/cloud-warehouses.md) · [Examples](examples/cloud-warehouses/README.md).
+**Cloud previews in 0.7.0:** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift now use the same `query_sql`, semantics/templates and ontology workflow. No real cloud environment is verified; they are included in 0.7.0 downloads but remain separate from the verified product list. [Cloud warehouse setup and limits](docs/cloud-warehouses.md) · [Examples](examples/cloud-warehouses/README.md).
 
 SQL preserves joins, subqueries, read-only CTEs, aggregation and window functions. MongoDB exposes find, aggregation, count and distinct. Redis exposes bounded reads for common structures. Search retains native DSL and aggregations. Graph results retain nodes, relationships and paths. CQL provides native page-state pagination.
 

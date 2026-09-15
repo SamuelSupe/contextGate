@@ -36,12 +36,12 @@
       "InfluxDB 3 Core admin token is restricted by this adapter to query_sql/query_influxql; this is not a read-only database account"
     ],
     "server_version": "3.11.2",
-    "checked_at": "2026-09-15T07:57:29.019584643Z"
+    "checked_at": "2026-09-15T12:46:57.652473308Z"
   },
   "query_cases": 5,
-  "verified_at": "2026-09-15T07:57:29.070179774Z",
+  "verified_at": "2026-09-15T12:46:57.688926383Z",
   "version": "3.11.2",
   "image_id": "sha256:f4a6d4a76f0ed0a196cc997da472cd0b7ae52a766430493a1bead807ab8c1217",
-  "implementation_sha256": "03bf9b11ecf18e8cc5d76de584ab63f5ec03df1dfd52cedcad1d6f0b2bc2c680",
+  "implementation_sha256": "4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0",
   "environment": "OrbStack Linux arm64"
 }

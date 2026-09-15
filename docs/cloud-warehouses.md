@@ -2,7 +2,7 @@
 
 [简体中文](cloud-warehouses.zh-CN.md) · [Support matrix](support-matrix.md) · [Configuration examples](../examples/cloud-warehouses/README.md)
 
-**Unreleased:** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift adapters are implemented, with no real vendor environment verified. They are displayed as **preview**, with no tested versions in the support catalog. They are not included in the 18-product / 20-version verified matrix or in the existing v0.6.0 downloads. Mock contract tests do not establish cloud compatibility.
+**Available in ContextGate 0.7.0:** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift adapters are implemented, with no real vendor environment verified. They are displayed as **preview**, with no tested versions in the support catalog. They are included in 0.7.0 downloads, but not in the 18-product / 20-version verified matrix. Mock contract tests do not establish cloud compatibility.
 
 ## Connection setup
 
@@ -52,7 +52,7 @@ For HTTPS cloud sources, `version` is an administrator-maintained **connection c
 
 ## Validation and references
 
-Local checks on 2026-09-15 used OrbStack Linux arm64: `go test -race ./...`, `go vet ./...`, frontend tests and the production UI/Go build. Local Chrome checked all four source forms, BigQuery credential-method switching and invalid-credential errors, preview labels, English/Chinese UI and a 390px layout. The original 20-version database matrix was not rerun for this change; its published report remains the 0.6.0 baseline.
+Local checks on 2026-09-15 used OrbStack Linux arm64: `go test -race ./...`, `go vet ./...`, frontend tests and the production UI/Go build. Local Chrome checked all four source forms, BigQuery credential-method switching and invalid-credential errors, preview labels, English/Chinese UI and a 390px layout. The original 18-product / 20-version database matrix was subsequently rerun for the 0.7.0 release and passed 135 query/error cases and 104 denied operations. Its [current report](verification/matrix.json) covers the open-source products, not these cloud previews.
 
 The local automated fixtures cover SQL rejection before HTTP submission, exact parameters, template binding, asynchronous polling, chunk/page collection, empty results, dry-run rejection, cancellation, credential redaction and service account token caching. Configuration tests exercise encrypted source persistence and credential edits through Configuration MCP and the UI API. These tests simulate the documented API responses; real authentication, account grants, engine behavior, private networking, billing and production compatibility remain unverified. Redshift's SQL guard is tested locally; native Redshift execution/discovery awaits an AWS environment.
 

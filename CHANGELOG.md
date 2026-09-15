@@ -1,10 +1,12 @@
 # Changelog
 
-## Unreleased
+## 0.7.0 — 2026-09-15
 
 - Add preview Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift sources through `query_sql`, with connection forms, Configuration MCP guidance and native semantic-template examples.
 - Add bounded cloud SQL execution, native parameter binding, metadata discovery, cancellation and BigQuery service-account token refresh / dry-run SELECT checks / billed-byte limits.
-- Preview status remains explicit: no real cloud environment or vendor version has been verified, and the verified product matrix is unchanged. See the [cloud warehouse guide](docs/cloud-warehouses.md).
+- Preview status remains explicit: no real cloud environment or vendor version has been verified, and the verified product/version list is unchanged. See the [cloud warehouse guide](docs/cloud-warehouses.md).
+
+- Re-run the full open-source matrix on the 0.7.0 implementation: 18 products, 20 versions, 135 query/error cases and 104 denied operations.
 
 ## 0.6.0 — 2026-09-15
 

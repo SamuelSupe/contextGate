@@ -18,7 +18,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 产品原名 **MCP DB Hub**。仓库及 Go 模块已更名为 `SamuelSupe/contextGate`，历史提交和发行版继续保留。主命令为 `contextgate`，兼容 `mcpdbhub` 别名与已有 `MCPDBHUB_*` 配置键、遥测属性。详见[品牌说明](docs/brand/README.zh-CN.md)。
 
-[English](README.md) · [下载 v0.6.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
+[English](README.md) · [下载 v0.7.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -26,7 +26,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 能做什么
 
-**[0.6.0 新内容](docs/releases/0.6.0.zh-CN.md)：** 多个独立管理员账号、两级角色、个人配置 MCP Token，以及关联实际操作者的审计。业务配置共享，账号和系统安全由超级管理员管理。ContextGate 现采用 **Apache-2.0** 开源许可证。
+**[0.7.0 新内容](docs/releases/0.7.0.zh-CN.md)：** 新增 Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 预览适配器，支持原生 SQL 参数、语义模板和本体映射，复用已有授权及审计。云端兼容性尚未真实验证，详见[配置指南与限制](docs/cloud-warehouses.zh-CN.md)。
 
 | 能力 | 提供的行为 |
 |---|---|
@@ -50,7 +50,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 下载运行
 
-[**ContextGate 0.6.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
+[**ContextGate 0.7.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
 
 ## 启动
 
@@ -70,7 +70,9 @@ docker compose logs hub
 
 Compose 在私有容器网络启动 PostgreSQL，健康后再启动 ContextGate，仅发布 ContextGate 的本机 HTTP 端口。ContextGate 使用 UID 10001，查询数据库文件只读挂载。`hub-postgres` 保存元数据，`hub-data` 保存独立加密主密钥；重启和升级时保留两个卷及已有 `.env`，只在首次安装生成 `.env`。
 
-**从 0.4.x 或 0.5.x 升级到 0.6.0：** 备份并保留 PostgreSQL 元数据库及匹配主密钥。使用用户名 `admin` 和原密码重新登录；所有旧配置 MCP Token 被撤销，每名管理员需要签发个人 Token 并更新客户端。业务配置、查询 Agent/OAuth 授权保持不变。参阅[账号升级清单](docs/administrators.zh-CN.md)。
+**从 0.6.x 升级：** 备份并保留 PostgreSQL 元数据库、匹配主密钥和部署配置，停止服务后替换为 0.7.0。本版本不新增元数据迁移，也不强制轮换凭证。详见[升级说明](docs/releases/0.7.0.zh-CN.md#升级)。
+
+**从 0.4.x 或 0.5.x 升级：** 备份并保留 PostgreSQL 元数据库及匹配主密钥。使用用户名 `admin` 和原密码重新登录；所有旧配置 MCP Token 被撤销，每名管理员需要签发个人 Token 并更新客户端。业务配置、查询 Agent/OAuth 授权保持不变。参阅[账号升级清单](docs/administrators.zh-CN.md)。
 
 **从 0.3.x 或更早版本升级：** 不导入旧 SQLite 元数据，需要创建全新 PostgreSQL 存储并重新配置账号、数据源及授权。SQLite 只读查询数据源仍支持，详见[存储升级说明](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier)。
 
@@ -122,7 +124,7 @@ SQL 支持原生关联、子查询、只读 CTE、聚合和窗口函数。MongoD
 
 返回值包含 `format`、`data`、可用的原生类型信息、`row_count`、`elapsed_ms`、`truncated`、`bytes`，原生分页可返回 `next_cursor`。MCP 同时返回结构化内容与 JSON 文本，兼容仅读取文本的客户端。64 位整数和 Decimal 使用字符串，二进制使用带 `encoding: base64` 的对象，时间保留可用精度。MongoDB 使用规范 Extended JSON；Flux 保留每张表的列名和类型。某些引擎/API 不提供计算列的精确类型，不能将缺失类型解释为字符串类型。
 
-**尚未发布的预览连接器：** Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 已接入同一 `query_sql`、语义模板及本体流程。没有真实云环境验证，不计入已验证产品清单，也不包含在现有 v0.6.0 下载包中。[云数仓配置与限制](docs/cloud-warehouses.zh-CN.md) · [示例](examples/cloud-warehouses/README.md)。
+**0.7.0 云数仓预览：** Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 已接入同一 `query_sql`、语义模板及本体流程。已包含在 0.7.0 下载包中，但没有真实云环境验证，不计入已验证产品清单。[云数仓配置与限制](docs/cloud-warehouses.zh-CN.md) · [示例](examples/cloud-warehouses/README.md)。
 
 默认上限为 30 秒、1,000 条、5 MiB，管理员可提高至 120 秒、10,000 条、20 MiB。Agent 可通过 `max_rows`、`timeout_seconds`、`max_bytes` 收紧限制。字节预算包含 MCP 的两种结果表示，因此实际数据可小于配置上限。单行或原生响应过大时可能返回明确的大小错误；不会把不完整 JSON 当完整结果。
 

@@ -2,7 +2,7 @@
 
 [English](cloud-warehouses.md) · [支持矩阵](support-matrix.zh-CN.md) · [配置和模板示例](../examples/cloud-warehouses/README.md)
 
-**尚未发布：** 已实现 Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 适配器。目前没有真实云环境验证，界面标记 **preview**，实测版本清单为空。不计入 18 个产品／20 个版本组合的已验证矩阵，也不包含在现有 v0.6.0 下载包中。模拟 API 测试不能证明云产品兼容性。
+**ContextGate 0.7.0 已提供：** 已实现 Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 适配器。目前没有真实云环境验证，界面标记 **preview**，实测版本清单为空。已包含在 0.7.0 下载包中，但不计入 18 个产品／20 个版本组合的已验证矩阵。模拟 API 测试不能证明云产品兼容性。
 
 ## 配置与认证
 
@@ -48,7 +48,7 @@ JSON 数值参数不经浮点数往返；显式类型使用 `{"type":"TYPE","val
 
 ## 验证范围
 
-2026-09-15 在 OrbStack Linux arm64 执行 `go test -race ./...`、`go vet ./...`、前端测试和 UI/Go 生产构建。本机 Chrome 检查四种数据源表单、BigQuery 认证切换和无效凭证错误、预览标记、中英文界面与 390px 布局。本次未重跑原有 20 版本数据库矩阵，其已发布记录仍为 0.6.0 基线。
+2026-09-15 在 OrbStack Linux arm64 执行 `go test -race ./...`、`go vet ./...`、前端测试和 UI/Go 生产构建。本机 Chrome 检查四种数据源表单、BigQuery 认证切换和无效凭证错误、预览标记、中英文界面与 390px 布局。随后为 0.7.0 发行重跑原有 18 产品／20 版本数据库矩阵，135 个查询/错误用例、104 个拒绝用例全部通过。[当前记录](verification/matrix.json)覆盖开源产品，不证明这些云数仓预览的兼容性。
 
 本地自动化覆盖危险查询提交前拒绝、精确参数、模板绑定、异步轮询、结果分块/分页、空结果、dry run 拒绝、取消、凭证脱敏、服务账号令牌缓存，以及配置 MCP/UI API 的加密保存和凭证更新。真实云认证、授权、引擎行为、私网、费用和生产兼容性尚未验证。Redshift 本地覆盖查询校验，实际执行/发现仍需 AWS 环境。
 

@@ -8,7 +8,8 @@ InfluxDB 3 Core explicitly permits query-API isolation instead of a read-only ac
 
 - [x] Configuration, authentication, query execution, MCP and stdio
 - [x] Multiple administrators, personal Configuration MCP identities and attributable audit (0.6.0)
-- [x] All database adapters and discovery
+- [x] Open-source database adapters and discovery
+- [x] Cloud warehouse preview adapters, UI, templates and bilingual guides (0.7.0); real vendor validation pending
 - [x] Fosite OAuth, consent, refresh, revocation, client metadata
 - [x] Embedded React management UI
 - [x] OrbStack real database matrix and security behavior checks

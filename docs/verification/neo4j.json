@@ -36,12 +36,12 @@
       "EXPLAIN must report read-only; write clauses, procedures and external loading are rejected; driver read routing is not a permission guarantee"
     ],
     "server_version": "Neo4j/5.26.10",
-    "checked_at": "2026-09-15T07:55:59.873638408Z"
+    "checked_at": "2026-09-15T12:45:27.562131243Z"
   },
   "query_cases": 7,
-  "verified_at": "2026-09-15T07:56:00.306187482Z",
+  "verified_at": "2026-09-15T12:45:28.042157531Z",
   "version": "Neo4j/5.26.10",
   "image_id": "sha256:225b14923479dde15797534ee887d9950077308f6b56c96d2fb0daf3a2194814",
-  "implementation_sha256": "03bf9b11ecf18e8cc5d76de584ab63f5ec03df1dfd52cedcad1d6f0b2bc2c680",
+  "implementation_sha256": "4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0",
   "environment": "OrbStack Linux arm64"
 }

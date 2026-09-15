@@ -1,5 +1,13 @@
 # Validation and reproduction
 
+## ContextGate 0.7.0 — 2026-09-15
+
+The open-source **18-product / 20-version** matrix passed again on the 0.7.0 implementation: **135 query/error cases and 104 denied operations**. The [matrix report](verification/matrix.json) records digest `4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0`. It covers actual native adapters, HTTP MCP, trialled template/native equivalence, pinned ontology mappings, read-only rejection, limits/cancellation and unchanged fixture data. Historical 0.6.0 evidence remains available at its release tag and in the sections below.
+
+Snowflake, Databricks SQL, BigQuery and Redshift are **preview connectors, with no real vendor environment verified**. Local cloud API fixtures cover parameter precision, semantic bindings, SQL rejection before submission, asynchronous polling/pages, dry-run rejection, cancellation, verified TLS, credential redaction and service-account token lifecycle. PostgreSQL-backed configuration tests cover encrypted source persistence and UI/Configuration MCP credential updates. The feature passed OrbStack Go/race, vet, frontend tests and production builds; local Chrome checked all four source forms, BigQuery authentication switching/errors, English/Chinese and 390px layout. See the [cloud guide](cloud-warehouses.md#validation-and-references) for limitations. These fixtures do not establish cloud compatibility or billing safety.
+
+The [0.7.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) attaches the final [release report](https://github.com/SamuelSupe/contextGate/releases/download/v0.7.0/release-verification.json), with the exact commit, native amd64/arm64 CI, and actual archive/download checks. Reports are named `dist-arm64.json`, `dist-amd64.json`, `download-arm64.json` and `download-amd64.json`. Package workflows exercise HTTP/stdio, PostgreSQL/HTTP API queries, templates/ontology, administrator access/recovery and both OTLP transports. Local amd64 package execution uses OrbStack emulation. Package checks do not connect to the cloud vendors.
+
 ## ContextGate 0.6.0 — 2026-09-15
 
 The [0.6.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) includes named administrator accounts, personal Configuration MCP identities and Apache-2.0 licensing. Its validation attachments record the release commit, both native CI architectures, actual Linux archives and independent GitHub download checks. The implementation and Chrome evidence below comes from the preceding feature verification; each record retains its original digest and scope.
