@@ -123,7 +123,7 @@ func (e *Engine) TrialTemplate(ctx context.Context, source, id string, revision 
 	if probe.ServerVersion == "" {
 		return TemplateValidation{}, model.Fail("template_unverified", "Database version metadata must be readable before a template can be verified")
 	}
-	src, _, err = e.recordDatabaseVersion(src, probe.ServerVersion)
+	src, _, err = e.recordDatabaseVersion(ctx, src, probe.ServerVersion)
 	if err != nil {
 		return TemplateValidation{}, err
 	}
@@ -177,9 +177,12 @@ func (e *Engine) TrialTemplate(ctx context.Context, source, id string, revision 
 	return e.DraftTemplateValidation(src, st, en), err
 }
 
-func (e *Engine) PublishSemantics(source string, revision int64) (semantic.State, error) {
+func (e *Engine) PublishSemantics(ctx context.Context, source string, revision int64) (semantic.State, error) {
 	e.Store.Mutations.Lock()
 	defer e.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return semantic.State{}, err
+	}
 	src, err := e.Store.Source(source)
 	if err != nil {
 		return semantic.State{}, err
@@ -316,10 +319,7 @@ func (e *Engine) SearchSemantics(p model.Principal, in SemanticSearch) (map[stri
 	if err != nil {
 		return nil, err
 	}
-	identity := p.AgentID
-	if p.Admin {
-		identity = "admin"
-	}
+	identity := p.CursorIdentity()
 	c := semanticCursor{Source: src.ID, Principal: identity, Keyword: in.Keyword, Kind: in.Kind, Version: st.PublishedVersion, Limit: in.Limit, Expires: time.Now().Add(5 * time.Minute).Unix()}
 	if st.Published.Ontology != nil {
 		c.OntologyID = st.Published.Ontology.OntologyID
@@ -446,12 +446,15 @@ func (e *Engine) PublishedEntries(src model.Source, st semantic.State) ([]semant
 
 // Template execution rechecks the server version on its acquired connection so
 // a database upgrade cannot silently retain a pre-upgrade trial approval.
-func (e *Engine) recordDatabaseVersion(src model.Source, version string) (model.Source, bool, error) {
+func (e *Engine) recordDatabaseVersion(ctx context.Context, src model.Source, version string) (model.Source, bool, error) {
 	if version == "" || version == src.ObservedVersion {
 		return src, false, nil
 	}
 	e.Store.Mutations.Lock()
 	defer e.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return src, false, err
+	}
 	fresh, err := e.Store.Source(src.ID)
 	if err != nil {
 		return src, false, err

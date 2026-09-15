@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
 	"github.com/SamuelSupe/contextGate/internal/model"
 	"github.com/SamuelSupe/contextGate/internal/secure"
 	"slices"
@@ -29,20 +28,8 @@ func (s *Store) Set(key, value string) error {
 	return e
 }
 func (s *Store) Setup(passwordHash string) error {
-	tx, e := s.DB.Begin()
-	if e != nil {
-		return e
-	}
-	defer tx.Rollback()
-	_, e = tx.Exec("INSERT INTO kv(key,value) VALUES('admin_password',$1)", passwordHash)
-	if e != nil {
-		return errors.New("already initialized")
-	}
-	_, e = tx.Exec("DELETE FROM kv WHERE key='setup_hash'")
-	if e != nil {
-		return e
-	}
-	return tx.Commit()
+	_, err := s.SetupAdministrator("admin", "Administrator", passwordHash)
+	return err
 }
 func (s *Store) Source(id string) (model.Source, error) {
 	var src model.Source
@@ -182,33 +169,16 @@ func (s *Store) SaveAgent(a model.Agent, token string) error {
 	return e
 }
 
-// Session atomically binds issuance to the password hash the caller verified.
-// A login verified before a password change cannot recreate a revoked session.
 func (s *Store) Session(token, csrf string, expires time.Time, passwordHash string) error {
-	tx, err := s.DB.Begin()
+	a, err := s.SoleAdministrator("")
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
-	// PostgreSQL MVCC alone does not serialize the password check with session
-	// revocation. Hold the password row until this session has committed.
-	var current string
-	err = tx.QueryRow("SELECT value FROM kv WHERE key='admin_password' FOR SHARE").Scan(&current)
-	if errors.Is(err, sql.ErrNoRows) || err == nil && !secure.Equal(current, passwordHash) {
-		return model.Fail("unauthorized", "Administrator password changed; sign in again")
-	}
-	if err != nil {
-		return err
-	}
-	if _, err = tx.Exec("INSERT INTO sessions(hash,csrf,expires) VALUES($1,$2,$3)", secure.Hash(token), csrf, expires.Unix()); err != nil {
-		return err
-	}
-	return tx.Commit()
+	return s.CreateAdministratorSession(a.ID, token, csrf, expires, passwordHash)
 }
 func (s *Store) CheckSession(token string) (string, error) {
-	var csrf string
-	e := s.DB.QueryRow("SELECT csrf FROM sessions WHERE hash=$1 AND expires>$2", secure.Hash(token), time.Now().Unix()).Scan(&csrf)
-	return csrf, e
+	_, csrf, err := s.AdministratorSession(token)
+	return csrf, err
 }
 func (s *Store) DeleteSession(token string) error {
 	_, e := s.DB.Exec("DELETE FROM sessions WHERE hash=$1", secure.Hash(token))

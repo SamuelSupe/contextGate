@@ -147,6 +147,9 @@ func TestAuditExportAdminBoundaryAndMCPRedaction(t *testing.T) {
 					attrs[a.Key] = a.Value.GetStringValue()
 				}
 				if attrs["mcpdbhub.audit.agent_id"] == configurationID {
+					if attrs["mcpdbhub.audit.administrator_id"] == "" || attrs["mcpdbhub.audit.administrator_username"] != "admin" || attrs["mcpdbhub.audit.configuration_agent_id"] != configurationID || attrs["mcpdbhub.audit.channel"] != "configuration_mcp" {
+						t.Fatal("OTLP lost the actual administrator and configuration identity")
+					}
 					if attrs["mcpdbhub.audit.operation"] == "configuration.trial_query_template" {
 						configurationManagementSeen = true
 					}
@@ -374,7 +377,7 @@ type hubTest struct {
 
 func TestAdminPasswordChangeRollsBackIfSessionRevocationFails(t *testing.T) {
 	h := newHub(t)
-	previous, err := h.s.Store.Get("admin_password")
+	previous, err := h.s.Store.AdministratorByUsername("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -384,8 +387,8 @@ func TestAdminPasswordChangeRollsBackIfSessionRevocationFails(t *testing.T) {
 		t.Fatal(err)
 	}
 	h.json("POST", "/api/password", map[string]any{"current_password": "test-password-123456", "password": "replacement-password-123456"}, 500)
-	current, err := h.s.Store.Get("admin_password")
-	if err != nil || current != previous {
+	current, err := h.s.Store.AdministratorByUsername("admin")
+	if err != nil || current.PasswordHash != previous.PasswordHash {
 		t.Fatal("failed password change left a new password with unrevoked sessions", err)
 	}
 	if h.json("GET", "/api/session", nil, 200)["authenticated"] != true {
@@ -397,18 +400,24 @@ func TestAdminPasswordChangeRejectsStaleAuthentication(t *testing.T) {
 	h := newHub(t)
 	source := h.source()
 	agent := h.json("POST", "/api/agents", map[string]any{"name": "Retained reader", "sources": []string{source}, "enabled": true}, 200)
-	oldHash, err := h.s.Store.Get("admin_password")
+	oldAdmin, err := h.s.Store.AdministratorByUsername("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
 	u, _ := url.Parse(h.http.URL)
 	oldCookies := h.client.Jar.Cookies(u)
+	if err := h.s.Store.CreateAdministratorSession(oldAdmin.ID, "other-session", "other-csrf", time.Now().Add(time.Hour), oldAdmin.PasswordHash); err != nil {
+		t.Fatal(err)
+	}
 	changed := h.json("POST", "/api/password", map[string]any{"current_password": "test-password-123456", "password": "replacement-password-123456"}, 200)
 	h.csrf = changed["csrf"].(string)
+	if _, err := h.s.Store.CheckSession("other-session"); err == nil {
+		t.Fatal("other session survived password change")
+	}
 	for _, cookie := range oldCookies {
 		if cookie.Name == "hub_session" {
-			if _, err := h.s.Store.CheckSession(cookie.Value); err == nil {
-				t.Fatal("old administrator session survived password change")
+			if _, err := h.s.Store.CheckSession(cookie.Value); err != nil {
+				t.Fatal("current administrator session was not retained")
 			}
 		}
 	}
@@ -419,23 +428,23 @@ func TestAdminPasswordChangeRejectsStaleAuthentication(t *testing.T) {
 	// Pause at the verification/issuance boundary deterministically: this login
 	// verified the former hash before the concurrent password change committed.
 	w := httptest.NewRecorder()
-	h.s.createSession(w, httptest.NewRequest("POST", "/api/login", nil), oldHash)
+	h.s.createAdministratorSession(w, httptest.NewRequest("POST", "/api/login", nil), oldAdmin)
 	if w.Code != http.StatusUnauthorized || w.Header().Get("Set-Cookie") != "" {
 		t.Fatal("stale login issued an administrator session", w.Code)
 	}
-	currentHash, err := h.s.Store.Get("admin_password")
+	currentHash, err := h.s.Store.AdministratorByUsername("admin")
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err = h.s.Store.ChangeAdminPassword(oldHash, oldHash); model.ErrorCode(err) != "conflict" {
+	if _, err = h.s.Store.ChangeAdministratorPassword(context.Background(), oldAdmin.ID, oldAdmin.PasswordHash, oldAdmin.PasswordHash, ""); model.ErrorCode(err) != "conflict" {
 		t.Fatal("stale password edit was not rejected", err)
 	}
-	fresh, err := h.s.Store.Get("admin_password")
-	if err != nil || fresh != currentHash || h.json("GET", "/api/session", nil, 200)["authenticated"] != true {
+	fresh, err := h.s.Store.AdministratorByUsername("admin")
+	if err != nil || fresh.PasswordHash != currentHash.PasswordHash || h.json("GET", "/api/session", nil, 200)["authenticated"] != true {
 		t.Fatal("stale password edit modified current credentials or sessions", err)
 	}
-	h.json("POST", "/api/login", map[string]any{"password": "test-password-123456"}, 401)
-	login := h.json("POST", "/api/login", map[string]any{"password": "replacement-password-123456"}, 200)
+	h.json("POST", "/api/login", map[string]any{"username": "admin", "password": "test-password-123456"}, 401)
+	login := h.json("POST", "/api/login", map[string]any{"username": "admin", "password": "replacement-password-123456"}, 200)
 	h.csrf = login["csrf"].(string)
 	if _, err := h.s.Store.TokenAgent(agent["token"].(string)); err != nil {
 		t.Fatal("password change affected the Agent credential", err)
@@ -467,7 +476,7 @@ func newHub(t *testing.T) *hubTest {
 	if err != nil {
 		t.Fatal(err)
 	}
-	v := h.json("POST", "/api/setup", map[string]any{"token": code, "password": "test-password-123456"}, 200)
+	v := h.json("POST", "/api/setup", map[string]any{"username": "admin", "token": code, "password": "test-password-123456"}, 200)
 	h.csrf = v["csrf"].(string)
 	return h
 }

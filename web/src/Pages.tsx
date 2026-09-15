@@ -1,4 +1,5 @@
 import { t, useLocale, setLocale, validLocale } from "./i18n";
+import { Administrators } from "./Administrators";
 import { Diagnostics } from "./Diagnostics";
 import { Brand } from "./Brand";
 import { AuditExport } from "./AuditExport";
@@ -15,7 +16,7 @@ import {
   Field,
   Loading,
 } from "./components";
-import type { Capability, Settings, Source } from "./types";
+import type { Administrator, Capability, Settings, Source } from "./types";
 export function CatalogPage({ catalog }: { catalog: Capability[] }) {
   const [search, setSearch] = useState("");
   const shown = catalog.filter((c) =>
@@ -117,9 +118,11 @@ export function CatalogPage({ catalog }: { catalog: Capability[] }) {
   );
 }
 export function SettingsPage({
+  administrator,
   settings,
   notify,
 }: {
+  administrator: Administrator;
   settings: Settings | null;
   notify: (s: string) => void;
 }) {
@@ -128,6 +131,7 @@ export function SettingsPage({
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const superAdmin = administrator.role === "super_admin";
   if (!settings) return <Loading />;
   return (
     <>
@@ -141,22 +145,27 @@ export function SettingsPage({
         {[
           ["language", "Language"],
           ["service", "Service information"],
-          ["configuration", "Configuration MCP"],
+          ["configuration", "My configuration MCP"],
+          ...(superAdmin ? [["administrators", "Administrators"]] : []),
           ["diagnostics", "Diagnostics"],
           ["audit", "Audit export"],
           ["security", "Administrator security"],
-        ].map(([id, label]) => (
-          <Button
-            key={id}
-            onClick={() => {
-              const section = document.getElementById("settings-" + id);
-              section?.scrollIntoView({ block: "start" });
-              section?.focus({ preventScroll: true });
-            }}
-          >
-            {t(label)}
-          </Button>
-        ))}
+        ]
+          .filter(
+            ([id]) => superAdmin || !["diagnostics", "audit"].includes(id),
+          )
+          .map(([id, label]) => (
+            <Button
+              key={id}
+              onClick={() => {
+                const section = document.getElementById("settings-" + id);
+                section?.scrollIntoView({ block: "start" });
+                section?.focus({ preventScroll: true });
+              }}
+            >
+              {t(label)}
+            </Button>
+          ))}
       </nav>
       <div className="settings-body">
         <section id="settings-language" tabIndex={-1}>
@@ -255,17 +264,24 @@ export function SettingsPage({
         <div id="settings-configuration" tabIndex={-1}>
           <ConfigurationMCP notify={notify} />
         </div>
-        <div id="settings-diagnostics" tabIndex={-1}>
-          <Diagnostics />
-        </div>
-        <div id="settings-audit" tabIndex={-1}>
-          <AuditExport notify={notify} />
-        </div>
+        {superAdmin && (
+          <Administrators current={administrator} notify={notify} />
+        )}
+        {superAdmin && (
+          <div id="settings-diagnostics" tabIndex={-1}>
+            <Diagnostics />
+          </div>
+        )}
+        {superAdmin && (
+          <div id="settings-audit" tabIndex={-1}>
+            <AuditExport notify={notify} />
+          </div>
+        )}
         <section id="settings-security" tabIndex={-1}>
           <h2>{t("Change administrator password")}</h2>
           <p className="help">
             {t(
-              "Changing the password signs out other administrator sessions. Agent grants remain valid.",
+              "Changing your password signs out your other sessions. Your configuration token and query Agent grants remain valid.",
             )}
           </p>
           <ErrorNote error={error} />
@@ -295,7 +311,7 @@ export function SettingsPage({
               type="text"
               name="username"
               autoComplete="username"
-              value="administrator"
+              value={administrator.username}
               readOnly
               className="sr-only"
               tabIndex={-1}
@@ -339,10 +355,13 @@ export function SettingsPage({
               "Use the same MCPDBHUB_DATABASE_URL and master key as the service. Stop the service, provide a new password through standard input, then restart:",
             )}
           </p>
-          <pre>contextgate reset-password --data-dir DIR --password-stdin</pre>
+          <pre>
+            contextgate reset-password --username USERNAME --data-dir DIR
+            --password-stdin
+          </pre>
           <p className="help">
             {t(
-              "Keep the existing master key. Recovery signs out all administrator sessions and retains data sources, Agent credentials and audit history.",
+              "Keep the existing master key. Recovery signs out the selected account and revokes its configuration token. Other accounts and query Agent grants remain valid.",
             )}
           </p>
         </details>

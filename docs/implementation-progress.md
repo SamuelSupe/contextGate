@@ -1,12 +1,13 @@
 # Implementation tracking
 
 Approved scope: 18 products; Go MCP HTTP + stdio bridge; encrypted PostgreSQL configuration;
-single administrator; per-Agent datasource grants; Fosite OAuth; compact bilingual React UI (English default).
+named administrators with super/admin roles; per-Agent datasource grants; Fosite OAuth; compact bilingual React UI (English default).
 InfluxDB 3 Core explicitly permits query-API isolation instead of a read-only account.
 
 ## Work
 
 - [x] Configuration, authentication, query execution, MCP and stdio
+- [x] Multiple administrators, personal Configuration MCP identities and attributable audit (0.6.0)
 - [x] All database adapters and discovery
 - [x] Fosite OAuth, consent, refresh, revocation, client metadata
 - [x] Embedded React management UI

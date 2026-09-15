@@ -157,6 +157,10 @@ func (s *Server) Consent(w http.ResponseWriter, r *http.Request) {
 	defer s.tokenMu.Unlock()
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		write(w, 401, map[string]any{"error": "unauthorized"})
+		return
+	}
 	var form url.Values
 	_, e := s.storage.get(r.Context(), "consent", in.Request, &form)
 	if e != nil {

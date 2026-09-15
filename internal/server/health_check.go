@@ -89,6 +89,8 @@ func (s *Server) checkSourceHealth(ctx context.Context, id string) (model.Source
 			v.BaselineColumns = previous.BaselineColumns
 		}
 	}
+	principal := model.AdministratorPrincipal(ctx)
+	principal.SystemCheck = true
 	refs := healthReferences(st.Published)
 	v.CoverageLimited = len(refs) > 20
 	watched := map[string]bool{}
@@ -117,7 +119,7 @@ func (s *Server) checkSourceHealth(ctx context.Context, id string) (model.Source
 				v.Structure = append(v.Structure, check)
 				continue
 			}
-			result, err := s.Engine.Execute(ctx, model.Principal{Admin: true, Preview: true, SystemCheck: true}, "describe", model.Query{SourceID: id, Namespace: ref.Namespace, Object: ref.Object})
+			result, err := s.Engine.Execute(ctx, principal, "describe", model.Query{SourceID: id, Namespace: ref.Namespace, Object: ref.Object})
 			if err != nil {
 				check.Status = model.ErrorCode(err)
 			} else if result.Truncated || result.NextCursor != "" {
@@ -181,6 +183,9 @@ func (s *Server) checkSourceHealth(ctx context.Context, id string) (model.Source
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return v, err
+	}
 	fresh, latest, err := s.semanticState(id)
 	if err != nil {
 		return v, err

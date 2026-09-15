@@ -72,3 +72,24 @@ ALTER TABLE audit ADD COLUMN IF NOT EXISTS revision TEXT NOT NULL DEFAULT '';
 ALTER TABLE audit ADD COLUMN IF NOT EXISTS changed_fields TEXT NOT NULL DEFAULT '';
 
 CREATE INDEX IF NOT EXISTS audit_request ON audit(request_id,id);
+
+CREATE TABLE IF NOT EXISTS administrators (
+    id TEXT PRIMARY KEY, username TEXT NOT NULL UNIQUE, display_name TEXT NOT NULL,
+    role TEXT NOT NULL CHECK(role IN ('super_admin','admin')), enabled BOOLEAN NOT NULL,
+    password_hash TEXT NOT NULL, must_change_password BOOLEAN NOT NULL DEFAULT FALSE,
+    temporary_expires_at TIMESTAMPTZ, created_at TIMESTAMPTZ NOT NULL,
+    last_login_at TIMESTAMPTZ, revision BIGINT NOT NULL DEFAULT 1,
+    security_version BIGINT NOT NULL DEFAULT 1,
+    CHECK (username=lower(username))
+);
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS administrator_id TEXT REFERENCES administrators(id);
+ALTER TABLE sessions ADD COLUMN IF NOT EXISTS security_version BIGINT NOT NULL DEFAULT 0;
+CREATE INDEX IF NOT EXISTS sessions_administrator ON sessions(administrator_id);
+ALTER TABLE configuration_agents ADD COLUMN IF NOT EXISTS administrator_id TEXT REFERENCES administrators(id);
+CREATE UNIQUE INDEX IF NOT EXISTS configuration_administrator ON configuration_agents(administrator_id) WHERE administrator_id IS NOT NULL;
+ALTER TABLE audit ADD COLUMN IF NOT EXISTS administrator_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE audit ADD COLUMN IF NOT EXISTS administrator_username TEXT NOT NULL DEFAULT '';
+ALTER TABLE audit ADD COLUMN IF NOT EXISTS actor_type TEXT NOT NULL DEFAULT '';
+ALTER TABLE audit ADD COLUMN IF NOT EXISTS configuration_agent_id TEXT NOT NULL DEFAULT '';
+ALTER TABLE audit ADD COLUMN IF NOT EXISTS channel TEXT NOT NULL DEFAULT '';
+CREATE INDEX IF NOT EXISTS audit_administrator ON audit(administrator_id,id);

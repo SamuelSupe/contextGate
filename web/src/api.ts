@@ -5,7 +5,8 @@ export const errorLabels: Record<string, string> = {
     "Authorization request expired. Start again from your client.",
   client_not_found: "Client not found. Register the client and try again.",
   unauthorized: "Your session or credential is no longer valid. Sign in again.",
-  invalid_credentials: "Incorrect password. Please try again.",
+  invalid_credentials: "Incorrect username or password. Please try again.",
+  password_change_required: "Change your temporary password before continuing.",
   csrf_failed: "Session verification failed. Reload the page and try again.",
   cancelled: "Query cancelled or authorization changed.",
   conflict: "This configuration changed. Reload it before editing.",
@@ -55,6 +56,12 @@ export async function api<T>(
   });
   const body = await response.json();
   if (!response.ok) {
+    if (
+      response.status === 401 &&
+      !["/api/login", "/api/setup"].includes(path)
+    ) {
+      window.dispatchEvent(new Event("contextgate:session-expired"));
+    }
     const e = body.error;
     throw new APIError(
       typeof e === "object" && e

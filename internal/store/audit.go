@@ -10,12 +10,23 @@ import (
 )
 
 type AuditFilter struct {
+	Administrator, ConfigurationAgent, Channel        string
+	ExcludeSecurity                                   bool
 	Before                                            int64
 	Agent, Source, Status, RequestID, EventKind, View string
 	From, Until                                       time.Time
 }
 
 func (s *Store) Audit(a model.Audit) error {
+	if a.ActorType == "" {
+		if a.EventKind == "system" {
+			a.ActorType = "system"
+		} else if a.AgentID == "admin" || strings.HasPrefix(a.AgentID, "cfg_") {
+			a.ActorType = "legacy"
+		} else {
+			a.ActorType = "query_agent"
+		}
+	}
 	if a.EventKind == "" {
 		a.EventKind = "query"
 	}
@@ -29,7 +40,7 @@ func (s *Store) Audit(a model.Audit) error {
 	if _, err = tx.Exec("LOCK TABLE audit IN SHARE ROW EXCLUSIVE MODE"); err != nil {
 		return err
 	}
-	if _, err = tx.Exec("INSERT INTO audit(at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code,request_id,native_code,preview,template_id,template_version,ontology_id,ontology_version,event_kind,resource_id,revision,changed_fields) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19)", a.At.UnixMilli(), a.AgentID, a.SourceID, a.Operation, a.Fingerprint, a.ElapsedMS, a.Rows, a.ErrorCode, a.RequestID, a.NativeCode, a.Preview, a.TemplateID, a.TemplateVersion, a.OntologyID, a.OntologyVersion, a.EventKind, a.ResourceID, a.Revision, a.ChangedFields); err != nil {
+	if _, err = tx.Exec("INSERT INTO audit(at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code,request_id,native_code,preview,template_id,template_version,ontology_id,ontology_version,event_kind,resource_id,revision,changed_fields,administrator_id,administrator_username,actor_type,configuration_agent_id,channel) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", a.At.UnixMilli(), a.AgentID, a.SourceID, a.Operation, a.Fingerprint, a.ElapsedMS, a.Rows, a.ErrorCode, a.RequestID, a.NativeCode, a.Preview, a.TemplateID, a.TemplateVersion, a.OntologyID, a.OntologyVersion, a.EventKind, a.ResourceID, a.Revision, a.ChangedFields, a.AdministratorID, a.AdministratorUsername, a.ActorType, a.ConfigurationAgentID, a.Channel); err != nil {
 		return err
 	}
 	return tx.Commit()
@@ -44,6 +55,9 @@ func (s *Store) Audits(f AuditFilter, limit int) ([]model.Audit, error) {
 	}{
 		{"id<$%d", f.Before, f.Before > 0},
 		{"agent_id=$%d", f.Agent, f.Agent != ""},
+		{"administrator_id=$%d", f.Administrator, f.Administrator != ""},
+		{"configuration_agent_id=$%d", f.ConfigurationAgent, f.ConfigurationAgent != ""},
+		{"channel=$%d", f.Channel, f.Channel != ""},
 		{"event_kind=$%d", f.EventKind, f.EventKind != ""},
 		{"source_id=$%d", f.Source, f.Source != ""},
 		{"request_id=$%d", f.RequestID, f.RequestID != ""},
@@ -54,6 +68,9 @@ func (s *Store) Audits(f AuditFilter, limit int) ([]model.Audit, error) {
 			args = append(args, v.value)
 			where = append(where, fmt.Sprintf(v.clause, len(args)))
 		}
+	}
+	if f.ExcludeSecurity {
+		where = append(where, "event_kind<>'security'")
 	}
 	switch f.View {
 	case "client":
@@ -70,7 +87,7 @@ func (s *Store) Audits(f AuditFilter, limit int) ([]model.Audit, error) {
 		where = append(where, "error_code<>''")
 	}
 	args = append(args, limit)
-	rows, err := s.DB.Query("SELECT id,at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code,request_id,native_code,preview,template_id,template_version,ontology_id,ontology_version,event_kind,resource_id,revision,changed_fields FROM audit WHERE "+strings.Join(where, " AND ")+fmt.Sprintf(" ORDER BY id DESC LIMIT $%d", len(args)), args...)
+	rows, err := s.DB.Query("SELECT id,at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code,request_id,native_code,preview,template_id,template_version,ontology_id,ontology_version,event_kind,resource_id,revision,changed_fields,administrator_id,administrator_username,actor_type,configuration_agent_id,channel FROM audit WHERE "+strings.Join(where, " AND ")+fmt.Sprintf(" ORDER BY id DESC LIMIT $%d", len(args)), args...)
 	if err != nil {
 		return nil, err
 	}
@@ -80,7 +97,7 @@ func (s *Store) Audits(f AuditFilter, limit int) ([]model.Audit, error) {
 // AuditBatch reads a bounded export page; the extra character lets the encoder
 // report truncation without loading unbounded caller-supplied identifiers.
 func (s *Store) AuditBatch(ctx context.Context, after int64) ([]model.Audit, error) {
-	rows, err := s.DB.QueryContext(ctx, `SELECT id,at,substr(agent_id,1,2049),substr(source_id,1,2049),substr(operation,1,2049),substr(fingerprint,1,2049),elapsed_ms,rows,substr(error_code,1,2049),substr(request_id,1,2049),substr(native_code,1,2049),preview,substr(template_id,1,2049),substr(template_version,1,2049),substr(ontology_id,1,2049),substr(ontology_version,1,2049),substr(event_kind,1,2049),substr(resource_id,1,2049),substr(revision,1,2049),substr(changed_fields,1,2049) FROM audit WHERE id>$1 ORDER BY id LIMIT 64`, after)
+	rows, err := s.DB.QueryContext(ctx, `SELECT id,at,substr(agent_id,1,2049),substr(source_id,1,2049),substr(operation,1,2049),substr(fingerprint,1,2049),elapsed_ms,rows,substr(error_code,1,2049),substr(request_id,1,2049),substr(native_code,1,2049),preview,substr(template_id,1,2049),substr(template_version,1,2049),substr(ontology_id,1,2049),substr(ontology_version,1,2049),substr(event_kind,1,2049),substr(resource_id,1,2049),substr(revision,1,2049),substr(changed_fields,1,2049),substr(administrator_id,1,2049),substr(administrator_username,1,2049),substr(actor_type,1,2049),substr(configuration_agent_id,1,2049),substr(channel,1,2049) FROM audit WHERE id>$1 ORDER BY id LIMIT 64`, after)
 	if err != nil {
 		return nil, err
 	}
@@ -93,10 +110,13 @@ func scanAudits(rows *sql.Rows) ([]model.Audit, error) {
 	for rows.Next() {
 		var a model.Audit
 		var at int64
-		if err := rows.Scan(&a.ID, &at, &a.AgentID, &a.SourceID, &a.Operation, &a.Fingerprint, &a.ElapsedMS, &a.Rows, &a.ErrorCode, &a.RequestID, &a.NativeCode, &a.Preview, &a.TemplateID, &a.TemplateVersion, &a.OntologyID, &a.OntologyVersion, &a.EventKind, &a.ResourceID, &a.Revision, &a.ChangedFields); err != nil {
+		if err := rows.Scan(&a.ID, &at, &a.AgentID, &a.SourceID, &a.Operation, &a.Fingerprint, &a.ElapsedMS, &a.Rows, &a.ErrorCode, &a.RequestID, &a.NativeCode, &a.Preview, &a.TemplateID, &a.TemplateVersion, &a.OntologyID, &a.OntologyVersion, &a.EventKind, &a.ResourceID, &a.Revision, &a.ChangedFields, &a.AdministratorID, &a.AdministratorUsername, &a.ActorType, &a.ConfigurationAgentID, &a.Channel); err != nil {
 			return nil, err
 		}
 		a.At = time.UnixMilli(at)
+		if a.ActorType == "" && (a.AgentID == "admin" || strings.HasPrefix(a.AgentID, "cfg_")) {
+			a.ActorType = "legacy"
+		}
 		out = append(out, a)
 	}
 	return out, rows.Err()

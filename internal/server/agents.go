@@ -52,6 +52,10 @@ func (s *Server) saveAgent(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	id := r.PathValue("id")
 	token := ""
 	var old model.Agent
@@ -114,6 +118,10 @@ func (s *Server) saveAgent(w http.ResponseWriter, r *http.Request) {
 func (s *Server) revokeAgent(w http.ResponseWriter, r *http.Request) {
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	a, e := s.Store.Agent(r.PathValue("id"))
 	if e != nil {
 		fail(w, 404, model.Fail("not_found", "Agent not found"))
@@ -137,6 +145,10 @@ func (s *Server) revokeAgent(w http.ResponseWriter, r *http.Request) {
 func (s *Server) rotateAgent(w http.ResponseWriter, r *http.Request) {
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	a, e := s.Store.Agent(r.PathValue("id"))
 	if e != nil {
 		fail(w, 404, model.Fail("not_found", "Agent not found"))
@@ -170,9 +182,13 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit cursor"))
 		return
 	}
-	f := store.AuditFilter{Before: before, View: q.Get("view"), EventKind: q.Get("event_kind"), Agent: q.Get("agent_id"), Source: q.Get("source_id"), Status: q.Get("status"), RequestID: q.Get("request_id")}
-	if f.EventKind != "" && f.EventKind != "query" && f.EventKind != "management" && f.EventKind != "system" {
+	f := store.AuditFilter{Administrator: q.Get("administrator_id"), ConfigurationAgent: q.Get("configuration_agent_id"), Channel: q.Get("channel"), ExcludeSecurity: model.AdministratorPrincipal(r.Context()).AdministratorRole != model.RoleSuperAdministrator, Before: before, View: q.Get("view"), EventKind: q.Get("event_kind"), Agent: q.Get("agent_id"), Source: q.Get("source_id"), Status: q.Get("status"), RequestID: q.Get("request_id")}
+	if f.EventKind != "" && f.EventKind != "query" && f.EventKind != "management" && f.EventKind != "system" && f.EventKind != "security" {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit event kind"))
+		return
+	}
+	if f.EventKind == "security" && f.ExcludeSecurity {
+		fail(w, 403, model.Fail("forbidden", "Security audit requires super administrator access"))
 		return
 	}
 	if f.View != "" && f.View != "client" && f.View != "preview" && f.View != "system" {

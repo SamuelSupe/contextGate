@@ -89,3 +89,7 @@ Use `config.revision` from GET in PUT or POST. Stale revisions return HTTP 409. 
   "ca_pem": ""
 }
 ```
+
+### Administrator attribution
+
+Logs retain the existing `mcpdbhub.audit.agent_id` meaning and add `mcpdbhub.audit.administrator_id`, `administrator_username`, `actor_type`, `configuration_agent_id` and `channel` under the same prefix. UI Agent previews retain both the actual administrator and the effective query Agent. Security events use `event_kind=security`; only super administrators can configure this exporter or view those events in the management API. The configured collector receives security events as well as business/query events, so restrict its readers appropriately. Legacy events are not retrospectively attributed. No passwords, tokens, definitions, query parameters or results are exported.

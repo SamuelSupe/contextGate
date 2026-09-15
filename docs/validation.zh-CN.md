@@ -1,5 +1,19 @@
 # 验收与复现 / Validation
 
+## ContextGate 0.6.0 — 2026-09-15
+
+[0.6.0 发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0)包含多管理员、个人配置 MCP 身份及 Apache-2.0 许可证。发行附件记录源提交、原生双架构 CI、实际 Linux 发行包及独立 GitHub 下载回验。下方功能和 Chrome 验证来自发行前阶段，各记录保留原始摘要和范围。
+
+## 未发布的多管理员账号 — 2026-09-15
+
+多管理员、个人配置 MCP 身份及审计归属已通过 OrbStack Go/race 检查，覆盖角色权限、临时密码限制、定向撤销、并发保护最后一个超级管理员、按实际操作者绑定游标及指定账号 CLI 恢复。真实 0.5.0 元数据副本升级后保留原密码和业务/查询配置，旧会话与配置 Token 失效；存储回归另外验证迁移失败回滚及重复打开。
+
+全部 **18 产品／20 版本**矩阵通过 **135 个查询/错误场景和 104 个拒绝操作场景**。矩阵摘要对应最终“账号创建审计修订号”修复之前的代码，此后查询及适配器代码未变。最终聚焦测试及 arm64 [打包工作流](verification/administrators-package.json)覆盖该修复、HTTP/stdio、HTTP API 数据源、重启恢复，以及真实 Collector 通过 **OTLP HTTP/protobuf 和 gRPC**接收两名管理员的 UI/配置 MCP 审计身份字段。
+
+本机 Chrome 验证中英文登录、按角色显示设置、创建和编辑账号、一次性临时密码确认、首次登录限制、个人 Token 表单、两类管理员的审计筛选、键盘和 390×844 布局。最终浏览器警告/错误日志为空。密码修改及 Token 轮换提交通过 API/集成测试验证；Chrome 检查对应表单，没有提交新凭证。最终 UI 生产构建通过，功能阶段的 9 项现有 UI 测试通过。
+
+[管理员验收记录](verification/administrators.json)区分具体测试阶段及摘要。这是 0.5.0 之后的未提交功能，尚未执行新的原生 amd64 CI、dist 发布或 GitHub 下载回验。使用和升级说明见[管理员指南](administrators.zh-CN.md)。
+
 ## ContextGate 0.5.0 — 2026-09-15
 
 OrbStack 隔离 PostgreSQL 元数据 schema 下，完整 Go 测试与 race 检查通过。TypeScript/Vite 生产构建、9 项 UI 工作流测试和 2 项无损请求测试通过；Vite 仍有已有的包大小提示。

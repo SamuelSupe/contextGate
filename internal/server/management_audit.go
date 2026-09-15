@@ -32,12 +32,26 @@ func managementOperation(r *http.Request) string {
 		return "configuration_agent.create"
 	case "/api/configuration-agents/{id}":
 		return "configuration_agent.revoke"
+	case "/api/configuration-agents/{id}/token":
+		return "configuration_agent.rotate_token"
+	case "/api/logout":
+		return "administrator.logout"
+	case "/api/administrators":
+		return "administrator.create"
+	case "/api/administrators/{id}":
+		return "administrator.update"
+	case "/api/administrators/{id}/reset-password":
+		return "administrator.reset_password"
 	case "/api/password":
 		return "administrator.change_password"
 	case "/api/settings/audit-export":
 		return "settings.audit_export"
 	case "/api/settings/health":
 		return "settings.health"
+	case "/api/health/{id}/check":
+		return "health.check"
+	case "/api/sources/test", "/api/sources/{id}/test":
+		return "source.test"
 	case "/api/health/{id}/baseline":
 		return "health.accept_baseline"
 	case "/api/oauth/consent":
@@ -57,11 +71,37 @@ func managementOperation(r *http.Request) string {
 	if strings.HasPrefix(path, "/api/sources/{id}/semantics") {
 		tail := strings.TrimPrefix(path, "/api/sources/{id}/semantics")
 		switch tail {
-		case "", "/import", "/import-structure", "/publish", "/discard", "/restore", "/entries/{entry}", "/versions/{version}":
+		case "", "/trial", "/check-mapping", "/import", "/import-structure", "/publish", "/discard", "/restore", "/entries/{entry}", "/versions/{version}":
 			return "semantics." + strings.ToLower(r.Method) + strings.ReplaceAll(tail, "/", ".")
 		}
 	}
 	return ""
+}
+
+func managementFields(raw []byte) string {
+	input := map[string]json.RawMessage{}
+	json.Unmarshal(raw, &input)
+	fields := []string{}
+	if nested, ok := input["configuration"]; ok {
+		configuration := map[string]json.RawMessage{}
+		json.Unmarshal(nested, &configuration)
+		for key, value := range configuration {
+			input[key] = value
+		}
+	}
+	for key := range input {
+		switch key {
+		case "password", "current_password", "token", "headers", "clear_headers", "clear_secret", "auth_mode":
+			fields = append(fields, "credentials")
+		case "snapshot", "entry", "draft", "definition", "http_api":
+			fields = append(fields, "definition")
+		case "display_name", "role", "name", "enabled", "sources", "expires_at", "host", "port", "database", "username", "path", "tls_mode", "ca_cert", "options", "limits", "query_access_mode", "version", "interval_minutes", "client_name", "redirect_uris", "grant_types", "response_types", "scope", "token_endpoint_auth_method", "agent_id", "allow", "archived", "endpoint", "protocol", "service_name", "insecure":
+			fields = append(fields, key)
+		}
+	}
+	slices.Sort(fields)
+	fields = slices.Compact(fields)
+	return strings.Join(fields, ",")
 }
 
 // Record intent before changing configuration. A crash or failed outcome write
@@ -81,20 +121,10 @@ func (s *Server) adminChange(next http.HandlerFunc, w http.ResponseWriter, r *ht
 	r.Body = io.NopCloser(bytes.NewReader(raw))
 	input := map[string]json.RawMessage{}
 	json.Unmarshal(raw, &input)
-	fields := []string{}
-	for key := range input {
-		switch key {
-		case "password", "current_password", "token", "headers", "clear_headers", "clear_secret", "auth_mode":
-			fields = append(fields, "credentials")
-		case "snapshot", "entry", "draft", "definition", "http_api":
-			fields = append(fields, "definition")
-		case "name", "enabled", "sources", "expires_at", "host", "port", "database", "username", "path", "tls_mode", "ca_cert", "options", "limits", "query_access_mode", "version", "interval_minutes", "client_name", "redirect_uris", "grant_types", "response_types", "scope", "token_endpoint_auth_method", "agent_id", "allow", "archived", "endpoint", "protocol", "service_name", "insecure":
-			fields = append(fields, key)
-		}
+	a := model.AdministratorPrincipal(r.Context()).AttributeAudit(model.Audit{At: time.Now().UTC(), AgentID: "admin", EventKind: "management", Operation: operation, ResourceID: r.PathValue("id"), RequestID: secure.Random(16), ChangedFields: managementFields(raw), ErrorCode: "operation_pending"})
+	if strings.HasPrefix(operation, "administrator.") || strings.HasPrefix(operation, "configuration_agent.") {
+		a.EventKind = "security"
 	}
-	slices.Sort(fields)
-	fields = slices.Compact(fields)
-	a := model.Audit{At: time.Now().UTC(), AgentID: "admin", EventKind: "management", Operation: operation, ResourceID: r.PathValue("id"), RequestID: secure.Random(16), ChangedFields: strings.Join(fields, ","), ErrorCode: "operation_pending"}
 	if strings.HasPrefix(r.Pattern, r.Method+" /api/sources/") {
 		a.SourceID = r.PathValue("id")
 		if entry := r.PathValue("entry"); entry != "" {
@@ -130,11 +160,12 @@ func (s *Server) adminChange(next http.HandlerFunc, w http.ResponseWriter, r *ht
 	}
 	// Decode only a small response envelope; credential fields are ignored.
 	var envelope struct {
-		ID       string       `json:"id"`
-		ClientID string       `json:"client_id"`
-		Revision string       `json:"revision"`
-		Agent    *model.Agent `json:"agent"`
-		Error    *model.Error `json:"error"`
+		ID            string               `json:"id"`
+		ClientID      string               `json:"client_id"`
+		Revision      string               `json:"revision"`
+		Agent         *model.Agent         `json:"agent"`
+		Administrator *model.Administrator `json:"administrator"`
+		Error         *model.Error         `json:"error"`
 	}
 	if json.Unmarshal(output.Body.Bytes(), &envelope) == nil {
 		if envelope.ID != "" {
@@ -149,6 +180,10 @@ func (s *Server) adminChange(next http.HandlerFunc, w http.ResponseWriter, r *ht
 		if envelope.Agent != nil {
 			a.ResourceID = envelope.Agent.ID
 			a.Revision = strconv.FormatInt(envelope.Agent.Revision, 10)
+		}
+		if envelope.Administrator != nil {
+			a.ResourceID = envelope.Administrator.ID
+			a.Revision = strconv.FormatInt(envelope.Administrator.Revision, 10)
 		}
 		if envelope.Error != nil {
 			a.ErrorCode = envelope.Error.Code

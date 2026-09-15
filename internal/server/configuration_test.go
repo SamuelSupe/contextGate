@@ -199,17 +199,21 @@ func TestConfigurationCredentialsBoundariesRevocationAndValidation(t *testing.T)
 	if err != nil || count != 3 {
 		t.Fatal("configuration trial changed source data", count, err)
 	}
-	ctx, finish, err := h.s.startConfigurationCall(context.Background(), cfgID)
+	identity, err := h.s.Store.ConfigurationAgent(cfgID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, finish, err := h.s.startConfigurationCall(context.Background(), identity)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer finish()
-	second, secondFinish, err := h.s.startConfigurationCall(context.Background(), cfgID)
+	second, secondFinish, err := h.s.startConfigurationCall(context.Background(), identity)
 	if err != nil {
 		t.Fatal(err)
 	}
 	defer secondFinish()
-	if _, _, err := h.s.startConfigurationCall(context.Background(), cfgID); model.ErrorCode(err) != "busy" {
+	if _, _, err := h.s.startConfigurationCall(context.Background(), identity); model.ErrorCode(err) != "busy" {
 		t.Fatal("configuration concurrency is unbounded")
 	}
 	h.json("DELETE", "/api/configuration-agents/"+cfgID, nil, 200)
@@ -238,7 +242,7 @@ func TestConfigurationCredentialsBoundariesRevocationAndValidation(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, _, err := h.s.startConfigurationCall(context.Background(), expired.ID); err == nil {
+	if _, _, err := h.s.startConfigurationCall(context.Background(), expired); err == nil {
 		t.Fatal("expired credential accepted")
 	}
 	req, _ := http.NewRequest("POST", h.http.URL+"/mcp/config", strings.NewReader(`{}`))

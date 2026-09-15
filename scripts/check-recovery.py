@@ -22,7 +22,7 @@ def api(method,path,body=None,ok=True):
   out=json.load(e)
   if ok:raise RuntimeError(out)
   return out
-csrf=api('POST','/api/login',{'password':os.environ['MCPDBHUB_ADMIN_PASSWORD']})['csrf']
+csrf=api('POST','/api/login',{'username':os.getenv('MCPDBHUB_ADMIN_USERNAME','admin'),'password':os.environ['MCPDBHUB_ADMIN_PASSWORD']})['csrf']
 src=json.loads((root/'artifacts/matrix/postgres-fixture.json').read_text())[0]['source']
 src.update(name='Recovery verification fixture',enabled=True)
 id=api('POST','/api/sources',src)['id']

@@ -306,7 +306,7 @@ func (s *Server) publishSemantics(w http.ResponseWriter, r *http.Request) {
 		semanticFailure(w, model.Fail("invalid_input", "Invalid publication request"))
 		return
 	}
-	_, err := s.Engine.PublishSemantics(r.PathValue("id"), in.Revision)
+	_, err := s.Engine.PublishSemantics(r.Context(), r.PathValue("id"), in.Revision)
 	if err != nil {
 		semanticFailure(w, err)
 		return
@@ -451,7 +451,7 @@ func (s *Server) executeSemanticTemplate(w http.ResponseWriter, r *http.Request)
 		return
 	}
 	in.SourceID = r.PathValue("id")
-	res, err := s.Engine.ExecuteTemplate(r.Context(), model.Principal{Admin: in.AgentID == "", AgentID: in.AgentID, Preview: true}, in.Execution)
+	res, err := s.Engine.ExecuteTemplate(r.Context(), model.PreviewPrincipal(r.Context(), in.AgentID), in.Execution)
 	if err != nil {
 		semanticFailure(w, err)
 		return

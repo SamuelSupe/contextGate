@@ -89,6 +89,9 @@ func (s *Store) initialize(ctx context.Context, dir string) error {
 	} else if _, err = tx.ExecContext(ctx, "INSERT INTO kv(key,value) VALUES('master_key_check',$1)", vault.Seal([]byte("mcpdbhub"), "master-key-check")); err != nil {
 		return err
 	}
+	if err = migrateAdministrators(tx); err != nil {
+		return err
+	}
 	if err = tx.Commit(); err != nil {
 		return err
 	}

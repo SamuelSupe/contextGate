@@ -101,3 +101,5 @@ Per-source encrypted draft and published entries are updated in one PostgreSQL t
 ## Shared ontologies
 
 Encrypted ontology drafts and immutable published versions live independently from source semantic snapshots. Each source snapshot pins one version and stores its own mappings; a transactional reference index protects versions from deletion. The engine builds the source-authorized concept projection only after authorization and captures ontology context at template request start. Definitions and mappings never compile queries or change native results. See [ontology storage, APIs and visibility boundaries](ontologies.md).
+
+Named accounts use `super_admin` and `admin` roles, immutable usernames and an individual configuration identity. Account/session security versions are rechecked at entry and commit; role/password-reset/disable operations revoke only the owner’s sessions and configuration token. Business resources and query grants remain shared. [Account model and migration](administrators.md).

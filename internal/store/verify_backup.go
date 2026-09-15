@@ -72,7 +72,7 @@ func VerifyBackup(ctx context.Context, dir, databaseURL string) (map[string]int,
 	if err != nil {
 		return nil, errors.New("restored metadata scan failed")
 	}
-	for _, table := range []string{"agents", "configuration_agents", "audit", "sessions"} {
+	for _, table := range []string{"agents", "configuration_agents", "administrators", "audit", "sessions"} {
 		var count int
 		if err = tx.QueryRowContext(ctx, "SELECT count(*) FROM "+table).Scan(&count); err != nil {
 			return nil, errors.New("restored metadata counts failed")

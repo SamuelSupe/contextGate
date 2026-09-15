@@ -2,9 +2,11 @@
 
 [English](configuration-mcp.md)
 
-通过独立配置 MCP，让受信任的 Agent 配置 ContextGate 的数据源、语义目录、查询模板和共享本体。进入 **设置 → 配置 MCP**，创建命名 Token，选择有效期并复制 HTTP 或 stdio 接入配置。Token 只展示一次，默认有效 24 小时，最长 30 天，可随时撤销。
+通过独立配置 MCP，让受信任的 Agent 配置 ContextGate 的数据源、语义目录、查询模板和共享本体。进入 **设置 → 我的配置 MCP**，创建命名 Token，选择有效期并复制 HTTP 或 stdio 接入配置。Token 只展示一次，默认有效 24 小时，最长 30 天，可随时撤销。
 
 这是可以管理**所有数据源连接与共享草稿**的管理员级配置凭证。现有查询 Agent Token、OAuth 授权和管理员会话 Cookie 均不能访问配置 MCP；配置 Token 也不能用于查询端点或管理 REST API。
+
+每名管理员拥有一个固定配置身份，同一时间只有一个有效 Token。只有本人可签发，超级管理员只能撤销他人 Token。轮换、角色变更、停用或密码重置立即撤销并取消相关任务；本人正常改密保留 Token。从 0.5.0 升级会撤销旧配置 Token，需重新签发。详见[管理员及升级说明](administrators.zh-CN.md)。
 
 ## 接入
 

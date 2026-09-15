@@ -55,9 +55,11 @@ const statusLabels: Record<string, string> = {
 };
 
 export function HealthPage({
+  superAdmin,
   navigate,
   reloadSources,
 }: {
+  superAdmin: boolean;
   navigate: (path: string) => void;
   reloadSources: () => Promise<void>;
 }) {
@@ -73,13 +75,15 @@ export function HealthPage({
     async (signal?: AbortSignal) => {
       const [overview, settings] = await Promise.all([
         api<Overview>(`/api/health?offset=${page * 20}`, { signal }),
-        api<Config>("/api/settings/health", { signal }),
+        superAdmin
+          ? api<Config>("/api/settings/health", { signal })
+          : Promise.resolve(null),
       ]);
       setView(overview);
       setSaved(settings);
       setConfig(settings);
     },
-    [page],
+    [page, superAdmin],
   );
   useEffect(() => {
     const controller = new AbortController();
@@ -128,84 +132,86 @@ export function HealthPage({
       <ErrorNote error={error} />
       {loading ? (
         <Loading />
-      ) : !view || !config ? (
+      ) : !view || (superAdmin && !config) ? (
         <Button onClick={() => action("retry", () => load())}>
           {t("Retry")}
         </Button>
       ) : (
         <>
-          <details className="health-schedule">
-            <summary>
-              {t("Scheduled checks")} ·{" "}
-              {saved?.enabled
-                ? t("Every {minutes} minutes", {
-                    minutes: saved.interval_minutes,
-                  })
-                : t("Off")}
-            </summary>
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                action("settings", async () => {
-                  const value = await api<Config>("/api/settings/health", {
-                    method: "PUT",
-                    body: payload(config),
-                  });
-                  setSaved(value);
-                  setConfig(value);
-                });
-              }}
-            >
-              <p className="help">
-                {t(
-                  "Off by default. Enabled checks run sequentially against enabled sources, with a 30-second budget per source. They inspect connections and up to 20 published object references, never business samples or template results.",
-                )}
-              </p>
-              <label className="check">
-                <input
-                  type="checkbox"
-                  checked={config.enabled}
-                  disabled={!!busy}
-                  onChange={(e) =>
-                    setConfig({ ...config, enabled: e.target.checked })
-                  }
-                />
-                {t("Enable scheduled read-only checks")}
-              </label>
-              <Field label={t("Interval (minutes)")}>
-                <input
-                  type="number"
-                  required
-                  min={5}
-                  max={1440}
-                  disabled={!!busy}
-                  value={config.interval_minutes}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      interval_minutes: Number(e.target.value),
+          {superAdmin && config && (
+            <details className="health-schedule">
+              <summary>
+                {t("Scheduled checks")} ·{" "}
+                {saved?.enabled
+                  ? t("Every {minutes} minutes", {
+                      minutes: saved.interval_minutes,
                     })
-                  }
-                />
-              </Field>
-              <div className="button-row">
-                <Button
-                  primary
-                  type="submit"
-                  busy={busy === "settings"}
-                  disabled={!dirty || !!busy}
-                >
-                  {t("Save settings")}
-                </Button>
-                <Button
-                  disabled={!dirty || !!busy}
-                  onClick={() => setConfig(saved)}
-                >
-                  {t("Discard changes")}
-                </Button>
-              </div>
-            </form>
-          </details>
+                  : t("Off")}
+              </summary>
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  action("settings", async () => {
+                    const value = await api<Config>("/api/settings/health", {
+                      method: "PUT",
+                      body: payload(config),
+                    });
+                    setSaved(value);
+                    setConfig(value);
+                  });
+                }}
+              >
+                <p className="help">
+                  {t(
+                    "Off by default. Enabled checks run sequentially against enabled sources, with a 30-second budget per source. They inspect connections and up to 20 published object references, never business samples or template results.",
+                  )}
+                </p>
+                <label className="check">
+                  <input
+                    type="checkbox"
+                    checked={config.enabled}
+                    disabled={!!busy}
+                    onChange={(e) =>
+                      setConfig({ ...config, enabled: e.target.checked })
+                    }
+                  />
+                  {t("Enable scheduled read-only checks")}
+                </label>
+                <Field label={t("Interval (minutes)")}>
+                  <input
+                    type="number"
+                    required
+                    min={5}
+                    max={1440}
+                    disabled={!!busy}
+                    value={config.interval_minutes}
+                    onChange={(e) =>
+                      setConfig({
+                        ...config,
+                        interval_minutes: Number(e.target.value),
+                      })
+                    }
+                  />
+                </Field>
+                <div className="button-row">
+                  <Button
+                    primary
+                    type="submit"
+                    busy={busy === "settings"}
+                    disabled={!dirty || !!busy}
+                  >
+                    {t("Save settings")}
+                  </Button>
+                  <Button
+                    disabled={!dirty || !!busy}
+                    onClick={() => setConfig(saved)}
+                  >
+                    {t("Discard changes")}
+                  </Button>
+                </div>
+              </form>
+            </details>
+          )}
           {view.pending_changes > 0 && (
             <div className="notice warning">
               <p>

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"github.com/SamuelSupe/contextGate/internal/model"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 	"github.com/SamuelSupe/contextGate/internal/server"
 	"github.com/SamuelSupe/contextGate/internal/store"
 	"github.com/SamuelSupe/contextGate/internal/testpg"
@@ -33,6 +34,9 @@ func TestStdioBridgeUsesHTTPAuthorization(t *testing.T) {
 		t.Fatal(e)
 	}
 	defer st.Close()
+	if e = st.Setup(secure.Password("stdio-admin-password")); e != nil {
+		t.Fatal(e)
+	}
 	path := filepath.Join(dir, "fixture.db")
 	db, _ := sql.Open("sqlite3", path)
 	_, e = db.Exec("CREATE TABLE events(id INTEGER);INSERT INTO events VALUES(1),(2)")

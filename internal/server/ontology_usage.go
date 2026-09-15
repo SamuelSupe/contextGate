@@ -11,6 +11,10 @@ import (
 func (s *Server) ontologyUsageSummary(w http.ResponseWriter, r *http.Request) {
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	id := r.PathValue("ontology")
 	if _, err := s.Store.Ontology(id); err != nil {
 		semanticFailure(w, model.Fail("not_found", "Ontology not found"))

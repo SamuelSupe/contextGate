@@ -104,6 +104,10 @@ func (s *Server) saveEvaluationQuestion(w http.ResponseWriter, r *http.Request) 
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	source, id := r.PathValue("id"), r.PathValue("question")
 	if _, err := s.Store.Source(source); err != nil {
 		semanticFailure(w, model.Fail("not_found", "Data source not found"))
@@ -160,6 +164,10 @@ func (s *Server) deleteEvaluationRecord(w http.ResponseWriter, r *http.Request, 
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	id := r.PathValue("question")
 	if !questions {
 		id = r.PathValue("evaluation")

@@ -29,13 +29,16 @@ volume = name + "-data"
 
 
 def docker(*args, check=True):
-    return subprocess.run(["docker", *args], text=True, capture_output=True, check=check)
+    result = subprocess.run(["docker", *args], text=True, capture_output=True)
+    if check and result.returncode:
+        raise RuntimeError("Docker " + str(args[0]) + " failed: " + result.stderr[-2000:])
+    return result
 
 
 def source_digest():
     paths = {p for base in ("cmd", "internal") for p in (ROOT/base).rglob("*") if p.suffix in (".go", ".sql") and not p.name.endswith("_test.go")}
     paths.update(p for p in (ROOT/"web/src").rglob("*") if p.is_file())
-    paths.update(ROOT/p for p in ("go.mod", "go.sum", "web/package-lock.json", "Dockerfile", "internal/adapter/verified.json"))
+    paths.update(ROOT/p for p in ("go.mod", "go.sum", "web/package-lock.json", "Dockerfile", "internal/adapter/verified.json", "LICENSE", "NOTICE"))
     digest = hashlib.sha256()
     for path in sorted(paths):
         digest.update(str(path.relative_to(ROOT)).encode()+b"\0"+path.read_bytes())
@@ -100,6 +103,60 @@ def await_export(predicate):
             return view
         time.sleep(.25)
     raise RuntimeError('Audit export did not reach the expected state: '+str(view['status']))
+
+
+def check_administrator_otlp(source_id, owner_configuration):
+    global client, csrf
+    owner_client, owner_csrf = client, csrf
+    owner = request('GET', '/api/session')['administrator']
+    colleague = request('POST', '/api/administrators', {
+        'username': 'package-operator', 'display_name': 'Package operator', 'role': 'admin'})
+    password = uuid.uuid4().hex
+    try:
+        client = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+        csrf = request('POST', '/api/login', {'username': 'package-operator', 'password': colleague['temporary_password']})['csrf']
+        request('GET', '/api/sources', expected=403)
+        request('POST', '/api/password', {'current_password': colleague['temporary_password'], 'password': password})
+        personal = request('POST', '/api/configuration-agents', {})
+        colleague_client, colleague_csrf = client, csrf
+        for protocol, port, suffix in [('http/protobuf', 4318, '/v1/logs'), ('grpc', 4317, '')]:
+            client, csrf = owner_client, owner_csrf
+            config = export_view()['config']
+            config.update(protocol=protocol, endpoint='http://'+collector+':'+str(port)+suffix)
+            request('PUT', '/api/settings/audit-export', config)
+            expected_records = []
+            for actor, browser, session_csrf, identity in [
+                (owner, owner_client, owner_csrf, owner_configuration),
+                (colleague['administrator'], colleague_client, colleague_csrf, personal),
+            ]:
+                client, csrf = browser, session_csrf
+                request('POST', '/api/sources/'+source_id+'/test', {})
+                reply = request('POST', '/mcp/config', {'jsonrpc': '2.0', 'id': 900, 'method': 'tools/call',
+                    'params': {'name': 'get_configuration_guide', 'arguments': {}}}, identity['token'])['result']
+                assert not reply.get('isError')
+                for channel in ['ui', 'configuration_mcp']:
+                    events = request('GET', '/api/audit?administrator_id='+actor['id']+'&channel='+channel)
+                    event = next(e for e in events if not e.get('error_code'))
+                    expected_records.append((actor, channel, identity['id'], event['request_id']))
+            client, csrf = owner_client, owner_csrf
+            await_export(lambda status: status['pending'] == 0)
+            logs = docker('logs', collector)
+            wire = logs.stdout+logs.stderr
+            records = re.split(r'LogRecord #\d+', wire)
+            for actor, channel, identity_id, request_id in expected_records:
+                attributes = [
+                    'mcpdbhub.audit.request_id: Str('+request_id+')',
+                    'mcpdbhub.audit.administrator_id: Str('+actor['id']+')',
+                    'mcpdbhub.audit.administrator_username: Str('+actor['username']+')',
+                    'mcpdbhub.audit.channel: Str('+channel+')',
+                ]
+                if channel == 'configuration_mcp':
+                    attributes.append('mcpdbhub.audit.configuration_agent_id: Str('+identity_id+')')
+                assert any(all(attribute in record for attribute in attributes) for record in records), 'OTLP lost per-record administrator attribution: '+protocol
+            for secret in [password, colleague['temporary_password'], personal['token'], owner_configuration['token']]:
+                assert secret not in wire, 'OTLP exposed an administrator credential'
+    finally:
+        client, csrf = owner_client, owner_csrf
 
 
 def check_http_workflow():
@@ -206,7 +263,7 @@ try:
     ready()
     setup = re.search(r"First-time setup token: (\S+)", docker("logs", name).stderr).group(1)
     initial_password = uuid.uuid4().hex
-    csrf = request("POST", "/api/setup", {"token": setup, "password": initial_password})["csrf"]
+    csrf = request("POST", "/api/setup", {"username":"admin","token": setup, "password": initial_password})["csrf"]
     assert docker("exec", name, "id", "-u").stdout.strip() == "10001"
     assert docker("exec", name, "sh", "-c", "command -v node", check=False).returncode != 0
     version_output = docker('exec', name, binary, 'version').stdout.strip()
@@ -415,20 +472,29 @@ try:
     replacement_password = uuid.uuid4().hex
     recovery = subprocess.run(["docker", "run", "--rm", "-i", "--network", "mcpdbhub-test", "--read-only", "--cap-drop", "ALL",
                                "-v", volume+":/data", *runtime, IMAGE, "reset-password", "--password-stdin"],
-                              input=replacement_password, text=True, capture_output=True, check=True)
+                              input=replacement_password, text=True, capture_output=True)
+    if recovery.returncode:
+        raise RuntimeError("Password recovery failed: " + recovery.stderr[-2000:])
     assert replacement_password not in recovery.stdout + recovery.stderr
     docker("start", name)
     port = docker("port", name, "8080/tcp").stdout.strip().rsplit(":", 1)[1]
     base = "http://127.0.0.1:"+port
     ready()
     request("GET", "/api/sources", expected=401)
-    request("POST", "/api/login", {"password": initial_password}, expected=401)
-    csrf = request("POST", "/api/login", {"password": replacement_password})["csrf"]
+    request("POST", "/api/login", {"username":"admin","password": initial_password}, expected=401)
+    csrf = request("POST", "/api/login", {"username":"admin","password": replacement_password})["csrf"]
     assert any(s["id"] == source["id"] for s in request("GET", "/api/sources"))
     recovered = request("POST", "/mcp", query, agent["token"])["result"]["structuredContent"]
     assert recovered["data"] == [["3"]] and recovered["ontology_context"] == content["ontology_context"]
     assert request('POST', '/mcp', native_query, agent['token'])['result']['isError'] is True
+    request('POST', '/mcp/config', query, configuration_token, expected=401)
+    restored_identity = request('GET', '/api/configuration-agents')['agents'][0]
+    assert restored_identity['id'] == configuration['id']
+    configuration = request('POST', '/api/configuration-agents/'+restored_identity['id']+'/token', {'revision': restored_identity['revision']})
+    configuration_token = configuration['token']
     assert configure('get_configuration_guide', {})['publication'] == 'administrator_only'
+    if args.otlp:
+        check_administrator_otlp(source['id'], configuration)
     check_http_workflow()
     request('DELETE', '/api/configuration-agents/'+configuration['id'])
     request('POST', '/mcp/config', query, configuration_token, expected=401)
@@ -454,6 +520,7 @@ try:
                              'parameter_binding_position_suggestions', 'single_answer_capture_review_and_history_summary'])
     if args.otlp:
         result['checks'].append('OTLP_configuration_MCP_correlation_and_redaction')
+        result['checks'].append('OTLP_HTTP_and_gRPC_two_administrators_UI_and_configuration_MCP_attribution')
         result['collector_version'] = '0.160.0'
         result['checks'].extend(['OTLP_HTTP_protobuf', 'OTLP_gRPC', 'OTLP_header_and_payload_redaction',
                                  'OTLP_receiver_outage_query_isolation', 'OTLP_pending_restart_and_recovery'])
@@ -466,6 +533,12 @@ try:
         result['checks'].extend(['bilingual_semantics_guides_and_examples', 'bilingual_ontology_guides_and_examples'])
         assert all((package/p).exists() for p in ('docs/README.md', 'docs/README.zh-CN.md', 'docs/getting-started.md', 'docs/configuration-mcp.md', 'docs/configuration-mcp.zh-CN.md', 'docs/operations.md', 'docs/releases/'+manifest['version']+'.md', 'docs/http-api.md', 'docs/http-api.zh-CN.md'))
         result['checks'].append('bundled_configuration_and_operations_help')
+        assert manifest['license'] == 'Apache-2.0'
+        for filename in ('LICENSE', 'NOTICE'):
+            assert (package/filename).read_bytes() == (ROOT/filename).read_bytes(), 'Archive project license differs from release source'
+        assert (package/'docs/administrators.md').is_file() and (package/'docs/administrators.zh-CN.md').is_file()
+        result['checks'].extend(['Apache_2_0_license_and_notice', 'bilingual_administrator_upgrade_help'])
+        result['license'] = manifest['license']
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(result, indent=2)+"\n")
     print(json.dumps(result))

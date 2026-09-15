@@ -166,7 +166,7 @@ func (s *Server) testSource(w http.ResponseWriter, r *http.Request) {
 	if actor == "" {
 		actor = "admin"
 	}
-	record := model.Audit{RequestID: requestID, At: started, AgentID: actor, SourceID: src.ID, Operation: "test_connection", ElapsedMS: time.Since(started).Milliseconds(), Preview: true}
+	record := model.AdministratorPrincipal(r.Context()).AttributeAudit(model.Audit{RequestID: requestID, At: started, AgentID: actor, SourceID: src.ID, Operation: "test_connection", ElapsedMS: time.Since(started).Milliseconds(), Preview: true})
 	if probe.Error != nil {
 		record.ErrorCode = probe.Error.Code
 		record.NativeCode = probe.Error.NativeCode
@@ -227,7 +227,7 @@ func (s *Server) query(w http.ResponseWriter, r *http.Request) {
 	if in.Cursor != nil {
 		in.Query.Cursor = *in.Cursor
 	}
-	p := model.Principal{Admin: in.AgentID == "", AgentID: in.AgentID, Preview: true}
+	p := model.PreviewPrincipal(r.Context(), in.AgentID)
 	res, e := s.Engine.Execute(r.Context(), p, in.Operation, in.Query)
 	if e != nil {
 		fail(w, 400, e)
@@ -244,7 +244,7 @@ func (s *Server) discover(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, model.Fail("invalid_input", "invalid discovery operation"))
 		return
 	}
-	res, e := s.Engine.Execute(r.Context(), model.Principal{Admin: r.URL.Query().Get("agent_id") == "", AgentID: r.URL.Query().Get("agent_id"), Preview: true}, op, model.Query{SourceID: r.PathValue("id"), Namespace: r.URL.Query().Get("namespace"), Object: r.URL.Query().Get("object"), Cursor: r.URL.Query().Get("cursor")})
+	res, e := s.Engine.Execute(r.Context(), model.PreviewPrincipal(r.Context(), r.URL.Query().Get("agent_id")), op, model.Query{SourceID: r.PathValue("id"), Namespace: r.URL.Query().Get("namespace"), Object: r.URL.Query().Get("object"), Cursor: r.URL.Query().Get("cursor")})
 	if e != nil {
 		fail(w, 400, e)
 		return

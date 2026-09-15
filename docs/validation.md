@@ -1,5 +1,19 @@
 # Validation and reproduction
 
+## ContextGate 0.6.0 — 2026-09-15
+
+The [0.6.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) includes named administrator accounts, personal Configuration MCP identities and Apache-2.0 licensing. Its validation attachments record the release commit, both native CI architectures, actual Linux archives and independent GitHub download checks. The implementation and Chrome evidence below comes from the preceding feature verification; each record retains its original digest and scope.
+
+## Unreleased administrator accounts — 2026-09-15
+
+Multi-administrator accounts, personal Configuration MCP identities and attributable audit passed OrbStack Go/race checks, including role boundaries, temporary-password restrictions, targeted revocation, concurrent last-super-administrator protection, operator-bound cursors and named CLI recovery. A real 0.5.0 metadata copy retained its password and business/query configuration while invalidating legacy sessions and configuration tokens. Transactional rollback and repeated migration/reopen passed store regressions.
+
+The **18-product / 20-version** matrix passed **135 query/error cases and 104 denied operations**. Its exact digest predates the final account-create audit revision fix; query and adapter code remained unchanged afterward. Final focused tests and the arm64 [package workflow](verification/administrators-package.json) cover that fix, HTTP/stdio, HTTP API sources, restart/recovery and a real Collector receiving both administrators' UI/Configuration MCP audit attributes through **OTLP HTTP/protobuf and gRPC**.
+
+Local Chrome verified English/Chinese login and role-based settings, account creation/editing, one-time temporary-password acknowledgement, first-login restrictions, personal-token forms, ordinary/super audit filters, keyboard controls and 390×844 layouts. Final browser warning/error logs were empty. Password-change and token-rotation submissions were exercised through API/integration tests; Chrome inspected their forms without submitting new credentials. The final UI production build passed; the existing nine UI tests passed during the feature stage.
+
+The [administrator verification record](verification/administrators.json) distinguishes each test stage and digest. This is an uncommitted feature after 0.5.0, with no new native amd64 CI, dist release or GitHub download verification. See the [account and upgrade guide](administrators.md).
+
 ## ContextGate 0.5.0 — 2026-09-15
 
 The complete Go and race suites passed in OrbStack with isolated PostgreSQL metadata schemas. The TypeScript/Vite production build, nine UI workflow tests and two lossless request tests passed; Vite retains its bundle-size advisory.

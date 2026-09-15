@@ -4,6 +4,7 @@
 
 [![Release](https://img.shields.io/github/v/release/SamuelSupe/contextGate?color=438c91)](https://github.com/SamuelSupe/contextGate/releases/latest)
 [![CI](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Databases](https://img.shields.io/badge/Databases-18_products-438c91)](docs/support-matrix.zh-CN.md)
 
@@ -17,7 +18,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 产品原名 **MCP DB Hub**。仓库及 Go 模块已更名为 `SamuelSupe/contextGate`，历史提交和发行版继续保留。主命令为 `contextgate`，兼容 `mcpdbhub` 别名与已有 `MCPDBHUB_*` 配置键、遥测属性。详见[品牌说明](docs/brand/README.zh-CN.md)。
 
-[English](README.md) · [下载 v0.5.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
+[English](README.md) · [下载 v0.6.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -25,7 +26,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 能做什么
 
-**[0.5.0 新内容](docs/releases/0.5.0.zh-CN.md)：** 接入 HTTP API，在业务目录中发现可执行查询，按明确参数位置编辑模板，并直接评估一次真实 Agent 回答。首页引导、本体映射、发布审核与设置也提供了更清晰的操作路径。
+**[0.6.0 新内容](docs/releases/0.6.0.zh-CN.md)：** 多个独立管理员账号、两级角色、个人配置 MCP Token，以及关联实际操作者的审计。业务配置共享，账号和系统安全由超级管理员管理。ContextGate 现采用 **Apache-2.0** 开源许可证。
 
 | 能力 | 提供的行为 |
 |---|---|
@@ -40,7 +41,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 配置 MCP
 
-在 **设置 → 配置 MCP** 为受信任的 Agent 创建短期专用 Token，即可配置所有数据源连接、语义草稿、模板试跑和共享本体／映射。数据源修改立即生效，草稿发布及查询 Agent 授权仍由管理员完成。详见[配置指南](docs/configuration-mcp.zh-CN.md)。
+在 **设置 → 我的配置 MCP** 为受信任的 Agent 创建短期专用 Token，即可配置所有数据源连接、语义草稿、模板试跑和共享本体／映射。数据源修改立即生效，草稿发布及查询 Agent 授权仍由管理员完成。详见[配置指南](docs/configuration-mcp.zh-CN.md)。
 
 ## 运维与恢复
 
@@ -48,7 +49,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 下载运行
 
-[**ContextGate 0.5.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
+[**ContextGate 0.6.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
 
 ## 启动
 
@@ -62,7 +63,7 @@ docker compose up --build -d
 docker compose logs hub
 ```
 
-打开 `http://127.0.0.1:8080`，使用日志中的一次性设置码创建管理员密码。随后依次添加数据源、测试连接、创建 Agent 并选择允许访问的数据源。Token 仅显示一次。
+打开 `http://127.0.0.1:8080`，使用日志中的一次性设置码创建首个超级管理员的用户名和密码。随后依次添加数据源、测试连接、创建 Agent 并选择允许访问的数据源。Token 仅显示一次。
 
 Compose 在私有容器网络启动 PostgreSQL，健康后再启动 ContextGate，仅发布 ContextGate 的本机 HTTP 端口。ContextGate 使用 UID 10001，查询数据库文件只读挂载。`hub-postgres` 保存元数据，`hub-data` 保存独立加密主密钥；重启和升级时保留两个卷及已有 `.env`，只在首次安装生成 `.env`。
 
@@ -171,7 +172,7 @@ v0.1.1 支持在 **Settings → Audit log export** 配置 OTLP Logs，通过 HTT
 
 远程部署在 HTTPS 反向代理后运行，代理保留公开 Host 和 Authorization；设置准确的公开 URL。管理 UI 与 OAuth 同源。不要将服务置于会去掉认证头的公共代理后。健康检查为 `GET /healthz`。
 
-备份时停止 ContextGate，用 `pg_dump` 备份 PostgreSQL 元数据库，另行备份并保护对应的 `master.key` 或外部主密钥。使用 `pg_restore` 恢复数据库并提供同一密钥，密钥缺失或不匹配会拒绝启动。仍为单实例、单管理员；更换 PG 不代表支持多实例协调、RBAC、多租户、跨库联邦查询或自动修改数据库权限。
+备份时停止 ContextGate，用 `pg_dump` 备份 PostgreSQL 元数据库，另行备份并保护对应的 `master.key` 或外部主密钥。使用 `pg_restore` 恢复数据库并提供同一密钥，密钥缺失或不匹配会拒绝启动。保持单实例，支持两级角色的多个管理员，共享业务配置；不提供多实例协调、按资源多租户、跨库联邦查询或自动修改数据库权限。参阅[管理员与升级说明](docs/administrators.zh-CN.md)。
 
 ## 验证
 
@@ -212,25 +213,27 @@ InfluxDB 的发现结果与查询预览根据数据源配置的 1.x、2.x、3 Co
 
 ### 管理员忘记密码后的恢复
 
-恢复需要服务器本地访问权限、与服务相同的 `MCPDBHUB_DATABASE_URL`、原密钥目录及匹配的主密钥。先停止服务，再通过标准输入向命令提供 12–256 字节的新密码。命令不接受命令行密码参数；保留数据源、Agent 凭证和审计，注销所有管理员会话。
+恢复需要服务器本地访问权限、与服务相同的 `MCPDBHUB_DATABASE_URL`、原密钥目录及匹配的主密钥。先停止服务，再通过标准输入向命令提供 12–256 字节的新密码。命令不接受命令行密码参数；保留数据源、Agent 凭证和审计，只注销指定账号的会话及配置 MCP Token；其他管理员和目标账号角色不变。多账号时必须指定 `--username`。
 
 Docker Compose 部署可在 Bash 或 Zsh 中执行以下命令。`read -s` 不回显密码，也不会把密码写入命令历史：
 
 ```sh
 docker compose stop hub
 read -r -s hub_new_password
-printf '%s' "$hub_new_password" | docker compose run --rm -T hub reset-password --password-stdin
+printf '%s' "$hub_new_password" | docker compose run --rm -T hub reset-password --username admin --password-stdin
 unset hub_new_password
 docker compose up -d hub
 ```
 
-独立二进制部署将密码通过管道传给 `contextgate reset-password --data-dir /原配置目录 --password-stdin`，然后重启服务。若配置了 `MCPDBHUB_MASTER_KEY`，恢复命令必须使用相同环境配置。不要通过删除配置数据库或主密钥来恢复密码。
+独立二进制部署将密码通过管道传给 `contextgate reset-password --data-dir /原配置目录 --username admin --password-stdin`，然后重启服务。若配置了 `MCPDBHUB_MASTER_KEY`，恢复命令必须使用相同环境配置。不要通过删除配置数据库或主密钥来恢复密码。
+
+**0.6.0 新增：** 新增实名管理员、两级角色、个人配置 MCP 身份与操作者审计。升级后原密码迁移至用户名 `admin`，需要重新登录；旧配置 MCP Token 全部失效。参阅[升级和账号指南](docs/administrators.zh-CN.md)。
 
 ## 参与项目
 
 [报告问题](https://github.com/SamuelSupe/contextGate/issues/new/choose) · [贡献指南](CONTRIBUTING.md) · [安全反馈](SECURITY.md) · [更新记录](CHANGELOG.md) · [第三方声明](THIRD_PARTY_NOTICES.md)
 
-项目许可证尚未选定。第三方组件的许可证与声明已随源码和发行包保留。
+ContextGate 采用 [Apache License 2.0](LICENSE) 开源许可证。归属声明见 [NOTICE](NOTICE)；第三方组件保留各自许可证，详见[第三方声明](THIRD_PARTY_NOTICES.md)。
 
 数据源 **Agent setup** 串联连接证据、模板、授权和真实调用，完成后转为 **Query workspace**，预览前明确展示所选 Agent。本体卡片展示源映射和可执行模板数量，可直接打开 **Queries and sources**。业务问题支持保存复用，评估指标与人工评分以加密历史记录持久保存。参见[工作流与效果验证](docs/agent-workflows.zh-CN.md)。
 

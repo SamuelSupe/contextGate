@@ -43,6 +43,7 @@ func auditRequest(config Config, instance string, audits []model.Audit) (*collec
 		}
 		truncated := false
 		for _, entry := range []struct{ key, value string }{
+			{"administrator_id", a.AdministratorID}, {"administrator_username", a.AdministratorUsername}, {"actor_type", a.ActorType}, {"configuration_agent_id", a.ConfigurationAgentID}, {"channel", a.Channel},
 			{"event_kind", a.EventKind}, {"resource_id", a.ResourceID}, {"revision", a.Revision}, {"submitted_fields", a.ChangedFields},
 			{"request_id", a.RequestID}, {"agent_id", a.AgentID}, {"source_id", a.SourceID}, {"operation", a.Operation},
 			{"template_id", a.TemplateID}, {"template_version", a.TemplateVersion}, {"ontology_id", a.OntologyID}, {"ontology_version", a.OntologyVersion},

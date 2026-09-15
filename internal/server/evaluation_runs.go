@@ -76,6 +76,10 @@ func (s *Server) createEvaluation(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	v := model.Evaluation{ID: "eval_" + secure.Random(16), Revision: 1, SourceID: r.PathValue("id"), CaseID: in.CaseID, CaseRevision: in.CaseRevision, Name: in.Name, Question: in.Question, Criteria: in.Criteria, Client: in.Client, AgentID: in.AgentID, Created: time.Now().UTC(), Runs: map[string]*model.EvaluationCapture{}}
 	v.Mode = in.Mode
 	if in.CaseID != "" {
@@ -120,6 +124,10 @@ func (s *Server) captureEvaluation(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	v, err := s.Store.Evaluation(r.PathValue("id"), r.PathValue("evaluation"))
 	if err != nil {
 		semanticFailure(w, err)
@@ -189,6 +197,10 @@ func (s *Server) reviewEvaluation(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	v, err := s.Store.Evaluation(r.PathValue("id"), r.PathValue("evaluation"))
 	if err != nil {
 		semanticFailure(w, err)

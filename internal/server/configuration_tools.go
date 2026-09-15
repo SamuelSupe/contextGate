@@ -31,15 +31,12 @@ func configurationTool[T any](s *Server, server *mcp.Server, agent model.Configu
 		panic(err)
 	}
 	server.AddTool(&mcp.Tool{Name: name, Description: description, InputSchema: schema, Annotations: &mcp.ToolAnnotations{ReadOnlyHint: readOnly}}, func(ctx context.Context, request *mcp.CallToolRequest) (*mcp.CallToolResult, error) {
-		ctx, done, err := s.startConfigurationCall(ctx, agent.ID)
+		ctx, done, err := s.startConfigurationCall(ctx, agent)
 		if err != nil {
 			return configurationResult(nil, err), nil
 		}
 		defer done()
-		audit := model.Audit{At: time.Now().UTC(), AgentID: agent.ID, EventKind: "management", Operation: "configuration." + name, RequestID: secure.Random(16), ErrorCode: "operation_pending"}
-		if err = s.Store.Audit(audit); err != nil {
-			return configurationResult(nil, model.Fail("audit_unavailable", "Configuration call was not started because the audit log is unavailable")), nil
-		}
+		audit := model.AdministratorPrincipal(ctx).AttributeAudit(model.Audit{At: time.Now().UTC(), AgentID: agent.ID, EventKind: "management", Operation: "configuration." + name, RequestID: secure.Random(16), ErrorCode: "operation_pending"})
 		var in T
 		var plain any
 		raw := request.Params.Arguments
@@ -58,6 +55,7 @@ func configurationTool[T any](s *Server, server *mcp.Server, agent model.Configu
 				err = model.Fail("invalid_input", "Invalid configuration arguments")
 			}
 		}
+		audit.ChangedFields = managementFields(raw)
 		var result any
 		if err == nil {
 			var refs struct {
@@ -72,6 +70,11 @@ func configurationTool[T any](s *Server, server *mcp.Server, agent model.Configu
 			if refs.OntologyID != "" {
 				audit.ResourceID = refs.OntologyID
 			}
+		}
+		if auditErr := s.Store.Audit(audit); auditErr != nil {
+			return configurationResult(nil, model.Fail("audit_unavailable", "Configuration call was not started because the audit log is unavailable")), nil
+		}
+		if err == nil {
 			if err = model.CheckConfigurationContext(ctx); err == nil {
 				result, err = run(ctx, in)
 			}

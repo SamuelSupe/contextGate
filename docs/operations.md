@@ -12,6 +12,10 @@ The review distinguishes business-context changes from query execution changes. 
 
 The source connection editor also explains live impact before saving connection, credential, enablement or query-mode changes. Connection changes invalidate template evidence. Name, description and limit edits do not invalidate it; execution still observes current limits.
 
+## Administrator responsibilities
+
+All administrators share business configuration. Super administrators additionally manage accounts, global settings, health-check policy and OTLP. Account/password/personal Configuration MCP token events appear in the restricted **Account security** audit category. See [administrator accounts](administrators.md) for onboarding, personal tokens and upgrade behavior.
+
 ## Focus audit activity
 
 **Audit log** starts with **Real Agent calls**. **Manual previews** includes administrator and selected-Agent previews; **System checks** contains new background/manual health-discovery events; **All activity** also exposes management changes. These are combinable with source, caller, result and time filters. Health checks never count as successful Agent onboarding.
@@ -20,7 +24,7 @@ System-discovery events use `event_kind=system`, including the existing OTLP Log
 
 ## Review and recover configuration changes
 
-**Audit log → Event type → Management changes** includes source configuration, Agent grants and credentials, ontology and semantic edits/publications, OAuth client administration and operational settings. Records contain the administrator identity, resource ID, operation, revision, submitted field categories, time and outcome. Categories describe submitted fields, not a value-level diff. Query text, business definitions, parameter values, passwords and results are excluded. Management events use the existing 30-day retention and OTLP Logs export.
+**Audit log → Event type → Management changes** includes source configuration, query Agent grants and credentials, ontology and semantic edits/publications, OAuth client administration and operational settings. Records contain the administrator identity, resource ID, operation, revision, submitted field categories, time and outcome. Categories describe submitted fields, not a value-level diff. Query text, business definitions, parameter values, passwords and results are excluded. Management events use the existing 30-day retention and OTLP Logs export.
 
 An intent is durably recorded before a configuration handler runs. If this fails, the change is rejected. A second record reports completion or failure. The UI hides an intent after its outcome arrives; OTLP receives both with the same request ID. A crash or failed outcome write leaves **Outcome pending**, not a false success. Check the current resource before retrying; the Health page highlights intents without an outcome after three minutes.
 

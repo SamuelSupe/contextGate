@@ -20,3 +20,7 @@ The database matrix provisions isolated containers. Follow [validation](docs/val
 Keep queries read-only, apply authorization to metadata as well as data, preserve native types and parameter precision, and cancel work when access is revoked. Add a regression test when it protects meaningful behavior or a security boundary. Test rendered UI changes in local Chrome; do not add a browser automation framework for a small UI fix.
 
 Before opening a pull request, remove credentials and local fixtures, explain the observable change, and report what you actually tested. English is the default for the README, documentation, UI strings, issue and pull request templates, and release notes. Keep translations in files ending in `.zh-CN.md`, with explicit language links. Update both README and installation-guide languages when user-facing instructions change.
+
+## License
+
+Contributions intentionally submitted for inclusion in ContextGate are licensed under the [Apache License, Version 2.0](LICENSE). Preserve applicable third-party copyright, license and attribution notices.

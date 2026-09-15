@@ -2,9 +2,11 @@
 
 [简体中文](configuration-mcp.zh-CN.md)
 
-Give a trusted automation Agent the tools to prepare ContextGate data sources, semantic catalogs, native query templates and shared ontologies. Open **Settings → Configuration MCP**, create a named token, choose its lifetime, and copy the HTTP or stdio configuration. The token is shown once, expires after 24 hours by default (maximum 30 days), and can be revoked from the same page.
+Give a trusted automation Agent the tools to prepare ContextGate data sources, semantic catalogs, native query templates and shared ontologies. Open **Settings → My configuration MCP**, issue your personal identity’s token, choose its lifetime, and copy the HTTP or stdio configuration. The token is shown once, expires after 24 hours by default (maximum 30 days), and can be revoked from the same page.
 
 This is an administrator configuration credential with access to **all sources and shared drafts**. Issue it only to trusted Agents. It is independent of query Agent tokens and OAuth; neither a query token nor an administrator session cookie authenticates this endpoint.
+
+Each administrator owns one fixed identity and at most one active token. Rotation preserves the identity, immediately revokes the old token and cancels its work. Only the owner can issue a token; super administrators may revoke another owner’s token. Account disablement, role changes and password resets revoke it. Normal personal password changes retain it. Upgrading from 0.5.0 revokes legacy configuration tokens. [Account and upgrade guide](administrators.md).
 
 ## Connect
 

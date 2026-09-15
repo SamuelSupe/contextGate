@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"errors"
+	"github.com/SamuelSupe/contextGate/internal/model"
 	"github.com/SamuelSupe/contextGate/internal/secure"
 	"github.com/ory/fosite"
 	"golang.org/x/crypto/bcrypt"
@@ -118,8 +119,13 @@ func (s *Server) Register(ctx context.Context, in Registration, cimd bool) (map[
 			return nil, err
 		}
 	}
-	if e := s.storage.put(ctx, "client", id, c, time.Time{}, ""); e != nil {
-		return nil, e
+	s.Store.Mutations.Lock()
+	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return nil, err
+	}
+	if err := s.storage.put(ctx, "client", id, c, time.Time{}, ""); err != nil {
+		return nil, err
 	}
 	return out, nil
 }

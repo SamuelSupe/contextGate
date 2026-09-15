@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.6.0 — 2026-09-15
+
+- Adopt the Apache License 2.0 for ContextGate, with project attribution and retained third-party notices in source, images and distributions.
+- Named administrator accounts with Super administrator and Administrator roles, shared business resources and mandatory temporary-password replacement.
+- One personal Configuration MCP identity per account, token rotation, targeted session revocation and cancellation of the owner's in-flight work.
+- Administrator/configuration identity and entry-point attribution in audit and OTLP Logs; security events restricted to super administrators.
+- Transactional migration from 0.5.0 preserves the existing password as `admin`, revokes legacy sessions/configuration tokens and retains query grants. Recovery supports `--username`.
+- English and Chinese account-management, personal-token and audit-filter interfaces and documentation.
+
 ## 0.5.0 — 2026-09-15
 
 - Add HTTP API sources with fixed, administrator-declared read-only GET/POST operations, scalar parameter contracts, lossless JSON results and token pagination. Reuse Agent grants, Configuration MCP, semantic templates, ontology mappings and sanitized audit/OTLP events.

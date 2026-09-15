@@ -4,6 +4,7 @@
 
 [![Release](https://img.shields.io/github/v/release/SamuelSupe/contextGate?color=438c91)](https://github.com/SamuelSupe/contextGate/releases/latest)
 [![CI](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml/badge.svg)](https://github.com/SamuelSupe/contextGate/actions/workflows/ci.yml)
+[![License: Apache-2.0](https://img.shields.io/badge/License-Apache--2.0-blue.svg)](LICENSE)
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Databases](https://img.shields.io/badge/Databases-18_products-438c91)](docs/support-matrix.md)
 
@@ -17,7 +18,7 @@ ContextGate helps Agents understand business concepts and access real data throu
 
 Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contextGate`; previous commits and releases remain available. The primary executable is `contextgate`, with `mcpdbhub` retained as an alias. Existing `MCPDBHUB_*` settings and telemetry attribute names remain supported. [Brand and compatibility](docs/brand/README.md).
 
-[简体中文](README.zh-CN.md) · [Download v0.5.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.6.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -25,7 +26,7 @@ Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contex
 
 ## What you get
 
-**New in [0.5.0](docs/releases/0.5.0.md):** connect HTTP APIs, discover executable queries in the business catalog, edit templates with guided parameter bindings, and validate one real Agent answer without setting up a comparison. Home, ontology mapping, publication review and settings now provide clearer next actions.
+**New in [0.6.0](docs/releases/0.6.0.md):** work with named administrator accounts, issue a personal Configuration MCP token, and trace changes to their actual operator. Two roles separate shared business administration from account and system security. ContextGate is now licensed under **Apache-2.0**.
 
 | Capability | Behavior |
 |---|---|
@@ -38,7 +39,8 @@ Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contex
 | Bounded queries | Timeouts, cancellation, isolated concurrency, response limits and identity-bound cursors |
 | Lossless results | Large integers, decimals, binary data and native document, graph and time-series structures |
 | Audit log export | Optional OTLP Logs over HTTP/protobuf or gRPC, encrypted headers, durable progress and delivery status |
-| Built-in administration | Embedded UI, encrypted credentials, schema preview, audit trail and local password recovery |
+| Named administrators | Super administrator/Administrator roles, personal Configuration MCP identities, operator audit and targeted credential revocation |
+| Built-in administration | Embedded bilingual UI, encrypted credentials, schema preview and named-account password recovery |
 
 ## From a business question to a verified query
 
@@ -48,7 +50,7 @@ Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contex
 4. **Grant and connect** an Agent, then discover published concepts and execute templates through MCP.
 5. **Observe** query and configuration activity in the audit log, with optional OTLP Logs export.
 
-A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a trusted Agent prepare the first three steps. Create its dedicated, short-lived token in **Settings → Configuration MCP**. Source edits take effect immediately; semantic/ontology publication and query grants remain administrator actions.
+A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a trusted Agent prepare the first three steps. Create its dedicated, short-lived token in **Settings → My configuration MCP**. Source edits take effect immediately; semantic/ontology publication and query grants remain administrator actions.
 
 <details>
 <summary><strong>Explore the UI: ontologies, semantics and Agent grants</strong></summary>
@@ -69,7 +71,7 @@ A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a tr
 
 ## Download
 
-[**ContextGate 0.5.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
+[**ContextGate 0.6.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
 
 ## Run
 
@@ -83,7 +85,7 @@ docker compose up --build -d
 docker compose logs hub
 ```
 
-Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to create the administrator password. Add a data source, test its connection and protection evidence, then create an agent and select its data sources. Agent tokens are displayed once.
+Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to create the first super administrator username and password. Add a data source, test its connection and protection evidence, then create an agent and select its data sources. Agent tokens are displayed once.
 
 Compose starts PostgreSQL on its private container network and waits for it to become healthy. Only ContextGate HTTP port is published to loopback. ContextGate runs as UID 10001 and mounts query database files read-only. Metadata persists in `hub-postgres`; the independent encryption key persists in `hub-data`. Preserve both volumes and the existing `.env` when restarting or upgrading; generate `.env` only for a new installation.
 
@@ -151,7 +153,7 @@ Configuration is stored in PostgreSQL. Source credentials use AES-256-GCM; the m
 
 ## Configuration MCP
 
-Use **Settings → Configuration MCP** to connect a trusted configuration Agent. A dedicated, expiring token exposes tools for all data source connections, semantic drafts, template trials and shared ontologies/mappings. Source edits are immediate; administrators publish drafts and grant query access. See the [configuration guide](docs/configuration-mcp.md).
+Use **Settings → My configuration MCP** to connect a trusted configuration Agent. A dedicated, expiring token exposes tools for all data source connections, semantic drafts, template trials and shared ontologies/mappings. Source edits are immediate; administrators publish drafts and grant query access. See the [configuration guide](docs/configuration-mcp.md).
 
 ## Semantic catalogs and query templates
 
@@ -181,6 +183,8 @@ Discovery is available at `/.well-known/oauth-protected-resource` and `/.well-kn
 
 Clients can be pre-registered through the UI, use bounded dynamic registration at `/oauth/register`, or supply an HTTPS Client ID Metadata Document. Metadata fetching rejects private addresses, redirects and oversized responses. Redirects require HTTPS, HTTP on a loopback IP, or a reverse-domain native application scheme. Redirect URIs match exactly. Revoke credentials at `/oauth/revoke`.
 
+**Since 0.6.0:** named administrator accounts, Super administrator/Administrator roles, personal Configuration MCP identities and attributable audit. Upgrading retains the old password under username `admin`, requires signing in again and revokes old configuration MCP tokens. [Upgrade and account guide](docs/administrators.md).
+
 ## Deployment and maintenance
 
 | Variable | Default | Purpose |
@@ -194,7 +198,7 @@ Clients can be pre-registered through the UI, use bounded dynamic registration a
 
 Use an HTTPS reverse proxy for remote access, preserving the public Host and Authorization headers. Set the exact public URL. The admin UI and OAuth server share an origin. Health checks use `GET /healthz`.
 
-For a consistent backup, stop ContextGate and use `pg_dump` to back up its PostgreSQL database. Back up the matching `master.key` or external master key separately. Restore the database with `pg_restore` and supply the same key; a missing or mismatched key prevents startup. ContextGate remains single-instance and single-administrator. PostgreSQL storage does not introduce multi-instance coordination, multi-tenant RBAC, federation or automatic database privilege changes.
+For a consistent backup, stop ContextGate and use `pg_dump` to back up its PostgreSQL database. Back up the matching `master.key` or external master key separately. Restore the database with `pg_restore` and supply the same key; a missing or mismatched key prevents startup. ContextGate remains single-instance, with multiple administrator accounts and two roles sharing the business configuration. It does not introduce multi-instance coordination, resource tenancy, federation or automatic database privilege changes. See [administrator accounts and the upgrade checklist](docs/administrators.md).
 
 See [validation](docs/validation.md) for reproducible OrbStack integration tests and native Chrome UI evidence. Fixture setup writes only to dedicated disposable databases. The service's connection probe never attempts a write.
 
@@ -226,22 +230,22 @@ InfluxDB discovery and the query preview use the configured 1.x, 2.x or 3 Core v
 
 ### Recover a forgotten administrator password
 
-Recovery requires local server access, the same `MCPDBHUB_DATABASE_URL`, the existing key directory and its matching master key. Stop the service first. The command reads the new password from standard input (12–256 bytes), never from a command argument. It preserves data sources, Agent credentials and audit history, and invalidates every administrator session.
+Recovery requires local server access, the same `MCPDBHUB_DATABASE_URL`, the existing key directory and its matching master key. Stop the service first. The command reads the new password from standard input (12–256 bytes), never from a command argument. It preserves data sources, Agent credentials and audit history, and revokes only the selected account’s sessions and configuration MCP token. Use `--username`; omission is allowed only with one account. The role and other administrators remain unchanged.
 
 For Docker Compose, run these commands in Bash or Zsh. The password prompt does not echo input or place the password in shell history:
 
 ```sh
 docker compose stop hub
 read -r -s hub_new_password
-printf '%s' "$hub_new_password" | docker compose run --rm -T hub reset-password --password-stdin
+printf '%s' "$hub_new_password" | docker compose run --rm -T hub reset-password --username admin --password-stdin
 unset hub_new_password
 docker compose up -d hub
 ```
 
-Recovery must use the same `MCPDBHUB_DATABASE_URL` as the running service, in addition to the existing master key. For a standalone binary, pipe the password to `contextgate reset-password --data-dir /path/to/existing-data --password-stdin`, then restart the service. If you configured `MCPDBHUB_MASTER_KEY`, supply the same environment configuration to the recovery command. Do not delete the configuration database or master key to recover a password.
+Recovery must use the same `MCPDBHUB_DATABASE_URL` as the running service, in addition to the existing master key. For a standalone binary, pipe the password to `contextgate reset-password --data-dir /path/to/existing-data --username admin --password-stdin`, then restart the service. If you configured `MCPDBHUB_MASTER_KEY`, supply the same environment configuration to the recovery command. Do not delete the configuration database or master key to recover a password.
 
 ## Get involved
 
 [Report an issue](https://github.com/SamuelSupe/contextGate/issues/new/choose) · [Contributing](CONTRIBUTING.md) · [Security](SECURITY.md) · [Changelog](CHANGELOG.md) · [Third-party notices](THIRD_PARTY_NOTICES.md)
 
-A project license has not yet been selected. Third-party licenses and notices are included with the source and distributions.
+ContextGate is licensed under the [Apache License, Version 2.0](LICENSE). See [NOTICE](NOTICE) for attribution and [third-party notices](THIRD_PARTY_NOTICES.md) for dependencies, which retain their respective licenses.

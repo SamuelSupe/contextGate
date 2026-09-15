@@ -1,12 +1,12 @@
 # 安装 ContextGate
 
-[English](install.md) · [发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0)
+[English](install.md) · [发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0)
 
-**ContextGate 0.5.0** 使用 `contextgate` 主命令，并保留 `mcpdbhub` 别名。
+**ContextGate 0.6.0** 使用 `contextgate` 主命令，并保留 `mcpdbhub` 别名。
 
 ## PostgreSQL 元数据
 
-0.5.0 必须配置 `MCPDBHUB_DATABASE_URL` 并预先创建 PostgreSQL 数据库；账号需要建表及读写权限。Compose 可自动创建专用数据库。`--data-dir` 仅保存独立加密主密钥，元数据由 PostgreSQL 保存。
+0.6.0 必须配置 `MCPDBHUB_DATABASE_URL` 并预先创建 PostgreSQL 数据库；账号需要建表及读写权限。Compose 可自动创建专用数据库。`--data-dir` 仅保存独立加密主密钥，元数据由 PostgreSQL 保存。
 
 **从 0.3.0 或更早版本升级：** 不提供 SQLite 元数据导入或兼容后端，需要重新初始化管理员、配置数据源和授权。保留旧数据库及主密钥备份，使用全新的 PG 数据库。SQLite 查询数据源仍支持。详见[升级说明](releases/0.4.0.md#upgrading-from-03x-or-earlier)。
 
@@ -18,11 +18,11 @@
 
 ```sh
 # 示例：Linux arm64。amd64 用户替换文件名中的 arm64。
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/contextgate-0.5.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/contextgate-0.6.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf contextgate-0.5.0-linux-arm64.tar.gz
-cd contextgate-0.5.0-linux-arm64
+tar -xzf contextgate-0.6.0-linux-arm64.tar.gz
+cd contextgate-0.6.0-linux-arm64
 ./contextgate version
 mkdir -p data databases
 # Use a pre-created PostgreSQL database and its dedicated owner role.
@@ -35,7 +35,7 @@ export PGPASSWORD
 
 保留解压后的完整目录：根目录 `contextgate` 启动器设置私有运行库路径，再运行 `libexec/contextgate`。不要只复制其中一个文件。启动器保留当前工作目录、参数和信号传递。
 
-打开 `http://127.0.0.1:8080`，使用服务日志中的一次性设置码创建管理员密码。按以下流程配置：
+打开 `http://127.0.0.1:8080`，使用服务日志中的一次性设置码创建首个超级管理员的用户名和密码。按以下流程配置：
 
 1. **Data sources → Add data source**：选择产品、填写连接与数据库读取账号，配置 TLS 和执行上限。
 2. 保存并检查连接与只读保护证据。`Not verified` 不等同于已验证账号权限；InfluxDB 3 Core 明确采用查询 API 隔离。
@@ -65,7 +65,7 @@ docker compose logs hub
 
 升级前保留旧程序和停止状态下的配置备份，新版本使用同一 `MCPDBHUB_DATABASE_URL` 和密钥目录启动。此次 SQLite 到 PG 变更从空库开始，不导入旧元数据，需要重新配置。不要删除主密钥、配置库或数据卷。数据库迁移后如需回退，应恢复与旧程序配套的配置备份。
 
-忘记管理员密码时，保留同一 `MCPDBHUB_DATABASE_URL` 和主密钥，停止服务，通过 stdin 执行 `./contextgate reset-password --data-dir /原配置路径 --password-stdin`；具体无回显命令见 [恢复说明](../README.zh-CN.md#管理员忘记密码后的恢复)。原数据源与 Agent Token 保留，管理员会话失效。
+忘记管理员密码时，保留同一 `MCPDBHUB_DATABASE_URL` 和主密钥，停止服务，通过 stdin 执行 `./contextgate reset-password --data-dir /原配置路径 --username admin --password-stdin`；具体无回显命令见 [恢复说明](../README.zh-CN.md#管理员忘记密码后的恢复)。原数据源与查询 Agent Token 保留，指定管理员的会话及配置 Token 失效。
 
 ## 运行故障
 
@@ -80,3 +80,5 @@ docker compose logs hub
 | 游标无效 | 使用相同身份、参数和上限；过期、升级或授权改变后重新开始查询 |
 
 版本、二进制摘要与源码提交记录在包内 `BUILD.json`。已执行的产品/平台验收与剩余边界见 [验收说明](validation.zh-CN.md)。
+
+[管理员账号与 0.5.0 升级说明](administrators.zh-CN.md)

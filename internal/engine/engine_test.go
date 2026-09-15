@@ -9,7 +9,7 @@ import (
 	"github.com/SamuelSupe/contextGate/internal/ontology"
 	"github.com/SamuelSupe/contextGate/internal/semantic"
 	"github.com/SamuelSupe/contextGate/internal/store"
- "github.com/SamuelSupe/contextGate/internal/testpg"
+	"github.com/SamuelSupe/contextGate/internal/testpg"
 	"github.com/go-sql-driver/mysql"
 	"github.com/jackc/pgx/v5/pgconn"
 	"net"
@@ -148,6 +148,30 @@ func TestCursorBindingAndCredentialRecheck(t *testing.T) {
 	valid.Store(false)
 	if _, e = en.Execute(context.Background(), p, "query_sql", model.Query{SourceID: src.ID, Query: "next"}); model.ErrorCode(e) != "unauthorized" {
 		t.Fatalf("revoked OAuth credential snapshot accepted: %v", e)
+	}
+	// Two administrators may preview as the same query Agent; their pagination
+	// still belongs to the actual operator and the credential used to start it.
+	p = model.Principal{AgentID: "a", Preview: true, AdministratorID: "owner", AdministratorRole: model.RoleAdministrator, SessionIdentity: "session-one", CredentialVersion: 1}
+	q = model.Query{SourceID: src.ID, Query: "page"}
+	r, e = en.Execute(context.Background(), p, "query_sql", q)
+	if e != nil {
+		t.Fatal(e)
+	}
+	q.Cursor = r.NextCursor
+	for _, change := range []func(*model.Principal){
+		func(v *model.Principal) { v.AdministratorID = "colleague" },
+		func(v *model.Principal) { v.SessionIdentity = "session-two" },
+		func(v *model.Principal) { v.CredentialVersion++ },
+		func(v *model.Principal) { v.ConfigurationAgentID = "configuration-identity" },
+	} {
+		other := p
+		change(&other)
+		if _, e = en.Execute(context.Background(), other, "query_sql", q); model.ErrorCode(e) != "invalid_cursor" {
+			t.Fatalf("preview cursor crossed administrator credentials: %v", e)
+		}
+	}
+	if _, e = en.Execute(context.Background(), p, "query_sql", q); e != nil {
+		t.Fatalf("original preview cursor rejected: %v", e)
 	}
 }
 
@@ -295,7 +319,7 @@ func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
 	if err := en.Store.WriteSemantics(src.ID, 0, st); err != nil {
 		t.Fatal(err)
 	}
-	st, err := en.PublishSemantics(src.ID, 1)
+	st, err := en.PublishSemantics(context.Background(), src.ID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -327,7 +351,7 @@ func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
 	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
 		t.Fatal(err)
 	}
-	st, err = en.PublishSemantics(src.ID, st.Revision+1)
+	st, err = en.PublishSemantics(context.Background(), src.ID, st.Revision+1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -344,7 +368,7 @@ func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
 	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
 		t.Fatal(err)
 	}
-	st, err = en.PublishSemantics(src.ID, st.Revision+1)
+	st, err = en.PublishSemantics(context.Background(), src.ID, st.Revision+1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -368,7 +392,7 @@ func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
 	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
 		t.Fatal(err)
 	}
-	st, err = en.PublishSemantics(src.ID, st.Revision+1)
+	st, err = en.PublishSemantics(context.Background(), src.ID, st.Revision+1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -388,7 +412,7 @@ func TestTemplatePublicationCancellationAndCursorBinding(t *testing.T) {
 	if err != nil || updated.ObservedVersion != "fixture-v2" || updated.ConnectionRevision <= src.ConnectionRevision {
 		t.Fatal("database version evidence was not invalidated", err)
 	}
-	if _, err = en.PublishSemantics(src.ID, st.Revision); err == nil {
+	if _, err = en.PublishSemantics(context.Background(), src.ID, st.Revision); err == nil {
 		t.Fatal("stale database proof republished")
 	}
 }
@@ -427,7 +451,7 @@ func TestOntologyPublicationKeepsExecutionStartContext(t *testing.T) {
 	if err := en.Store.WriteSemantics(src.ID, 0, semantic.State{Draft: draft, Published: semantic.Empty()}); err != nil {
 		t.Fatal(err)
 	}
-	st, err := en.PublishSemantics(src.ID, 1)
+	st, err := en.PublishSemantics(context.Background(), src.ID, 1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -460,7 +484,7 @@ func TestOntologyPublicationKeepsExecutionStartContext(t *testing.T) {
 	if err = en.Store.WriteSemantics(src.ID, st.Revision, st); err != nil {
 		t.Fatal(err)
 	}
-	if _, err = en.PublishSemantics(src.ID, st.Revision+1); err != nil {
+	if _, err = en.PublishSemantics(context.Background(), src.ID, st.Revision+1); err != nil {
 		t.Fatal(err)
 	}
 	close(c.release)

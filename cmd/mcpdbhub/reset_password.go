@@ -18,6 +18,7 @@ func resetPassword(args []string, input io.Reader, output io.Writer) error {
 	f.SetOutput(output)
 	dir := f.String("data-dir", env("MCPDBHUB_DATA_DIR", "./data"), "existing configuration directory")
 	databaseURL := f.String("database-url", "", "PostgreSQL metadata connection (prefer MCPDBHUB_DATABASE_URL)")
+	username := f.String("username", "", "administrator username (required when multiple accounts exist)")
 	stdin := f.Bool("password-stdin", false, "read the new password from standard input, without logging it")
 	if err := f.Parse(args); err != nil {
 		return err
@@ -49,9 +50,9 @@ func resetPassword(args []string, input io.Reader, output io.Writer) error {
 	if _, err = st.Sources(); err != nil {
 		return errors.New("cannot decrypt existing configuration; verify the master key")
 	}
-	if err = st.ReplaceAdminPassword(secure.Password(password)); err != nil {
+	if err = st.ResetAdministratorPasswordCLI(*username, secure.Password(password)); err != nil {
 		return err
 	}
-	fmt.Fprintln(output, "Administrator password reset. All administrator sessions were signed out. Data sources, Agent credentials and audit history are retained.")
+	fmt.Fprintln(output, "Administrator password reset. The selected administrator sessions and configuration MCP token were revoked. Data sources, Agent credentials and audit history are retained.")
 	return nil
 }

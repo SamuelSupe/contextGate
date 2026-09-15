@@ -34,6 +34,9 @@ def main():
     licenses = ROOT/'third_party/licenses'
     if not licenses.is_dir():
         parser.error('collect third-party license notices before packaging')
+    for filename in ('LICENSE', 'NOTICE'):
+        if not (ROOT/filename).is_file():
+            parser.error('include the project LICENSE and NOTICE before packaging')
     output = ROOT/'dist'
     output.mkdir(exist_ok=True)
     for arch in args.arch or ['arm64', 'amd64']:
@@ -70,7 +73,7 @@ def main():
             (package/'libexec/contextgate').chmod(0o755)
             for filename in ('README.md', 'README.en.md', 'README.zh-CN.md',
                              'CONTRIBUTING.md', 'CHANGELOG.md', 'SECURITY.md',
-                             'THIRD_PARTY_NOTICES.md', 'LICENSE', 'go.mod'):
+                             'THIRD_PARTY_NOTICES.md', 'LICENSE', 'NOTICE', 'go.mod'):
                 if (ROOT/filename).is_file():
                     shutil.copy2(ROOT/filename, package/filename)
             (package/'scripts').mkdir()
@@ -80,6 +83,7 @@ def main():
                 shutil.copytree(ROOT/directory, package/directory)
             binary_sha = hashlib.sha256((package/'libexec/contextgate').read_bytes()).hexdigest()
             manifest = {'product': 'ContextGate', 'version': args.version, 'commit': commit, 'os': 'linux', 'arch': arch,
+                        'license': 'Apache-2.0',
                         'minimum_glibc': '2.36', 'binary_sha256': binary_sha,
                         'image_id': run('docker', 'image', 'inspect', '--format', '{{.Id}}', image)}
             (package/'BUILD.json').write_text(json.dumps(manifest, indent=2)+'\n')

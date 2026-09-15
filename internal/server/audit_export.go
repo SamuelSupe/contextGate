@@ -22,7 +22,13 @@ func (s *Server) saveAuditExport(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit export settings."))
 		return
 	}
-	if err := s.AuditExport.Update(r.Context(), update); err != nil {
+	s.Store.Mutations.Lock()
+	err := model.CheckConfigurationContext(r.Context())
+	if err == nil {
+		err = s.AuditExport.Update(r.Context(), update)
+	}
+	s.Store.Mutations.Unlock()
+	if err != nil {
 		code := http.StatusInternalServerError
 		switch model.ErrorCode(err) {
 		case "invalid_input":

@@ -31,12 +31,15 @@ ARG VCS_REF=development
 LABEL org.opencontainers.image.title="ContextGate" \
       org.opencontainers.image.description="Semantic Data Gateway for AI Agents" \
       org.opencontainers.image.source="https://github.com/SamuelSupe/contextGate" \
-      org.opencontainers.image.version="0.5.0" \
+      org.opencontainers.image.licenses="Apache-2.0" \
+      org.opencontainers.image.version="0.6.0" \
       org.opencontainers.image.revision=$VCS_REF
 COPY --from=build /runtime-libs/ /usr/local/lib/
 COPY --from=build /runtime-licenses/ /usr/share/doc/contextgate-runtime/
 COPY --from=build /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 COPY --from=build /out/contextgate /usr/local/bin/contextgate
+COPY LICENSE NOTICE THIRD_PARTY_NOTICES.md /usr/share/doc/contextgate/
+COPY third_party/ /usr/share/doc/contextgate/third_party/
 RUN ln -s contextgate /usr/local/bin/mcpdbhub && mkdir -p /data /databases && chown 10001:10001 /data /databases
 ENV LD_LIBRARY_PATH=/usr/local/lib \
     MCPDBHUB_LISTEN=0.0.0.0:8080 \

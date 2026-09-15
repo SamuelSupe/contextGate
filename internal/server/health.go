@@ -35,6 +35,10 @@ func (s *Server) saveHealthSettings(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	if err := s.Store.SaveHealthConfig(cfg); err != nil {
 		semanticFailure(w, err)
 		return
@@ -63,6 +67,10 @@ func (s *Server) acceptHealthBaseline(w http.ResponseWriter, r *http.Request) {
 	defer s.healthMu.Unlock()
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	src, st, err := s.semanticState(r.PathValue("id"))
 	if err != nil {
 		semanticFailure(w, err)

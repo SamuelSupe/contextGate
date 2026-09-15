@@ -8,10 +8,11 @@
 
 | Your task | Guide |
 | --- | --- |
+| Manage administrator accounts and personal MCP identities | [Accounts and upgrade guide](administrators.md) |
 | Install on Linux or Docker / OrbStack | [Installation](install.md) |
 | Complete the first source-to-Agent workflow | [Getting started](getting-started.md) |
 | Let an Agent configure ContextGate | [Configuration MCP](configuration-mcp.md) |
-| Upgrade from ContextGate 0.4.x | [0.5.0 release and upgrade notes](releases/0.5.0.md) |
+| Upgrade from ContextGate 0.5.x | [0.6.0 release and upgrade notes](releases/0.6.0.md) |
 | Upgrade from MCP DB Hub | [0.4.0 release and upgrade notes](releases/0.4.0.md) |
 
 ## Model and query your data

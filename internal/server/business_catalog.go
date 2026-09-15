@@ -71,7 +71,11 @@ func (s *Server) businessCatalog(w http.ResponseWriter, r *http.Request) {
 	// This administrative view never expands an Agent's source authorization.
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
-	p := model.Principal{AgentID: q.Get("agent_id"), Admin: q.Get("agent_id") == "", Preview: true}
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
+	p := model.PreviewPrincipal(r.Context(), q.Get("agent_id"))
 	if !p.Admin {
 		a, err := s.Store.Agent(p.AgentID)
 		if err != nil || !a.Enabled || a.RevokedAt != nil || !a.ExpiresAt.After(time.Now()) {
@@ -139,7 +143,7 @@ func (s *Server) businessCatalog(w http.ResponseWriter, r *http.Request) {
 	}
 	items := []businessEntry{}
 	hash := sha256.New()
-	json.NewEncoder(hash).Encode([]string{p.AgentID, q.Get("source_id"), kind, q.Get("keyword"), view})
+	json.NewEncoder(hash).Encode([]string{p.CursorIdentity(), q.Get("source_id"), kind, q.Get("keyword"), view})
 	scanned, limited := 0, false
 	for _, src := range sources {
 		if r.Context().Err() != nil {

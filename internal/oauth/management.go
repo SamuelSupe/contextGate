@@ -192,6 +192,9 @@ func (s *Server) DeleteClient(w http.ResponseWriter, r *http.Request) {
 func (s *Server) saveClient(ctx context.Context, c Client, remove, invalidate bool) error {
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return err
+	}
 	type record struct{ kind, id string }
 	records := []record{}
 	subjects := map[string]bool{}

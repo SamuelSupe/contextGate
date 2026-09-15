@@ -13,6 +13,7 @@ import { t } from "./i18n";
 import { useNavigationGuard } from "./useNavigationGuard";
 
 type ConfigurationAgent = {
+  revision: string;
   id: string;
   name: string;
   created_at: string;
@@ -67,6 +68,12 @@ export function ConfigurationMCP({
     }
   }, []);
 
+  const currentIdentity = access?.agents[0];
+  const activeIdentity =
+    !!currentIdentity &&
+    !currentIdentity.revoked_at &&
+    Date.parse(currentIdentity.expires_at) > Date.now();
+  const issueLabel = t(activeIdentity ? "Rotate my token" : "Issue my token");
   const token = created?.token || "YOUR_CONFIGURATION_TOKEN";
   const endpoint = access?.endpoint || "";
   const config = JSON.stringify(
@@ -106,7 +113,7 @@ export function ConfigurationMCP({
     <section id="configuration-mcp" className="configuration-mcp">
       <div className="configuration-heading">
         <div>
-          <h2>{t("Configuration MCP")}</h2>
+          <h2>{t("My configuration MCP")}</h2>
           <p className="help">
             {t(
               "Let a trusted Agent prepare data sources, semantics and ontologies.",
@@ -117,14 +124,14 @@ export function ConfigurationMCP({
           primary
           disabled={!access}
           onClick={() => {
-            setName("");
+            setName(access?.agents[0]?.name || "");
             setCreated(null);
             setSaved(false);
             setPanelError("");
             setPanel(true);
           }}
         >
-          {t("Connect a configuration Agent")}
+          {issueLabel}
         </Button>
       </div>
       <p>
@@ -134,7 +141,7 @@ export function ConfigurationMCP({
       </p>
       <p className="help">
         {t(
-          "Use a dedicated token for trusted configuration work. Existing query Agent tokens and OAuth grants cannot access this endpoint.",
+          "Your fixed configuration identity is linked to your administrator account. One token is active at a time; rotation invalidates the previous token immediately.",
         )}
       </p>
       <div className="configuration-endpoint">
@@ -164,8 +171,20 @@ export function ConfigurationMCP({
               <div className="configuration-agent" key={a.id}>
                 <div>
                   <strong>{a.name}</strong>
+                  <small
+                    className="block"
+                    title={t("Configuration identity ID")}
+                  >
+                    <code>{a.id}</code>
+                  </small>
                   <small className="block">
-                    {t("Expires")} {date(a.expires_at)}
+                    {Date.parse(a.expires_at) > 0 ? (
+                      <>
+                        {t("Expires")} {date(a.expires_at)}
+                      </>
+                    ) : (
+                      t("Token not issued")
+                    )}
                   </small>
                 </div>
                 <span className={`status ${active ? "green" : "muted"}`}>
@@ -173,9 +192,11 @@ export function ConfigurationMCP({
                     ? t("Revoked")
                     : active
                       ? t("Active")
-                      : t("Expired")}
+                      : Date.parse(a.expires_at) > 0
+                        ? t("Expired")
+                        : t("Token not issued")}
                 </span>
-                {!a.revoked_at && (
+                {active && (
                   <Button
                     onClick={() => {
                       setRevoke(a);
@@ -223,11 +244,7 @@ export function ConfigurationMCP({
       {panel && (
         <Drawer
           wide
-          title={
-            created
-              ? t("Connect your configuration Agent")
-              : t("Create configuration access")
-          }
+          title={created ? t("Connect your configuration Agent") : issueLabel}
           onClose={close}
           subtitle={
             created
@@ -246,7 +263,7 @@ export function ConfigurationMCP({
                   type="submit"
                   form="configuration-access-form"
                 >
-                  {t("Create token")}
+                  {issueLabel}
                 </Button>
               )}
             </>
@@ -323,15 +340,21 @@ export function ConfigurationMCP({
                   const result = await api<{
                     agent: ConfigurationAgent;
                     token: string;
-                  }>("/api/configuration-agents", {
-                    method: "POST",
-                    body: payload({
-                      name: name.trim(),
-                      expires_at: new Date(
-                        Date.now() + Number(hours) * 3600000,
-                      ).toISOString(),
-                    }),
-                  });
+                  }>(
+                    access?.agents[0]
+                      ? `/api/configuration-agents/${access.agents[0].id}/token`
+                      : "/api/configuration-agents",
+                    {
+                      method: "POST",
+                      body: payload({
+                        name: name.trim(),
+                        revision: access?.agents[0]?.revision,
+                        expires_at: new Date(
+                          Date.now() + Number(hours) * 3600000,
+                        ).toISOString(),
+                      }),
+                    },
+                  );
                   setCreated(result);
                   setSaved(false);
                   await load();
@@ -342,7 +365,12 @@ export function ConfigurationMCP({
                 }
               }}
             >
-              <Field label={t("Agent name")} required>
+              <p className="help">
+                {t(
+                  "Issuing a token replaces any current token for this identity. Update every client that uses it.",
+                )}
+              </p>
+              <Field label={t("Identity label")} required>
                 <input
                   ref={firstField}
                   required

@@ -53,3 +53,7 @@ Resource 包含 `service.name`、`service.version`、持久化的 `service.insta
 提交 GET 返回的 `config.revision`，旧版本返回 409。省略 `headers` 保留原值，`{}` 或 `clear_headers: true` 清除。无效配置返回 400。测试返回 `accepted`、`message`、`checked_at`，HTTP 200 本身不代表接收成功。请求示例见[英文说明](audit-export.md#administration-api)。
 
 ContextGate 改名保留已有的服务名配置，`mcpdbhub.audit.*` 属性和事件名继续保持稳定，已有 Collector 规则与仪表盘无需迁移。
+
+### 管理员归属
+
+保留 `mcpdbhub.audit.agent_id` 原语义；同一前缀下新增 `administrator_id`、`administrator_username`、`actor_type`、`configuration_agent_id` 和 `channel`。Agent 身份预览同时保留实际管理员及执行所用 Agent。安全事件使用 `event_kind=security`，仅超级管理员可在管理 API 查看或配置上报。Collector 接收安全及业务/查询事件，应相应控制读取权限。旧审计不追溯归属。不导出密码、Token、定义、查询参数或结果。

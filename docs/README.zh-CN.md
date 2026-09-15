@@ -6,10 +6,11 @@
 
 | 使用目标 | 文档 |
 | --- | --- |
+| 管理员账号、个人 MCP 身份及升级 | [账号管理指南](administrators.zh-CN.md) |
 | Linux / Docker / OrbStack 安装 | [安装指南](install.zh-CN.md) |
 | 从数据源配置到 Agent 查询 | [首次使用](getting-started.zh-CN.md) |
 | 让 Agent 配置 ContextGate | [配置 MCP](configuration-mcp.zh-CN.md) |
-| 从 ContextGate 0.4.x 升级 | [0.5.0 发行与升级说明](releases/0.5.0.zh-CN.md) |
+| 从 ContextGate 0.5.x 升级 | [0.6.0 发行与升级说明](releases/0.6.0.zh-CN.md) |
 | 从旧版本升级 | [0.4.0 发行与升级说明（英文）](releases/0.4.0.md) |
 | JSON REST API、只读操作与查询模板 | [HTTP API 数据源](http-api.zh-CN.md) |
 | 数据库版本与读取能力 | [支持矩阵](support-matrix.zh-CN.md) · [只读账号](read-only-accounts.zh-CN.md) |

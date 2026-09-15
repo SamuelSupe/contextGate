@@ -2,7 +2,7 @@
 
 [简体中文](getting-started.zh-CN.md) · [Documentation](README.md)
 
-Install ContextGate using the [installation guide](install.md). Open `http://127.0.0.1:8080`, use the one-time setup code from the server log, and choose the administrator password. There is no default administrator password.
+Install ContextGate using the [installation guide](install.md). Open `http://127.0.0.1:8080`, use the one-time setup code from the server log, and choose the first super administrator username and password. There is no default administrator password.
 
 **Home** shows the next step for your selected data source: check the connection, prepare query access, connect an Agent, then confirm a real client call. Publishing a verified template is required for **Templates only**; sources that allow native queries can proceed without one. Shared ontologies are optional. Readiness and health summaries show saved evidence and its coverage; they do not replace a current connection test. Permission evidence remains a separate status from connectivity.
 
@@ -42,7 +42,7 @@ Open **Evaluate** for a source and use the default **Single answer check** mode.
 
 ## 5. Automate configuration, if needed
 
-In **Settings → Configuration MCP**, issue a short-lived credential to a trusted setup Agent and connect it to `/mcp/config`. This credential covers all sources and shared drafts; source edits take effect immediately. It can discover structure, prepare catalogs/templates/ontologies and run trials. Review its changes in the UI, publish the ontology and source semantics, then grant your separate query Agent access. See the [configuration guide](configuration-mcp.md) for the tool contract and starter prompt.
+In **Settings → My configuration MCP**, issue a short-lived credential to a trusted setup Agent and connect it to `/mcp/config`. This credential covers all sources and shared drafts; source edits take effect immediately. It can discover structure, prepare catalogs/templates/ontologies and run trials. Review its changes in the UI, publish the ontology and source semantics, then grant your separate query Agent access. See the [configuration guide](configuration-mcp.md) for the tool contract and starter prompt.
 
 ## When something fails
 

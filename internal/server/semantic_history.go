@@ -126,6 +126,10 @@ func (s *Server) restoreSemantics(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	_, st, err := s.semanticState(r.PathValue("id"))
 	if err != nil {
 		semanticFailure(w, err)
@@ -168,6 +172,10 @@ func (s *Server) deleteSemanticVersion(w http.ResponseWriter, r *http.Request) {
 	}
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	_, st, err := s.semanticState(r.PathValue("id"))
 	if err != nil {
 		semanticFailure(w, err)

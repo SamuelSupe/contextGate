@@ -145,11 +145,18 @@ type Agent struct {
 	ClientID  string     `json:"client_id,omitempty"`
 }
 type Principal struct {
-	AgentID         string
-	Admin           bool
-	Preview         bool
-	SystemCheck     bool
-	CredentialValid func() bool
+	AdministratorID       string
+	AdministratorUsername string
+	AdministratorRole     string
+	ConfigurationAgentID  string
+	CredentialVersion     int64
+	SessionIdentity       string
+	Channel               string
+	AgentID               string
+	Admin                 bool
+	Preview               bool
+	SystemCheck           bool
+	CredentialValid       func() bool
 }
 type Query struct {
 	SourceID       string          `json:"source_id"`
@@ -217,26 +224,31 @@ type Object struct {
 	Details   any      `json:"details,omitempty"`
 }
 type Audit struct {
-	EventKind       string    `json:"event_kind"`
-	ResourceID      string    `json:"resource_id,omitempty"`
-	Revision        string    `json:"revision,omitempty"`
-	ChangedFields   string    `json:"changed_fields,omitempty"`
-	TemplateID      string    `json:"template_id,omitempty"`
-	TemplateVersion string    `json:"template_version,omitempty"`
-	OntologyID      string    `json:"ontology_id,omitempty"`
-	OntologyVersion string    `json:"ontology_version,omitempty"`
-	RequestID       string    `json:"request_id"`
-	NativeCode      string    `json:"native_code,omitempty"`
-	Preview         bool      `json:"preview"`
-	ID              int64     `json:"id"`
-	At              time.Time `json:"at"`
-	AgentID         string    `json:"agent_id"`
-	SourceID        string    `json:"source_id"`
-	Operation       string    `json:"operation"`
-	Fingerprint     string    `json:"fingerprint"`
-	ElapsedMS       int64     `json:"elapsed_ms"`
-	Rows            int       `json:"rows"`
-	ErrorCode       string    `json:"error_code,omitempty"`
+	AdministratorID       string    `json:"administrator_id,omitempty"`
+	AdministratorUsername string    `json:"administrator_username,omitempty"`
+	ActorType             string    `json:"actor_type,omitempty"`
+	ConfigurationAgentID  string    `json:"configuration_agent_id,omitempty"`
+	Channel               string    `json:"channel,omitempty"`
+	EventKind             string    `json:"event_kind"`
+	ResourceID            string    `json:"resource_id,omitempty"`
+	Revision              string    `json:"revision,omitempty"`
+	ChangedFields         string    `json:"changed_fields,omitempty"`
+	TemplateID            string    `json:"template_id,omitempty"`
+	TemplateVersion       string    `json:"template_version,omitempty"`
+	OntologyID            string    `json:"ontology_id,omitempty"`
+	OntologyVersion       string    `json:"ontology_version,omitempty"`
+	RequestID             string    `json:"request_id"`
+	NativeCode            string    `json:"native_code,omitempty"`
+	Preview               bool      `json:"preview"`
+	ID                    int64     `json:"id"`
+	At                    time.Time `json:"at"`
+	AgentID               string    `json:"agent_id"`
+	SourceID              string    `json:"source_id"`
+	Operation             string    `json:"operation"`
+	Fingerprint           string    `json:"fingerprint"`
+	ElapsedMS             int64     `json:"elapsed_ms"`
+	Rows                  int       `json:"rows"`
+	ErrorCode             string    `json:"error_code,omitempty"`
 }
 type Error struct {
 	Code       string `json:"code"`

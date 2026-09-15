@@ -70,6 +70,11 @@ export interface Capability {
   verified_versions: string[];
 }
 export interface Audit {
+  administrator_id?: string;
+  administrator_username?: string;
+  actor_type?: string;
+  configuration_agent_id?: string;
+  channel?: string;
   event_kind: string;
   resource_id?: string;
   revision?: string;
@@ -110,6 +115,7 @@ export interface QueryResult {
   next_cursor?: string;
 }
 export interface Session {
+  administrator?: Administrator;
   initialized: boolean;
   authenticated: boolean;
   csrf: string;
@@ -169,4 +175,26 @@ export interface HTTPAPIConfig {
   token_header?: string;
   probe_operation: string;
   operations: HTTPOperation[];
+}
+
+export interface Administrator {
+  id: string;
+  username: string;
+  display_name: string;
+  role: "super_admin" | "admin";
+  enabled: boolean;
+  must_change_password: boolean;
+  temporary_expires_at?: string;
+  created_at: string;
+  last_login_at?: string;
+  revision: string;
+}
+export interface ConfigurationIdentity {
+  id: string;
+  administrator_id?: string;
+  name: string;
+  created_at: string;
+  expires_at: string;
+  revoked_at?: string;
+  revision: string;
 }

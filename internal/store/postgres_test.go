@@ -2,6 +2,8 @@ package store
 
 import (
 	"context"
+	"encoding/json"
+	"github.com/SamuelSupe/contextGate/internal/secure"
 	"os"
 	"path/filepath"
 	"strings"
@@ -74,7 +76,7 @@ func TestPostgresSessionCannotCrossPasswordRevocation(t *testing.T) {
 		t.Fatal(err)
 	}
 	defer tx.Rollback()
-	if _, err := tx.Exec("UPDATE kv SET value='new-hash' WHERE key='admin_password'"); err != nil {
+	if _, err := tx.Exec("UPDATE administrators SET password_hash='new-hash' WHERE username='admin'"); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := tx.Exec("DELETE FROM sessions"); err != nil {
@@ -82,7 +84,7 @@ func TestPostgresSessionCannotCrossPasswordRevocation(t *testing.T) {
 	}
 	done := make(chan error, 1)
 	go func() { done <- s.Session("late-login", "csrf", time.Now().Add(time.Hour), "old-hash") }()
-	waitForMetadataLock(t, s, done, "SELECT value FROM kv WHERE key='admin_password' FOR SHARE")
+	waitForMetadataLock(t, s, done, "SELECT "+administratorColumns+" FROM administrators WHERE id=$1 FOR UPDATE")
 	if err := tx.Commit(); err != nil {
 		t.Fatal(err)
 	}
@@ -175,5 +177,141 @@ func TestBackupVerificationDecryptsRecordsWithoutInitializing(t *testing.T) {
 	}
 	if _, err = VerifyBackup(context.Background(), dir, dsn); err == nil {
 		t.Fatal("corrupted encrypted record passed verification")
+	}
+}
+
+func TestAdministratorMigrationRollsBackAndPreservesLegacyData(t *testing.T) {
+	dir := t.TempDir()
+	dsn := testpg.DSN(t, dir)
+	s, err := Open(dir, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	hash := secure.Password("legacy-admin-password")
+	if err = s.SaveSource(model.Source{ID: "retained", Password: "database-secret"}); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.SaveAgent(model.Agent{ID: "query", Enabled: true, Sources: []string{"retained"}}, "query-token"); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.DB.Exec(`DELETE FROM kv WHERE key='administrator_accounts_v1'; INSERT INTO sessions(hash,csrf,expires) VALUES('legacy-session','csrf',9999999999); INSERT INTO audit(at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code) VALUES(1,'admin','retained','source.update','',0,0,'')`); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.Set("admin_password", hash); err != nil {
+		t.Fatal(err)
+	}
+	legacy := model.ConfigurationAgent{ID: "cfg_legacy", Name: "Legacy", ExpiresAt: time.Now().Add(time.Hour)}
+	raw, _ := json.Marshal(legacy)
+	if _, err = s.DB.Exec("INSERT INTO configuration_agents(id,value,token_hash) VALUES($1,$2,$3)", legacy.ID, string(raw), secure.Hash("legacy-token")); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.DB.Exec(`CREATE FUNCTION fail_migration() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN RAISE EXCEPTION 'migration fault'; END $$; CREATE TRIGGER fail_migration BEFORE DELETE ON sessions FOR EACH STATEMENT EXECUTE FUNCTION fail_migration()`); err != nil {
+		t.Fatal(err)
+	}
+	if opened, err := Open(dir, dsn); err == nil {
+		opened.Close()
+		t.Fatal("migration ignored storage failure")
+	}
+	if initialized, _ := s.AdministratorInitialized(); initialized {
+		t.Fatal("failed migration left a partial account")
+	}
+	if kept, _ := s.Get("admin_password"); kept != hash {
+		t.Fatal("failed migration lost legacy password")
+	}
+	if _, err = s.ConfigurationToken("legacy-token"); err != nil {
+		t.Fatal("failed migration partially revoked token", err)
+	}
+	if _, err = s.DB.Exec("DROP TRIGGER fail_migration ON sessions; DROP FUNCTION fail_migration()"); err != nil {
+		t.Fatal(err)
+	}
+	for range 2 {
+		migrated, err := Open(dir, dsn)
+		if err != nil {
+			t.Fatal(err)
+		}
+		admin, err := migrated.AdministratorByUsername("ADMIN")
+		if err != nil || admin.PasswordHash != hash || !secure.CheckPassword(admin.PasswordHash, "legacy-admin-password") || admin.Role != model.RoleSuperAdministrator {
+			t.Fatal("legacy administrator password or role lost", err)
+		}
+		var sessions int
+		migrated.DB.QueryRow("SELECT count(*) FROM sessions").Scan(&sessions)
+		if sessions != 0 {
+			t.Fatal("legacy browser session survived")
+		}
+		if _, err = migrated.ConfigurationToken("legacy-token"); err == nil {
+			t.Fatal("legacy configuration token survived")
+		}
+		if identity, err := migrated.ConfigurationAgent("cfg_legacy"); err != nil || identity.AdministratorID != "" || identity.RevokedAt == nil {
+			t.Fatal("legacy identity history lost or falsely attributed", err)
+		}
+		if _, err = migrated.TokenAgent("query-token"); err != nil {
+			t.Fatal("query Agent grant lost", err)
+		}
+		if source, err := migrated.Source("retained"); err != nil || source.Password != "database-secret" {
+			t.Fatal("encrypted source did not survive", err)
+		}
+		audit, err := migrated.Audits(AuditFilter{}, 100)
+		if err != nil || len(audit) != 1 || audit[0].AdministratorID != "" || audit[0].ActorType != "legacy" {
+			t.Fatal("historical administrator was incorrectly attributed", err)
+		}
+		identities, err := migrated.ConfigurationAgents()
+		if err != nil || len(identities) != 2 {
+			t.Fatal("migration not idempotent", err)
+		}
+		migrated.Close()
+	}
+}
+
+func TestLastSuperAdministratorProtectedAcrossConcurrentStores(t *testing.T) {
+	dir := t.TempDir()
+	dsn := testpg.DSN(t, dir)
+	s, err := Open(dir, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	first, err := s.SetupAdministrator("first", "First", "hash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	second, err := s.CreateAdministrator(context.Background(), "second", "Second", model.RoleSuperAdministrator, "hash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	other, err := Open(dir, dsn)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer other.Close()
+	start := make(chan struct{})
+	done := make(chan error, 2)
+	for i, a := range []model.Administrator{first, second} {
+		target := s
+		if i == 1 {
+			target = other
+		}
+		go func() {
+			<-start
+			_, _, err := target.UpdateAdministrator(context.Background(), a.ID, a.DisplayName, model.RoleAdministrator, false, a.Revision)
+			done <- err
+		}()
+	}
+	close(start)
+	success, conflict := 0, 0
+	for range 2 {
+		err := <-done
+		if err == nil {
+			success++
+		} else if model.ErrorCode(err) == "conflict" {
+			conflict++
+		} else {
+			t.Fatal(err)
+		}
+	}
+	var count int
+	s.DB.QueryRow("SELECT count(*) FROM administrators WHERE enabled AND role='super_admin'").Scan(&count)
+	if success != 1 || conflict != 1 || count != 1 {
+		t.Fatal("concurrent account edits removed the last super administrator")
 	}
 }

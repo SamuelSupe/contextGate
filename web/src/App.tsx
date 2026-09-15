@@ -25,6 +25,7 @@ import { Home } from "./Home";
 import { BusinessCatalog } from "./BusinessCatalog";
 import { HealthPage } from "./Health";
 import { Sources } from "./Sources";
+import { RequiredPasswordChange, administratorRole } from "./Administrators";
 import { Brand } from "./Brand";
 import { Agents } from "./Agents";
 import { AuditPage } from "./Audit";
@@ -174,6 +175,15 @@ export function App() {
       setRouteQuery(location.search);
       setMobile(false);
     };
+    const expired = () => {
+      setCSRF("");
+      setSession({ initialized: true, authenticated: false, csrf: "" });
+      setSources([]);
+      setAgents([]);
+      setError("");
+      setMobile(false);
+    };
+    window.addEventListener("contextgate:session-expired", expired);
     window.addEventListener("popstate", change);
     api<Session>("/api/session")
       .then((s) => {
@@ -181,7 +191,10 @@ export function App() {
         setSession(s);
       })
       .catch((e) => setError(message(e)));
-    return () => window.removeEventListener("popstate", change);
+    return () => {
+      window.removeEventListener("popstate", change);
+      window.removeEventListener("contextgate:session-expired", expired);
+    };
   }, []);
   useEffect(() => {
     if (!toast) return;
@@ -201,16 +214,23 @@ export function App() {
     setSettings(t);
   }, []);
   useEffect(() => {
-    if (!session?.authenticated) return;
+    if (!session?.authenticated || session.administrator?.must_change_password)
+      return;
     setLoading(true);
     reload()
       .catch((e) => setError(message(e)))
       .finally(() => setLoading(false));
-  }, [session?.authenticated, reload]);
-  const loggedIn = (csrf: string) => {
+  }, [
+    session?.authenticated,
+    session?.administrator?.must_change_password,
+    reload,
+  ]);
+  const loggedIn = (result: Session) => {
+    const csrf = result.csrf;
     setLoading(true);
     setCSRF(csrf);
-    setSession({ initialized: true, authenticated: true, csrf });
+    setSession({ ...result, initialized: true, authenticated: true });
+    if (result.administrator?.must_change_password) return;
     const next = new URLSearchParams(location.search).get("next");
     if (
       next?.startsWith("/") &&
@@ -237,6 +257,13 @@ export function App() {
     );
   if (!session.authenticated)
     return <Login initialized={session.initialized} onLogin={loggedIn} />;
+  if (session.administrator?.must_change_password)
+    return (
+      <RequiredPasswordChange
+        administrator={session.administrator}
+        onComplete={loggedIn}
+      />
+    );
   if (path === "/oauth/consent") return <ConsentPage notify={notify} />;
   const workflowRoute = path.match(/^\/sources\/([^/]+)\/(setup|evaluation)$/);
   const workflowSource = sources.find((s) => s.id === workflowRoute?.[1]);
@@ -307,7 +334,12 @@ export function App() {
         </nav>
         <div className="account">
           <span className="avatar">{t("A")}</span>
-          <span>{t("administrator")}</span>
+          <span>
+            {session.administrator?.display_name}
+            <small className="block help">
+              {administratorRole(session.administrator?.role || "admin")}
+            </small>
+          </span>
           <button
             title={t("Sign out")}
             aria-label={t("Sign out")}
@@ -455,13 +487,26 @@ export function App() {
             notify={notify}
           />
         ) : active === "/health" ? (
-          <HealthPage navigate={navigate} reloadSources={reload} />
+          <HealthPage
+            superAdmin={session.administrator?.role === "super_admin"}
+            navigate={navigate}
+            reloadSources={reload}
+          />
         ) : active === "/audit" ? (
-          <AuditPage sources={sources} agents={agents} navigate={navigate} />
+          <AuditPage
+            superAdmin={session.administrator?.role === "super_admin"}
+            sources={sources}
+            agents={agents}
+            navigate={navigate}
+          />
         ) : active === "/catalog" ? (
           <CatalogPage catalog={catalog} />
         ) : (
-          <SettingsPage settings={settings} notify={notify} />
+          <SettingsPage
+            administrator={session.administrator!}
+            settings={settings}
+            notify={notify}
+          />
         )}
       </main>
       {toast ? (
@@ -478,11 +523,12 @@ function Login({
   onLogin,
 }: {
   initialized: boolean;
-  onLogin: (csrf: string) => void;
+  onLogin: (s: Session) => void;
 }) {
   const locale = useLocale();
   const [password, setPassword] = useState("");
   const [token, setToken] = useState("");
+  const [username, setUsername] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   return (
@@ -543,16 +589,18 @@ function Login({
             setBusy(true);
             setError("");
             try {
-              const s = await api<{ csrf: string }>(
+              const s = await api<Session>(
                 initialized ? "/api/login" : "/api/setup",
                 {
                   method: "POST",
                   body: payload(
-                    initialized ? { password } : { password, token },
+                    initialized
+                      ? { username, password }
+                      : { username, password, token },
                   ),
                 },
               );
-              onLogin(s.csrf);
+              onLogin(s);
             } catch (e) {
               setError(message(e));
             } finally {
@@ -560,6 +608,16 @@ function Login({
             }
           }}
         >
+          <Field label={t("Username")} required>
+            <input
+              name="username"
+              autoComplete="username"
+              required
+              maxLength={64}
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+            />
+          </Field>
           {!initialized ? (
             <Field label={t("One-time setup code")} required>
               <input
@@ -605,7 +663,8 @@ function Login({
             <p>
               {t("On the server, stop the service and run")}{" "}
               <code>
-                contextgate reset-password --data-dir DIR --password-stdin
+                contextgate reset-password --username USERNAME --data-dir DIR
+                --password-stdin
               </code>{" "}
               {t(
                 "with the same MCPDBHUB_DATABASE_URL, key directory and master key as the service. Supply the new password through standard input, then restart the service.",
@@ -613,7 +672,7 @@ function Login({
             </p>
             <p>
               {t(
-                "All administrator sessions are signed out. Data sources, Agent credentials and audit history are retained.",
+                "The selected account is signed out and its configuration token is revoked. Other accounts and query Agent grants are retained.",
               )}
             </p>
           </details>

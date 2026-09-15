@@ -1,6 +1,7 @@
 package store
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -9,11 +10,48 @@ import (
 )
 
 func (s *Store) CreateConfigurationAgent(name string, expires time.Time) (model.ConfigurationAgent, string, error) {
-	a := model.ConfigurationAgent{ID: "cfg_" + secure.Random(16), Name: name, CreatedAt: time.Now().UTC(), ExpiresAt: expires.UTC()}
+	a, err := s.SoleAdministrator("")
+	if err != nil {
+		return model.ConfigurationAgent{}, "", err
+	}
+	return s.IssueConfigurationToken(context.Background(), a.ID, name, expires, 0)
+}
+func (s *Store) AdministratorConfiguration(id string) (model.ConfigurationAgent, error) {
+	var raw string
+	err := s.DB.QueryRow("SELECT value FROM configuration_agents WHERE administrator_id=$1", id).Scan(&raw)
+	var a model.ConfigurationAgent
+	if err == nil {
+		err = json.Unmarshal([]byte(raw), &a)
+	}
+	return a, err
+}
+func (s *Store) IssueConfigurationToken(ctx context.Context, owner, name string, expires time.Time, revision int64) (model.ConfigurationAgent, string, error) {
+	s.Mutations.Lock()
+	defer s.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(ctx); err != nil {
+		return model.ConfigurationAgent{}, "", err
+	}
+	administrator, err := s.Administrator(owner)
+	if err != nil || !administrator.Active() || administrator.MustChangePassword {
+		return model.ConfigurationAgent{}, "", model.Fail("forbidden", "An active administrator with a permanent password is required")
+	}
+	a, err := s.AdministratorConfiguration(owner)
+	if err != nil {
+		return a, "", err
+	}
+	if revision > 0 && a.Revision != revision {
+		return a, "", model.Fail("conflict", "Configuration identity changed; reload before issuing a token")
+	}
+	a.Revision++
+	a.ExpiresAt = expires.UTC()
+	a.RevokedAt = nil
+	if name != "" {
+		a.Name = name
+	}
 	token := "cfg_token_" + secure.Random(32)
 	b, err := json.Marshal(a)
 	if err == nil {
-		_, err = s.DB.Exec("INSERT INTO configuration_agents(id,value,token_hash) VALUES($1,$2,$3)", a.ID, string(b), secure.Hash(token))
+		_, err = s.DB.Exec("UPDATE configuration_agents SET value=$1,token_hash=$2 WHERE id=$3", string(b), secure.Hash(token), a.ID)
 	}
 	return a, token, err
 }
@@ -66,6 +104,7 @@ func (s *Store) RevokeConfigurationAgent(id string) error {
 	}
 	now := time.Now().UTC()
 	a.RevokedAt = &now
+	a.Revision++
 	b, err := json.Marshal(a)
 	if err == nil {
 		_, err = s.DB.Exec("UPDATE configuration_agents SET value=$1,token_hash=NULL WHERE id=$2", string(b), id)

@@ -1,6 +1,6 @@
 # Third-party notices
 
-ContextGate uses the following upstream components. Their licenses apply to their respective components. The distribution includes the applicable upstream notices and, where collected for redistribution, unmodified dependency source files under [third_party/licenses](third_party/licenses/).
+ContextGate itself is licensed under [Apache-2.0](LICENSE). It uses the following upstream components. Their licenses apply to their respective components. The distribution includes the applicable upstream notices and, where collected for redistribution, unmodified dependency source files under [third_party/licenses](third_party/licenses/).
 
 ## Go components
 
@@ -21,4 +21,4 @@ Full texts: `third_party/licenses/frontend/`. Build tools such as TypeScript and
 
 ## Linux runtime libraries
 
-The Linux archives bundle unmodified Debian GCC runtime libraries (`libstdc++.so.6` and `libgcc_s.so.1`). Their Debian copyright notices, GPLv3 and LGPLv3 texts are supplied under `licenses/gcc-runtime/` in each archive and `/usr/share/doc/mcpdbhub-runtime/` in the image. The notices describe the GCC Runtime Library Exception and upstream source locations. System glibc is supplied by the host operating system.
+The Linux archives bundle unmodified Debian GCC runtime libraries (`libstdc++.so.6` and `libgcc_s.so.1`). Their Debian copyright notices, GPLv3 and LGPLv3 texts are supplied under `licenses/gcc-runtime/` in each archive and `/usr/share/doc/contextgate-runtime/` in the image. The notices describe the GCC Runtime Library Exception and upstream source locations. System glibc is supplied by the host operating system.

@@ -40,6 +40,10 @@ func (s *Server) sourceReadiness(w http.ResponseWriter, r *http.Request) {
 	// probes user databases and never substitutes for execution-time authorization.
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
+	if err := model.CheckConfigurationContext(r.Context()); err != nil {
+		fail(w, 401, err)
+		return
+	}
 	src, st, err := s.semanticState(r.PathValue("id"))
 	if err != nil {
 		semanticFailure(w, err)

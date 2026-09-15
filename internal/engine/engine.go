@@ -250,7 +250,7 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 		if p.SystemCheck {
 			eventKind = "system"
 		}
-		if auditErr := e.Store.Audit(model.Audit{EventKind: eventKind, RequestID: requestID, NativeCode: nativeCode, Preview: p.Preview, At: started, AgentID: principal, SourceID: q.SourceID, Operation: auditOperation, TemplateID: run.ID, TemplateVersion: run.Version, OntologyID: ontologyID, OntologyVersion: ontologyVersion, Fingerprint: fp, ElapsedMS: time.Since(started).Milliseconds(), Rows: rows, ErrorCode: code}); auditErr != nil {
+		if auditErr := e.Store.Audit(p.AttributeAudit(model.Audit{EventKind: eventKind, RequestID: requestID, NativeCode: nativeCode, Preview: p.Preview, At: started, AgentID: principal, SourceID: q.SourceID, Operation: auditOperation, TemplateID: run.ID, TemplateVersion: run.Version, OntologyID: ontologyID, OntologyVersion: ontologyVersion, Fingerprint: fp, ElapsedMS: time.Since(started).Milliseconds(), Rows: rows, ErrorCode: code})); auditErr != nil {
 			result = nil
 			err = &model.Error{Code: "audit_unavailable", Message: "Query result withheld because audit storage is unavailable.", RequestID: requestID}
 		}
@@ -317,7 +317,7 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 			return nil, model.Fail("invalid_cursor", "cursor is invalid")
 		}
 		var c cursor
-		if err = json.Unmarshal(b, &c); err != nil || c.Agent != principal || c.Source != src.ID || c.Operation != operation || c.Revision != src.ExecutionRevision() || c.Fingerprint != fp || c.Expires < time.Now().Unix() || c.TemplateID != run.ID || c.TemplateVersion != run.Version || c.SemanticVersion != semanticVersion || c.OntologyID != ontologyID || c.OntologyVersion != ontologyVersion {
+		if err = json.Unmarshal(b, &c); err != nil || c.Agent != p.CursorIdentity() || c.Source != src.ID || c.Operation != operation || c.Revision != src.ExecutionRevision() || c.Fingerprint != fp || c.Expires < time.Now().Unix() || c.TemplateID != run.ID || c.TemplateVersion != run.Version || c.SemanticVersion != semanticVersion || c.OntologyID != ontologyID || c.OntologyVersion != ontologyVersion {
 			return nil, model.Fail("invalid_cursor", "cursor expired or belongs to another query")
 		}
 		q.Cursor = c.State
@@ -359,7 +359,7 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 		if probe.ServerVersion == "" {
 			return nil, model.Fail("template_unverified", "Database version metadata is unavailable; template execution is paused")
 		}
-		_, changed, check := e.recordDatabaseVersion(src, probe.ServerVersion)
+		_, changed, check := e.recordDatabaseVersion(ctx, src, probe.ServerVersion)
 		if check != nil {
 			return nil, check
 		}
@@ -413,7 +413,7 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 		result.OntologyContext = run.Ontology
 	}
 	if result.NextCursor != "" {
-		b, _ := json.Marshal(cursor{Agent: principal, Source: src.ID, Operation: operation, Revision: src.ExecutionRevision(), Fingerprint: fp, State: result.NextCursor, Expires: time.Now().Add(5 * time.Minute).Unix(), TemplateID: run.ID, TemplateVersion: run.Version, SemanticVersion: semanticVersion, OntologyID: ontologyID, OntologyVersion: ontologyVersion})
+		b, _ := json.Marshal(cursor{Agent: p.CursorIdentity(), Source: src.ID, Operation: operation, Revision: src.ExecutionRevision(), Fingerprint: fp, State: result.NextCursor, Expires: time.Now().Add(5 * time.Minute).Unix(), TemplateID: run.ID, TemplateVersion: run.Version, SemanticVersion: semanticVersion, OntologyID: ontologyID, OntologyVersion: ontologyVersion})
 		result.NextCursor = e.Store.Vault.Seal(b, "cursor")
 	}
 	b, err := json.Marshal(result)

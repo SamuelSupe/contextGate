@@ -13,6 +13,18 @@ import {
 import type { Agent, Audit, Source } from "./types";
 
 const operationLabels: Record<string, string> = {
+  "administrator.setup": "Initialize administrator",
+  "administrator.login": "Administrator sign in",
+  "administrator.logout": "Administrator sign out",
+  "administrator.create": "Create administrator",
+  "administrator.update": "Update administrator",
+  "administrator.reset_password": "Reset administrator password",
+  "administrator.recover_password": "Recover administrator password",
+  "configuration_agent.rotate_token": "Rotate configuration token",
+  "source.test": "Test connection",
+  "health.check": "Check source health",
+  "semantics.post.trial": "Trial query template",
+  "semantics.post.check-mapping": "Check ontology mapping",
   "configuration_agent.create": "Create configuration access",
   "configuration_agent.revoke": "Revoke configuration access",
   "configuration.create_data_source": "Create data source",
@@ -88,10 +100,12 @@ const hints: Record<string, string> = {
     "The published template changed. Refresh the semantic catalog and use its current execution version.",
 };
 export function AuditPage({
+  superAdmin,
   sources,
   agents,
   navigate,
 }: {
+  superAdmin: boolean;
   sources: Source[];
   agents: Agent[];
   navigate: (url: string) => void;
@@ -100,10 +114,16 @@ export function AuditPage({
   const [configurationAgents, setConfigurationAgents] = useState<
     { id: string; name: string }[]
   >([]);
+  const [administrators, setAdministrators] = useState<
+    { id: string; username: string; display_name: string }[]
+  >([]);
   const [callerError, setCallerError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({
+    administrator_id: "",
+    configuration_agent_id: "",
+    channel: "",
     view: "client",
     event_kind: "",
     agent_id: "",
@@ -137,6 +157,13 @@ export function AuditPage({
   useEffect(() => {
     const controller = new AbortController();
     setCallerError("");
+    api<{
+      administrators: { id: string; username: string; display_name: string }[];
+    }>("/api/audit/administrators", { signal: controller.signal })
+      .then((data) => setAdministrators(data.administrators))
+      .catch((e) => {
+        if (!controller.signal.aborted) setCallerError(message(e));
+      });
     api<{ agents: { id: string; name: string }[] }>(
       "/api/configuration-agents",
       { signal: controller.signal },
@@ -230,7 +257,55 @@ export function AuditPage({
             <option value="query">{t("Query calls")}</option>
             <option value="management">{t("Management changes")}</option>
             <option value="system">{t("System checks")}</option>
+            {superAdmin && (
+              <option value="security">{t("Account security")}</option>
+            )}
           </select>
+        </Field>
+        <Field label={t("Administrator")}>
+          <select
+            value={filters.administrator_id}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                administrator_id: e.target.value,
+                view: "",
+              })
+            }
+          >
+            <option value="">{t("All administrators")}</option>
+            {administrators.map((a) => (
+              <option key={a.id} value={a.id}>
+                {a.display_name} · {a.username}
+              </option>
+            ))}
+          </select>
+        </Field>
+        <Field label={t("Entry point")}>
+          <select
+            value={filters.channel}
+            onChange={(e) =>
+              setFilters({ ...filters, channel: e.target.value, view: "" })
+            }
+          >
+            <option value="">{t("All entry points")}</option>
+            <option value="ui">{t("Management UI")}</option>
+            <option value="configuration_mcp">{t("Configuration MCP")}</option>
+            <option value="cli">CLI</option>
+          </select>
+        </Field>
+        <Field label={t("Configuration identity ID")}>
+          <input
+            value={filters.configuration_agent_id}
+            onChange={(e) =>
+              setFilters({
+                ...filters,
+                configuration_agent_id: e.target.value,
+                view: "",
+              })
+            }
+            placeholder="cfg_…"
+          />
         </Field>
         <Field label={t("Agent")}>
           <select
@@ -324,6 +399,9 @@ export function AuditPage({
             onClick={() => {
               setFilters({
                 view: "",
+                administrator_id: "",
+                configuration_agent_id: "",
+                channel: "",
                 event_kind: "",
                 agent_id: "",
                 source_id: "",
@@ -367,7 +445,16 @@ export function AuditPage({
                 <tr key={a.id}>
                   <td className="nowrap">{date(a.at)}</td>
                   <td>
-                    {agentName(a.agent_id)}
+                    {a.administrator_username || agentName(a.agent_id)}
+                    {a.channel && (
+                      <small className="block help">
+                        {a.channel === "configuration_mcp"
+                          ? t("Configuration MCP")
+                          : a.channel === "ui"
+                            ? t("Management UI")
+                            : a.channel}
+                      </small>
+                    )}
                     {a.preview || a.event_kind === "system" ? (
                       <small className="block">
                         {a.event_kind === "system"
@@ -439,7 +526,8 @@ export function AuditPage({
       {detail ? (
         <Drawer
           title={t(
-            detail.event_kind === "management"
+            detail.event_kind === "management" ||
+              detail.event_kind === "security"
               ? "Management change details"
               : "Call details",
           )}
@@ -447,7 +535,8 @@ export function AuditPage({
             detail.error_code
               ? t("Review the diagnostic and suggested action")
               : t(
-                  detail.event_kind === "management"
+                  detail.event_kind === "management" ||
+                    detail.event_kind === "security"
                     ? "Change completed successfully"
                     : "Call completed successfully",
                 )
@@ -465,9 +554,21 @@ export function AuditPage({
               </dd>
             </div>
             <div>
+              <dt>{t("Administrator")}</dt>
+              <dd>
+                {detail.administrator_username ||
+                  t("Historical or non-administrator identity")}
+                <small className="block help">{detail.administrator_id}</small>
+              </dd>
+              <dt>{t("Entry point")}</dt>
+              <dd>{detail.channel || "—"}</dd>
+              <dt>{t("Configuration identity ID")}</dt>
+              <dd>{detail.configuration_agent_id || "—"}</dd>
+              <dt>{t("Execution Agent")}</dt>
+              <dd>{agentName(detail.agent_id)}</dd>
               <dt>{t("Caller")}</dt>
               <dd>
-                {agentName(detail.agent_id)}
+                {detail.administrator_username || agentName(detail.agent_id)}
                 {detail.event_kind === "system"
                   ? " · " + t("System check")
                   : detail.preview
@@ -525,23 +626,26 @@ export function AuditPage({
               <dt>{t("Result")}</dt>
               <dd>{detail.error_code || t("Success")}</dd>
             </div>
-            {detail.event_kind !== "management" && (
-              <div>
-                <dt>{t("Database code")}</dt>
-                <dd>{detail.native_code || t("Not reported")}</dd>
-              </div>
-            )}
+            {detail.event_kind !== "management" &&
+              detail.event_kind !== "security" && (
+                <div>
+                  <dt>{t("Database code")}</dt>
+                  <dd>{detail.native_code || t("Not reported")}</dd>
+                </div>
+              )}
             <div>
               <dt>
                 {t(
-                  detail.event_kind === "management"
+                  detail.event_kind === "management" ||
+                    detail.event_kind === "security"
                     ? "Duration"
                     : "Duration / rows",
                 )}
               </dt>
               <dd>
                 {detail.elapsed_ms}
-                {detail.event_kind === "management" ? (
+                {detail.event_kind === "management" ||
+                detail.event_kind === "security" ? (
                   t(" ms")
                 ) : (
                   <>
@@ -551,18 +655,20 @@ export function AuditPage({
                 )}
               </dd>
             </div>
-            {detail.event_kind !== "management" && (
-              <div>
-                <dt>{t("Query fingerprint")}</dt>
-                <dd className="mono break-all">
-                  {detail.fingerprint || t("Not applicable")}
-                </dd>
-              </div>
-            )}
+            {detail.event_kind !== "management" &&
+              detail.event_kind !== "security" && (
+                <div>
+                  <dt>{t("Query fingerprint")}</dt>
+                  <dd className="mono break-all">
+                    {detail.fingerprint || t("Not applicable")}
+                  </dd>
+                </div>
+              )}
           </dl>
           {detail.error_code ? (
             <div className="notice warning">
-              {detail.event_kind === "management"
+              {detail.event_kind === "management" ||
+              detail.event_kind === "security"
                 ? t(
                     "Review the current configuration and refresh before retrying. Use the request ID when reporting the issue.",
                   )
@@ -619,7 +725,8 @@ export function AuditPage({
               )}
             </div>
           )}
-          {detail.event_kind === "management" && (
+          {(detail.event_kind === "management" ||
+            detail.event_kind === "security") && (
             <p className="help">
               {t("Submitted field categories")}:{" "}
               {detail.changed_fields || t("Not applicable")}.{" "}

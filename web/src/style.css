@@ -881,7 +881,8 @@ tbody tr.selected {
 .settings-body {
   max-width: 800px;
 }
-.settings-body > section {
+.settings-body > section,
+.settings-body > div[id] {
   margin-bottom: 38px;
 }
 .settings-body h2 {
@@ -965,6 +966,10 @@ tbody tr.selected {
   color: var(--muted);
   font-size: 13px;
   margin: 9px 0 25px;
+}
+.auth-panel form > button + button {
+  margin-top: 10px;
+  width: 100%;
 }
 .auth-panel form > .primary {
   width: 100%;
@@ -1913,5 +1918,42 @@ button[aria-pressed="true"] {
   }
   .mapping-entity-selector {
     padding: 12px;
+  }
+}
+
+.administrator-list {
+  display: grid;
+  gap: 12px;
+}
+#settings-administrators .configuration-heading {
+  margin-bottom: 16px;
+}
+.administrator-row {
+  display: grid;
+  grid-template-columns: minmax(160px, 1fr) minmax(130px, 0.7fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border, #dce4e9);
+  border-radius: 8px;
+}
+.administrator-person {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.administrator-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.token-secret {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 1000px) {
+  .administrator-row {
+    grid-template-columns: 1fr;
+    gap: 12px;
   }
 }

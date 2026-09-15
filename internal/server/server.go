@@ -24,18 +24,21 @@ import (
 )
 
 type Server struct {
-	configurationMu     sync.Mutex
-	configurationJobs   map[string]configurationJob
-	healthMu            sync.Mutex
-	healthCancel        context.CancelFunc
-	healthDone          chan struct{}
-	Store               *store.Store
-	AuditExport         *auditexport.Manager
-	Engine              *engine.Engine
-	OAuth               *oauth.Server
-	PublicURL, FileRoot string
-	rateMu              sync.Mutex
-	authRate            map[string]*rate.Limiter
+	administratorMu       sync.Mutex
+	administratorRequests map[string]administratorRequest
+	dummyPasswordHash     string
+	configurationMu       sync.Mutex
+	configurationJobs     map[string]configurationJob
+	healthMu              sync.Mutex
+	healthCancel          context.CancelFunc
+	healthDone            chan struct{}
+	Store                 *store.Store
+	AuditExport           *auditexport.Manager
+	Engine                *engine.Engine
+	OAuth                 *oauth.Server
+	PublicURL, FileRoot   string
+	rateMu                sync.Mutex
+	authRate              map[string]*rate.Limiter
 }
 
 func New(st *store.Store, publicURL, fileRoot string) (*Server, error) {
@@ -50,6 +53,7 @@ func New(st *store.Store, publicURL, fileRoot string) (*Server, error) {
 	en := engine.New(st)
 	en.FileRoot = fileRoot
 	s := &Server{Store: st, Engine: en, PublicURL: strings.TrimRight(publicURL, "/"), FileRoot: fileRoot, authRate: map[string]*rate.Limiter{}}
+	s.dummyPasswordHash = secure.Password(secure.Random(24))
 	s.OAuth = oauth.New(st, en, s.PublicURL)
 	s.AuditExport, e = auditexport.New(st)
 	if e != nil {
@@ -62,6 +66,11 @@ func New(st *store.Store, publicURL, fileRoot string) (*Server, error) {
 	return s, nil
 }
 func (s *Server) Close() {
+	s.administratorMu.Lock()
+	for _, job := range s.administratorRequests {
+		job.cancel()
+	}
+	s.administratorMu.Unlock()
 	s.configurationMu.Lock()
 	for _, job := range s.configurationJobs {
 		job.cancel()
@@ -88,23 +97,41 @@ func decode(r *http.Request, v any) error {
 	d.DisallowUnknownFields()
 	return d.Decode(v)
 }
-func (s *Server) admin(r *http.Request) (string, bool) {
-	cookie, e := r.Cookie("hub_session")
-	if e != nil {
-		return "", false
+func (s *Server) adminSession(r *http.Request) (model.Administrator, string, bool) {
+	cookie, err := r.Cookie("hub_session")
+	if err != nil {
+		return model.Administrator{}, "", false
 	}
-	csrf, e := s.Store.CheckSession(cookie.Value)
-	return csrf, e == nil
+	a, csrf, err := s.Store.AdministratorSession(cookie.Value)
+	return a, csrf, err == nil
+}
+func (s *Server) admin(r *http.Request) (string, bool) {
+	_, csrf, ok := s.adminSession(r)
+	return csrf, ok
 }
 func (s *Server) requireAdmin(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		csrf, ok := s.admin(r)
+		a, csrf, ok := s.adminSession(r)
 		if !ok {
-			fail(w, 401, model.Fail("unauthorized", "administrator login required"))
+			fail(w, 401, model.Fail("unauthorized", "Administrator login required"))
 			return
 		}
-		if r.Method != http.MethodGet && r.Method != http.MethodHead && !secure.Equal(csrf, r.Header.Get("X-CSRF-Token")) {
-			fail(w, 403, model.Fail("csrf_failed", "invalid CSRF token"))
+		if r.Method != "GET" && r.Method != "HEAD" && !secure.Equal(csrf, r.Header.Get("X-CSRF-Token")) {
+			fail(w, 403, model.Fail("csrf_failed", "Invalid CSRF token"))
+			return
+		}
+		r, done := s.administratorContext(r, a)
+		defer done()
+		if a.MustChangePassword && r.URL.Path != "/api/password" && r.URL.Path != "/api/logout" {
+			fail(w, 403, model.Fail("password_change_required", "Change your temporary password before continuing"))
+			return
+		}
+		if superAdministratorRoute(r) && a.Role != model.RoleSuperAdministrator {
+			fail(w, 403, model.Fail("forbidden", "Super administrator access required"))
+			return
+		}
+		if err := model.CheckConfigurationContext(r.Context()); err != nil {
+			fail(w, 401, err)
 			return
 		}
 		s.adminChange(next, w, r)
@@ -135,6 +162,7 @@ func (s *Server) limited(next http.HandlerFunc) http.HandlerFunc {
 }
 func (s *Server) Handler() http.Handler {
 	mux := http.NewServeMux()
+	s.administratorRoutes(mux)
 	s.configurationRoutes(mux)
 	s.healthRoutes(mux)
 	mux.HandleFunc("GET /api/business-catalog", s.requireAdmin(s.businessCatalog))

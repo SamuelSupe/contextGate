@@ -1,12 +1,12 @@
 # Install ContextGate
 
-[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0)
+[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.6.0)
 
-**ContextGate 0.5.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
+**ContextGate 0.6.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
 
 ## PostgreSQL metadata
 
-0.5.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
+0.6.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
 
 **Upgrading from 0.3.0 or earlier:** there is no SQLite metadata import or fallback. Initialize a fresh PostgreSQL store, administrator, data sources and grants. Preserve the old database and key backup; do not point the new service at old metadata. SQLite remains a read-only query data source. See the [upgrade checklist](releases/0.4.0.md#upgrading-from-03x-or-earlier).
 
@@ -18,11 +18,11 @@ Check `uname -m`: choose `linux-amd64` for `x86_64`, or `linux-arm64` for `aarch
 
 ```sh
 # Linux arm64 example; replace arm64 with amd64 for x86_64.
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/contextgate-0.5.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/contextgate-0.6.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.6.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf contextgate-0.5.0-linux-arm64.tar.gz
-cd contextgate-0.5.0-linux-arm64
+tar -xzf contextgate-0.6.0-linux-arm64.tar.gz
+cd contextgate-0.6.0-linux-arm64
 ./contextgate version
 mkdir -p data databases
 # Use a pre-created PostgreSQL database and its dedicated owner role.
@@ -35,7 +35,7 @@ export PGPASSWORD
 
 Keep the entire extracted directory together. The root `contextgate` launcher sets the private library path and executes `libexec/contextgate`; copying either file alone is insufficient. It preserves the working directory, arguments and process signals.
 
-Open `http://127.0.0.1:8080` and enter the one-time setup code from the server log to create the administrator password.
+Open `http://127.0.0.1:8080` and enter the one-time setup code from the server log to create the first super administrator username and password.
 
 1. In **Data sources → Add data source**, choose a product, enter its connection and database reader credentials, then configure TLS and query limits.
 2. Save and inspect connectivity and read-only evidence. `Not verified` is not proof of account privileges. InfluxDB 3 Core explicitly uses query API isolation.
@@ -65,7 +65,7 @@ For current PostgreSQL storage, stop ContextGate and use `pg_dump` / `pg_restore
 
 Before upgrading, preserve the old program and a stopped-service configuration backup. Start the new program with the same `MCPDBHUB_DATABASE_URL` and key directory. The SQLite-to-PostgreSQL change starts an empty store and requires reconfiguration; no import is provided. Never delete the key, database or volume to upgrade. If a migration has run, rollback requires restoring the configuration backup matching the old program.
 
-For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, stop the service and supply a new password through stdin to `./contextgate reset-password --data-dir /existing/config --password-stdin`. The [recovery instructions](../README.md#recover-a-forgotten-administrator-password) show a prompt that does not echo input. Recovery preserves data sources and Agent credentials while invalidating administrator sessions.
+For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, stop the service and supply a new password through stdin to `./contextgate reset-password --data-dir /existing/config --username admin --password-stdin`. The [recovery instructions](../README.md#recover-a-forgotten-administrator-password) show a prompt that does not echo input. Recovery preserves data sources and query Agent credentials while invalidating only the selected administrator’s sessions and Configuration MCP token.
 
 ## Troubleshooting
 
@@ -80,3 +80,5 @@ For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, sto
 | Invalid cursor | Keep identity, parameters and limits identical; restart after expiration, upgrade or access changes |
 
 `BUILD.json` identifies the version, binary digest and source commit. See [validation](validation.md) for tested products/platforms and remaining limitations.
+
+[Administrator accounts and upgrade from 0.5.0](administrators.md)
