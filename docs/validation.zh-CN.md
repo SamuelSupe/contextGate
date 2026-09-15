@@ -1,8 +1,18 @@
 # 验收与复现 / Validation
 
+## ContextGate 0.5.0 — 2026-09-15
+
+OrbStack 隔离 PostgreSQL 元数据 schema 下，完整 Go 测试与 race 检查通过。TypeScript/Vite 生产构建、9 项 UI 工作流测试和 2 项无损请求测试通过；Vite 仍有已有的包大小提示。
+
+重新完成全部 **18 产品／20 版本**数据库矩阵：**135 个查询/错误场景、104 个拒绝操作场景**，验证原生/模板结果等价、真实 HTTP MCP、本体映射发现和测试数据未改变。[当前矩阵](verification/matrix.json) 记录实现摘要。HTTP API 隔离实例另外验证固定操作、无损值、分页、授权与模板执行，不代表认证任意上游 API。
+
+本机 Chrome 实际操作业务目录预览、模板参数、HTTP API 模板生成/试跑/发布、按实体映射、真实单次回答评估、键盘与 390×844 中文布局。[产品流程](verification/product-workflows.json)和[UX 补充记录](verification/product-ux-fixes.json)保留具体范围，包括最终截屏工具的限制；未逐一重新测试所有外部 Agent 客户端。
+
+原生 arm64/amd64 CI、发行包解包与 GitHub 下载回验记录随 [0.5.0 发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0)提供。发行包检查覆盖真实 PostgreSQL 与 HTTP API MCP、单次回答评估、OTLP HTTP/gRPC；本机 amd64 使用 OrbStack 仿真。报告记录具体提交和制品摘要，下方历史记录保留原日期与验证边界。
+
 ## ContextGate 0.4.0 发行候选验证 — 2026-09-14
 
-当前实现已通过 OrbStack Linux arm64 全部 **18 产品 / 20 版本**矩阵：**135 个查询及错误用例、104 个拒绝用例**，涵盖 HTTP MCP 发现/限制、七类模板与原生结果一致、真实试跑与发布、本体映射发现及目标数据不变检查。[绑定当前实现的矩阵](verification/matrix.json)。
+0.4.0 发布时的实现已通过 OrbStack Linux arm64 全部 **18 产品 / 20 版本**矩阵：**135 个查询及错误用例、104 个拒绝用例**，涵盖 HTTP MCP 发现/限制、七类模板与原生结果一致、真实试跑与发布、本体映射发现及目标数据不变检查。[0.4.0 矩阵](https://github.com/SamuelSupe/contextGate/blob/v0.4.0/docs/verification/matrix.json)。
 
 完整 Go 测试与 race 检查、8 项 UI 工作流测试、2 项无损请求测试、TypeScript/Vite 构建通过。配置 MCP 集成验证覆盖独立凭证、真实 PG 无损模板、语义及本体草稿/映射、撤销、HTTP/stdio 和 OTLP 调用身份。
 
@@ -11,7 +21,7 @@
 
 [English](validation.md)
 
-日期：2026-09-11 至 2026-09-14。后端与数据库测试运行于 OrbStack Linux arm64；管理界面通过本机 Chrome 实际操作验证，没有引入浏览器自动化框架。
+日期：2026-09-11 至 2026-09-15。后端与数据库测试运行于 OrbStack Linux arm64；管理界面通过本机 Chrome 实际操作验证，没有引入浏览器自动化框架。
 
 ## 未发布的 PostgreSQL 元数据存储 — 2026-09-14
 

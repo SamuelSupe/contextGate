@@ -188,6 +188,9 @@ func (e *Engine) CheckOntologyMapping(ctx context.Context, source string, revisi
 	}
 	checkField := func(ref ontology.Reference, declared bool) error {
 		status := "verified"
+		if src.Kind == "http_api" {
+			status = "unverified"
+		}
 		if !fields[ref] {
 			if !declared {
 				return model.Fail("invalid_mapping", "Field was not discovered; explicitly declare it unverified or correct it: "+ref.Object+"."+ref.Field)

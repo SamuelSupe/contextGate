@@ -236,13 +236,21 @@ export function HealthPage({
             <section className="health-card">
               <h2>{t("Agent credentials expiring within 7 days")}</h2>
               {view.expiring_agents.map((agent) => (
-                <p key={agent.id}>
-                  {agent.name} · {date(agent.expires_at)}
-                </p>
+                <div className="health-expiring-agent" key={agent.id}>
+                  <span>
+                    <strong>{agent.name}</strong> · {date(agent.expires_at)}
+                  </span>
+                  <Button
+                    onClick={() =>
+                      navigate(
+                        "/agents?attention=" + encodeURIComponent(agent.id),
+                      )
+                    }
+                  >
+                    {t("Review credential")}
+                  </Button>
+                </div>
               ))}
-              <Button onClick={() => navigate("/agents")}>
-                {t("Review Agents")}
-              </Button>
             </section>
           )}
           {!view.sources.length ? (

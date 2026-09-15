@@ -34,6 +34,7 @@ export function QueryEvaluation({
   navigate: (url: string) => void;
   notify: (text: string) => void;
 }) {
+  const [mode, setMode] = useState<"single" | "comparison">("single");
   const [tab, setTab] = useState<(typeof tabs)[number]>("Evaluation");
   const [library, setLibrary] = useState({
     questions: emptyLibraryState,
@@ -70,6 +71,13 @@ export function QueryEvaluation({
     candidates.find((a) => a.id === agentID)?.id ||
     candidates[0]?.id ||
     "";
+  const single = record ? record.mode === "single" : mode === "single";
+  const runKinds: EvaluationKind[] = single
+    ? ["guided"]
+    : ["baseline", "guided"];
+  const completed =
+    !!record &&
+    runKinds.every((kind) => record.runs[kind]?.state === "completed");
   const active =
     record && Object.values(record.runs).some((r) => r.state === "capturing");
   const caseChanged =
@@ -168,6 +176,7 @@ export function QueryEvaluation({
               client: form.client,
               agent_id: agent,
               kind,
+              mode,
               case_id: savedQuestion?.id || "",
               case_revision: savedQuestion?.revision || "0",
             }),
@@ -211,6 +220,7 @@ export function QueryEvaluation({
   }
   function reset(repeat = false) {
     if (record && repeat) {
+      setMode(record.mode || "comparison");
       setForm({
         name: record.name,
         question: record.question,
@@ -369,6 +379,27 @@ export function QueryEvaluation({
           )}
           {!record && (
             <>
+              <Field label={t("Evaluation mode")}>
+                <select
+                  value={mode}
+                  disabled={busy}
+                  onChange={(e) => setMode(e.target.value as typeof mode)}
+                >
+                  <option value="single">{t("Single answer check")}</option>
+                  <option value="comparison">
+                    {t("Compare baseline and semantic guidance")}
+                  </option>
+                </select>
+              </Field>
+              <p className="help">
+                {single
+                  ? t(
+                      "Capture one real client answer, compare it with your expected answer, and save your assessment.",
+                    )
+                  : t(
+                      "Use two fresh client conversations under the same conditions to compare workflows.",
+                    )}
+              </p>
               <div className="notice">
                 {t(
                   "Use a dedicated Agent with no concurrent calls. Keep model settings and data stable; use fresh client conversations. The ContextGate measures completed calls on this source. Answers are reviewed manually.",
@@ -490,31 +521,29 @@ export function QueryEvaluation({
               </Button>
             </div>
           )}
-          <details
-            className="evaluation-details"
-            open={
-              !(
-                record?.runs.baseline?.state === "completed" &&
-                record?.runs.guided?.state === "completed"
-              )
-            }
-          >
+          <details className="evaluation-details" open={!completed}>
             <summary>
-              {record?.runs.baseline?.state === "completed" &&
-              record?.runs.guided?.state === "completed"
+              {completed
                 ? t("Edit manual reviews and inspect capture details")
                 : t("Capture and review client answers")}
             </summary>
             <p className="help">
-              {t(
-                "Baseline uses your existing workflow. Guided asks for semantic discovery and templates. Both use the same permissions and tools.",
-              )}
+              {single
+                ? t(
+                    "Copy the prompt, start capture, then ask your Agent. Collect the completed calls when the answer is ready.",
+                  )
+                : t(
+                    "Baseline uses your existing workflow. Guided asks for semantic discovery and templates. Both use the same permissions and tools.",
+                  )}
             </p>
-            <div className="evaluation-runs">
-              {(["baseline", "guided"] as const).map((kind) => (
+            <div
+              className={single ? "evaluation-runs single" : "evaluation-runs"}
+            >
+              {runKinds.map((kind) => (
                 <EvaluationRun
                   key={kind}
                   kind={kind}
+                  single={single}
                   run={record?.runs[kind]}
                   prompt={kind === "baseline" ? prompt : guidedPrompt}
                   busy={busy}

@@ -17,6 +17,7 @@ export interface Readiness {
   templates: {
     id: string;
     name: string;
+    description?: string;
     execution_version: string;
     status: string;
     executable: boolean;
@@ -32,11 +33,12 @@ export function readinessLabel(source: Source, ready: Readiness) {
   )
     return t("Publish a verified template");
   if (!ready.active_agents.length) return t("Grant Agent access");
-  if (source.probe.permission_status === "unverified")
-    return t("Review protection evidence");
   return ready.last_query
     ? t("Client query recorded")
     : t("Ready for a client query");
+}
+export function connectionReady(source: Source) {
+  return !!(source.enabled && source.probe?.connected);
 }
 export function useReadiness(sourceID: string, revision = "") {
   const [data, setData] = useState<Readiness | null>(null);

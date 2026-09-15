@@ -33,7 +33,7 @@ func (in *sourceInput) credentials(old *model.Source) error {
 	case "password":
 		in.Token = ""
 	case "token":
-		if in.Kind != "influxdb" && in.Kind != "elasticsearch" && in.Kind != "opensearch" {
+		if in.Kind != "influxdb" && in.Kind != "elasticsearch" && in.Kind != "opensearch" && in.Kind != "http_api" {
 			return model.Fail("invalid_input", "This database does not support token authentication.")
 		}
 		in.Username = ""

@@ -1,3 +1,4 @@
+import { httpTemplate } from "../src/http-template.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -87,6 +88,52 @@ test("advanced JSON cannot silently lose unknown or duplicate parameters", () =>
       },
       '{"tags":["a,b"],"id":9007199254740993}',
     ),
+    "",
+  );
+});
+
+test("API template drafts inherit contracts and preserve exact example values", () => {
+  const template = httpTemplate({
+    id: "lookup",
+    name: "Lookup",
+    method: "GET",
+    path: "/customers/{id}",
+    read_only: true,
+    example_json: '{"id":9007199254740993,"price":0.123456789012345678901}',
+    parameters: [
+      {
+        name: "optional_filter",
+        type: "string",
+        in: "query",
+        target: "filter",
+        required: false,
+      },
+      { ...integer, name: "id", type: "integer", in: "path", target: "id" },
+      {
+        name: "price",
+        type: "number",
+        in: "query",
+        target: "price",
+        required: false,
+        default_json: "0.123456789012345678901",
+      },
+    ],
+  });
+  const query = parameterValues(template.query_json);
+  assert.equal(parameterValues(query.named_params).id, "9007199254740993");
+  assert.equal(parameterValues(query.named_params).optional_filter, undefined);
+  assert.equal(
+    template.parameters.some((p) => p.name === "optional_filter"),
+    false,
+  );
+  assert.equal(
+    parameterValues(query.named_params).price,
+    "0.123456789012345678901",
+  );
+  assert.equal(template.parameters[0].pointers[0], "/named_params/id");
+  assert.equal(template.parameters[0].maximum, integer.maximum);
+  assert.equal(
+    validateParameters(template.parameters, template.example_json),
     "",
   );
 });

@@ -65,3 +65,5 @@ stdio 客户端在本机安装 ContextGate，可执行 `contextgate stdio --url 
 ## 起始提示词
 
 > 请使用 ContextGate 配置 MCP 帮我配置数据源、语义目录、查询模板和本体映射。先调用 get_configuration_guide 并检查已有配置。缺少只读凭证或业务定义时向我询问，保留无关配置。校验本体后请管理员发布，再检查映射并试跑启用的模板。最后给出变更摘要、当前修订号和供管理员审核发布的链接。
+
+HTTP API 数据源也可以通过配置 MCP 创建和维护，查询工具为 `query_http_api`。固定请求契约、只读声明、API 版本与参数配置见 [HTTP API 数据源](http-api.zh-CN.md)。

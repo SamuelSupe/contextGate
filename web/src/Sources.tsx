@@ -122,7 +122,7 @@ export function Sources({
       <div className="page-header">
         <div>
           <h1>{t("Data sources")}</h1>
-          <p>{t("Manage database connections and read-only access")}</p>
+          <p>{t("Manage database and API connections with controlled read access")}</p>
         </div>
         <Button primary onClick={() => setEditing(null)}>
           <Plus size={17} />
@@ -143,7 +143,7 @@ export function Sources({
           />
         </div>
         <select
-          aria-label={t("Filter by database type")}
+          aria-label={t("Filter by source type")}
           value={kind}
           onChange={(e) => {
             setKind(e.target.value);
@@ -175,9 +175,9 @@ export function Sources({
           }
           description={
             sources.length
-              ? t("Try another name or database type.")
+              ? t("Try another name or source type.")
               : t(
-                  "Connect a database, check read-only protection, then grant access to an Agent.",
+                  "Connect a database or API, review its read-only protection, then grant access to an Agent.",
                 )
           }
           action={

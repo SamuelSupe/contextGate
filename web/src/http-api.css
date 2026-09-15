@@ -1,0 +1,75 @@
+.http-operation-picker,
+.http-section-heading,
+.http-column {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.http-operation-picker {
+  align-items: flex-end;
+  margin-bottom: 16px;
+}
+.http-operation-picker > .field {
+  flex: 1;
+  min-width: 180px;
+  margin-bottom: 0;
+}
+.http-operation-card {
+  padding: 18px;
+  border: 1px solid var(--line, #dbe3eb);
+  border-radius: 10px;
+  margin: 0 0 20px;
+}
+.http-section-heading {
+  justify-content: space-between;
+  margin: 16px 0;
+}
+.http-section-heading h4 {
+  margin: 0;
+}
+.http-parameter {
+  padding: 14px;
+  border: 1px solid var(--line, #dbe3eb);
+  border-radius: 8px;
+  margin: 12px 0;
+}
+.http-read-declaration {
+  align-items: flex-start;
+  gap: 10px;
+  margin-top: 16px;
+}
+.http-read-declaration input {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+.http-column {
+  align-items: flex-end;
+  margin-bottom: 12px;
+}
+.http-column > .field {
+  flex: 1;
+  min-width: 100px;
+  margin-bottom: 0;
+}
+.http-api-editor .advanced > .check-row {
+  margin-top: 18px;
+}
+.http-api-editor textarea {
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+@media (max-width: 600px) {
+  .http-operation-card {
+    padding: 12px;
+  }
+  .http-parameter {
+    padding: 10px;
+  }
+  .http-api-editor .field-grid {
+    grid-template-columns: 1fr;
+  }
+  .http-operation-picker > .field {
+    flex-basis: 100%;
+  }
+}

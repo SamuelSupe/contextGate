@@ -1,8 +1,18 @@
 # Validation and reproduction
 
+## ContextGate 0.5.0 — 2026-09-15
+
+The complete Go and race suites passed in OrbStack with isolated PostgreSQL metadata schemas. The TypeScript/Vite production build, nine UI workflow tests and two lossless request tests passed; Vite retains its bundle-size advisory.
+
+The full **18-product / 20-version** database matrix passed again: **135 query/error cases and 104 denied operations**, native/template equivalence, real HTTP MCP, pinned ontology discovery and unchanged fixture data. The [current matrix](verification/matrix.json) records the implementation digest. HTTP API fixtures additionally cover fixed operations, lossless values, pagination, authorization and template execution; they do not certify arbitrary upstream APIs.
+
+Local Chrome exercised business catalog previews, template parameters, HTTP API authoring/trial/publication, focused ontology mapping, real single-answer evaluation, keyboard interaction and 390×844 Chinese layouts. The [workflow](verification/product-workflows.json) and [UX follow-up](verification/product-ux-fixes.json) records retain their exact scope, including the final screenshot-capture limitation. This release does not claim a new test of every external Agent application.
+
+Native arm64/amd64 CI and actual archive/download verification records accompany the [0.5.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0). Package checks include real PostgreSQL and HTTP API MCP workflows, single-answer evaluation and OTLP HTTP/gRPC delivery. Local amd64 archive execution uses OrbStack emulation. Release reports identify the exact commit and artifact hashes; historical records below retain their original dates and limits.
+
 ## ContextGate 0.4.0 release candidate — 2026-09-14
 
-The current implementation passed the full **18-product / 20-version** OrbStack Linux arm64 matrix: **135 native query/error cases and 104 denied operations**, including HTTP MCP discovery/limits, seven-family native/template equivalence, real template trials/publication and pinned ontology mapping discovery. Fixture data remained unchanged. [Current implementation-bound matrix](verification/matrix.json).
+At the 0.4.0 release, the implementation passed the full **18-product / 20-version** OrbStack Linux arm64 matrix: **135 native query/error cases and 104 denied operations**, including HTTP MCP discovery/limits, seven-family native/template equivalence, real template trials/publication and pinned ontology mapping discovery. Fixture data remained unchanged. [0.4.0 matrix](https://github.com/SamuelSupe/contextGate/blob/v0.4.0/docs/verification/matrix.json).
 
 The complete Go suite and `go test -race ./...` passed using isolated PostgreSQL metadata schemas. Eight UI workflow tests, two lossless request tests, and the TypeScript/Vite production build passed. Configuration MCP integration covers separate credentials, real PostgreSQL lossless template trials, semantic/ontology drafts and mapping, revocation, HTTP/stdio and OTLP identity preservation. Source branding and module paths now use ContextGate/contextGate.
 
@@ -11,7 +21,7 @@ Dual-architecture CI and independently downloaded archive results are attached t
 
 [简体中文](validation.zh-CN.md)
 
-The records below describe checks performed from 2026-09-11 through 2026-09-14. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
+The records below describe checks performed from 2026-09-11 through 2026-09-15. Database integration tests ran in OrbStack Linux arm64; the administration UI was exercised in local Chrome without adding a browser automation framework. Historical regression reports retain the source digests they actually tested.
 
 ## Unreleased PostgreSQL metadata — 2026-09-14
 

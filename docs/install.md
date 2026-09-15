@@ -1,12 +1,12 @@
 # Install ContextGate
 
-[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0)
+[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0)
 
-**ContextGate 0.4.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
+**ContextGate 0.5.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
 
 ## PostgreSQL metadata
 
-0.4.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
+0.5.0 requires `MCPDBHUB_DATABASE_URL` pointing to a pre-created PostgreSQL database. Its dedicated owner role needs schema/table creation and read/write privileges. The Docker Compose installation below provisions this database for you. `--data-dir` stores the independent encryption key; PostgreSQL stores configuration and audit records.
 
 **Upgrading from 0.3.0 or earlier:** there is no SQLite metadata import or fallback. Initialize a fresh PostgreSQL store, administrator, data sources and grants. Preserve the old database and key backup; do not point the new service at old metadata. SQLite remains a read-only query data source. See the [upgrade checklist](releases/0.4.0.md#upgrading-from-03x-or-earlier).
 
@@ -18,11 +18,11 @@ Check `uname -m`: choose `linux-amd64` for `x86_64`, or `linux-arm64` for `aarch
 
 ```sh
 # Linux arm64 example; replace arm64 with amd64 for x86_64.
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.4.0/contextgate-0.4.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.4.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/contextgate-0.5.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf contextgate-0.4.0-linux-arm64.tar.gz
-cd contextgate-0.4.0-linux-arm64
+tar -xzf contextgate-0.5.0-linux-arm64.tar.gz
+cd contextgate-0.5.0-linux-arm64
 ./contextgate version
 mkdir -p data databases
 # Use a pre-created PostgreSQL database and its dedicated owner role.

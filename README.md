@@ -17,7 +17,7 @@ ContextGate helps Agents understand business concepts and access real data throu
 
 Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contextGate`; previous commits and releases remain available. The primary executable is `contextgate`, with `mcpdbhub` retained as an alias. Existing `MCPDBHUB_*` settings and telemetry attribute names remain supported. [Brand and compatibility](docs/brand/README.md).
 
-[简体中文](README.zh-CN.md) · [Download v0.4.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.5.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
@@ -25,12 +25,14 @@ Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contex
 
 ## What you get
 
+**New in [0.5.0](docs/releases/0.5.0.md):** connect HTTP APIs, discover executable queries in the business catalog, edit templates with guided parameter bindings, and validate one real Agent answer without setting up a comparison. Home, ontology mapping, publication review and settings now provide clearer next actions.
+
 | Capability | Behavior |
 |---|---|
 | Shared business ontologies | Reusable entities, properties and relationships, with explicit per-source mappings and pinned versions |
 | Semantic catalogs and templates | Per-source business definitions, verified native templates and optional templates-only Agent access |
 | Configuration MCP | Let trusted Agents prepare sources, semantic drafts, templates and ontologies; administrators review and publish |
-| Native reads | SQL, MongoDB, Redis, Search DSL, Cypher, CQL, InfluxQL and Flux |
+| Native reads | SQL, MongoDB, Redis, Search DSL, Cypher, CQL, InfluxQL, Flux and fixed JSON HTTP API operations |
 | Independent Agent access | Source grants, precise expiration, pause, rotation, revocation and OAuth |
 | Enforced read-only execution | Parsers and engine classification, read-only transactions/files, safe commands and fixed query APIs |
 | Bounded queries | Timeouts, cancellation, isolated concurrency, response limits and identity-bound cursors |
@@ -59,13 +61,15 @@ A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a tr
 
 </details>
 
+**HTTP API data sources**, available since 0.5.0, extend the same workflow to fixed GET and administrator-declared read-only POST JSON operations. See the [HTTP API guide](docs/http-api.md) for configuration, authentication, pagination and semantic/ontology examples.
+
 ## Operate and recover
 
 **0.4.0** includes management change records, encrypted semantic publication history with restore-to-draft, optional scheduled health checks, template regression cases, and PostgreSQL diagnostics and backup recovery verification. Start with **Health**, **Semantics → Publication history**, and **Settings → Deployment diagnostics**. See the [operations guide](docs/operations.md) for their scope and recovery steps.
 
 ## Download
 
-[**ContextGate 0.4.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
+[**ContextGate 0.5.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
 
 ## Run
 
@@ -83,7 +87,7 @@ Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to
 
 Compose starts PostgreSQL on its private container network and waits for it to become healthy. Only ContextGate HTTP port is published to loopback. ContextGate runs as UID 10001 and mounts query database files read-only. Metadata persists in `hub-postgres`; the independent encryption key persists in `hub-data`. Preserve both volumes and the existing `.env` when restarting or upgrading; generate `.env` only for a new installation.
 
-**Storage change:** current source uses PostgreSQL exclusively for internal configuration, sessions, grants, catalogs and audit logs. It does not import old SQLite metadata. Initialize a fresh administrator and configure sources again. SQLite remains a read-only query data source. Versions through 0.3.0 use SQLite metadata. Read the [0.4.0 upgrade notes](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier) before switching.
+**Storage change:** current source uses PostgreSQL exclusively for internal configuration, sessions, grants, catalogs and audit logs. Upgrades from 0.4.x preserve the existing PostgreSQL store and its matching master key. It does not import old SQLite metadata; upgrades from 0.3.x or earlier require a fresh administrator and source configuration. SQLite remains a read-only query data source. Versions through 0.3.0 use SQLite metadata. Read the [0.4.0 upgrade notes](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier) before switching.
 
 To build locally, install Go 1.26, a C/C++ toolchain, and Node.js 24, then run `make build`. CGO is required by SQLite and DuckDB. Build natively for Linux arm64 or amd64; `CGO_ENABLED=0` is unsupported.
 
@@ -114,7 +118,7 @@ For a stdio client:
 
 The outer configuration format varies by client. Remote bridge URLs require HTTPS. The bridge writes only MCP protocol messages to stdout.
 
-Start with `list_data_sources`; it returns only authorized sources, with capabilities, tool names, examples and limits. Use `list_namespaces`, `list_objects` and `describe_object` for discovery. Native query tools are `query_sql`, `query_mongodb`, `query_redis`, `query_search`, `query_cypher`, `query_cql` and `query_influxdb`. Their input schemas define family-specific arguments. Agents cannot supply connection addresses, credentials or HTTP paths.
+Start with `list_data_sources`; it returns only authorized sources, with capabilities, tool names, examples and limits. Use `list_namespaces`, `list_objects` and `describe_object` for discovery. Native query tools are `query_sql`, `query_mongodb`, `query_redis`, `query_search`, `query_cypher`, `query_cql`, `query_influxdb` and `query_http_api`. Their input schemas define family-specific arguments. Agents cannot supply connection addresses, credentials or HTTP paths.
 
 ```json
 {"name":"query_sql","arguments":{"source_id":"src_...","query":"WITH totals AS (SELECT region,sum(amount) AS total FROM orders WHERE created_at >= $1 GROUP BY region) SELECT region,total,rank() OVER (ORDER BY total DESC) FROM totals","params":["2026-09-01"],"max_rows":100,"timeout_seconds":10}}

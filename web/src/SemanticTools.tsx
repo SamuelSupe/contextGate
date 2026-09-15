@@ -229,12 +229,18 @@ export function TemplatePreview({
   agents,
   onClose,
   initialAgentID = "",
+  contextLabel,
+  backLabel,
+  returnFocus,
 }: {
   source: Source;
   entry: SemanticEntry;
   agents: Agent[];
   onClose: () => void;
   initialAgentID?: string;
+  contextLabel?: string;
+  backLabel?: string;
+  returnFocus?: HTMLElement | null;
 }) {
   const [params, setParams] = useState(entry.template!.example_json);
   const [agent, setAgent] = useState(initialAgentID);
@@ -292,6 +298,7 @@ export function TemplatePreview({
     <Drawer
       wide
       title={t("Preview published template")}
+      returnFocus={returnFocus}
       subtitle={t("{name} · Execution version {execution_version}", {
         name: entry.name,
         execution_version: entry.template!.execution_version,
@@ -302,6 +309,11 @@ export function TemplatePreview({
       }}
       footer={
         <>
+          {backLabel && (
+            <Button disabled={busy} onClick={onClose}>
+              {backLabel}
+            </Button>
+          )}
           {busy ? (
             <Button onClick={() => abort.current?.abort()}>
               {t("Cancel query")}
@@ -324,6 +336,22 @@ export function TemplatePreview({
       }
     >
       <ErrorNote error={error} />
+      <section className="template-business-context">
+        <p className="help">
+          {source.name}
+          {contextLabel ? ` · ${contextLabel}` : ""}
+        </p>
+        {entry.description && (
+          <p className="catalog-description">{entry.description}</p>
+        )}
+        {entry.caveats && <p className="notice warning">{entry.caveats}</p>}
+        {entry.template?.result_description && (
+          <details open>
+            <summary>{t("How to interpret this result")}</summary>
+            <p>{entry.template.result_description}</p>
+          </details>
+        )}
+      </section>
       <Field
         label={t("Preview identity")}
         hint={t(

@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"encoding/json"
+	"slices"
 	"strings"
 	"testing"
 )
@@ -47,6 +48,10 @@ func TestTemplateBindingPreservesValuesAndOperationStructure(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
+			slots, slotErr := BindingSlots(tc.tool, tc.query)
+			if slotErr != nil || !slices.Contains(slots, tc.pointer) {
+				t.Fatal("safe binding is unavailable in parameter picker", slots, slotErr)
+			}
 			wire, _ := json.Marshal(q)
 			if !strings.Contains(string(wire), tc.value) {
 				t.Fatalf("value changed: %s", wire)
@@ -77,5 +82,25 @@ func TestParameterContractDefaultsEnumsRangesAndDefinition(t *testing.T) {
 	tplate.Parameters[0].Maximum = "9007199254740996"
 	if Definition(tplate) == original {
 		t.Fatal("constraint failed to change execution definition")
+	}
+}
+
+func TestBindingPickerExcludesQueryStructure(t *testing.T) {
+	for _, tc := range []struct {
+		tool, query string
+		expected    []string
+	}{
+		{"query_redis", `{"command":"SCAN","args":["0","MATCH","a*"]}`, []string{"/args/0", "/args/2"}},
+		{"query_search", `{"body":{"query":{"terms":{"term":{"index":"private","id":"x","path":"y"}}}}}`, []string{}},
+		{"query_mongodb", `{"filter":{"$expr":{"$eq":["$id",1]},"a/b":1},"pipeline":[{"$lookup":{"from":"private"}}]}`, []string{"/filter/a~1b"}},
+		{"query_http_api", `{"operation":"list","named_params":{"id":9007199254740993}}`, []string{"/named_params/id"}},
+	} {
+		slots, err := BindingSlots(tc.tool, tc.query)
+		if err != nil || !slices.Equal(slots, tc.expected) {
+			t.Fatal(tc.tool, slots, err)
+		}
+	}
+	if _, err := BindingSlots("query_sql", strings.Repeat(" ", 128<<10+1)); err == nil {
+		t.Fatal("unbounded picker input")
 	}
 }

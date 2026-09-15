@@ -1,8 +1,11 @@
+import { NativeQueryEditor } from "./NativeQueryEditor";
+import { httpTemplate } from "./http-template";
+import type { Source } from "./types";
 import { RegressionEditor } from "./RegressionEditor";
 import { t } from "./i18n";
 import { useState } from "react";
 import { Button, Drawer, ErrorNote, Field } from "./components";
-import { message } from "./api";
+import { api, payload, message } from "./api";
 import {
   entryKinds,
   type ObjectReference,
@@ -48,10 +51,12 @@ function ParameterFields({
   value,
   onChange,
   remove,
+  slots,
 }: {
   value: SemanticParameter;
   onChange: (v: SemanticParameter) => void;
   remove: () => void;
+  slots: string[];
 }) {
   const field = <K extends keyof SemanticParameter>(
     key: K,
@@ -94,18 +99,38 @@ function ParameterFields({
           onChange={(e) => field("description", e.target.value)}
         />
       </Field>
+      {slots.length > 0 && (
+        <Field label={t("Bind to a query value")}>
+          <select
+            value=""
+            onChange={(e) => {
+              if (e.target.value && !value.pointers.includes(e.target.value))
+                field("pointers", [
+                  ...value.pointers.filter(Boolean),
+                  e.target.value,
+                ]);
+            }}
+          >
+            <option value="">{t("Choose a parameter position")}</option>
+            {slots.map((slot) => (
+              <option key={slot} value={slot}>
+                {slot}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
       <Field
-        label={t("JSON Pointer bindings")}
-        required
+        label={t("Selected bindings")}
         hint={t(
-          "One existing value position per line, for example /params/0 or /filter/status. Query text and object names cannot be parameters.",
+          "Choose existing value positions above, or enter JSON Pointers. Query text and object names cannot be parameters.",
         )}
       >
         <textarea
           required
           rows={2}
-          value={value.pointers.join("\n")}
-          onChange={(e) => field("pointers", e.target.value.split("\n"))}
+          value={value.pointers.join("\\n")}
+          onChange={(e) => field("pointers", e.target.value.split("\\n"))}
         />
       </Field>
       <label className="checkbox-row">
@@ -157,12 +182,14 @@ function ParameterFields({
 }
 
 export function SemanticEditor({
+  source,
   entry,
   entries,
   concepts = [],
   onClose,
   onSave,
 }: {
+  source: Source;
   entry: SemanticEntry;
   entries: SemanticEntry[];
   concepts?: string[];
@@ -173,6 +200,11 @@ export function SemanticEditor({
   const [enumText, setEnumText] = useState(
     JSON.stringify(entry.enums || {}, null, 2),
   );
+  const [bindings, setBindings] = useState<{ query: string; slots: string[] }>({
+    query: "",
+    slots: [],
+  });
+  const [loadingBindings, setLoadingBindings] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const update = <K extends keyof SemanticEntry>(
@@ -425,22 +457,42 @@ export function SemanticEditor({
                 />{" "}
                 {t("Enabled after publication")}
               </label>
-              <Field
-                label={t("Native query (JSON)")}
-                required
-                hint={t(
-                  "Use the native tool's query structure. Do not include source_id, cursor or query limits.",
-                )}
-              >
-                <textarea
-                  className="query-editor"
-                  required
-                  spellCheck={false}
-                  rows={10}
-                  value={template.query_json}
-                  onChange={(e) => editTemplate({ query_json: e.target.value })}
-                />
-              </Field>
+              {source.http_api && (
+                <Field
+                  label={t("Use an API operation")}
+                  hint={t(
+                    "Selecting an operation replaces the query, parameters and examples. Optional parameters without an example or default stay omitted. Add a value in the source operation to expose them. Save and trial the draft before publication.",
+                  )}
+                >
+                  <select
+                    value=""
+                    onChange={(e) => {
+                      const op = source.http_api?.operations.find(
+                        (op) => op.id === e.target.value,
+                      );
+                      if (op)
+                        setForm((f) => ({
+                          ...f,
+                          name: f.name || op.name,
+                          description: f.description || op.description,
+                          template: { ...f.template!, ...httpTemplate(op) },
+                        }));
+                    }}
+                  >
+                    <option value="">{t("Choose an operation")}</option>
+                    {source.http_api.operations.map((op) => (
+                      <option key={op.id} value={op.id}>
+                        {op.name} · {op.method} {op.path}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+              )}
+              <NativeQueryEditor
+                tool={template.tool}
+                value={template.query_json}
+                onChange={(query_json) => editTemplate({ query_json })}
+              />
               <details className="advanced semantic-concepts">
                 <summary>
                   {t("Ontology concepts")}{" "}
@@ -495,10 +547,46 @@ export function SemanticEditor({
                 )}
               </details>
               <h3>{t("Parameters")}</h3>
+              <Button
+                busy={loadingBindings}
+                disabled={busy}
+                onClick={async () => {
+                  const query = template.query_json;
+                  setLoadingBindings(true);
+                  setError("");
+                  try {
+                    const out = await api<{ slots: string[] }>(
+                      "/api/sources/" + source.id + "/semantics/bindings",
+                      {
+                        method: "POST",
+                        body: payload({ query_json: query }),
+                      },
+                    );
+                    setBindings({ query, slots: out.slots });
+                  } catch (e) {
+                    setError(message(e));
+                  } finally {
+                    setLoadingBindings(false);
+                  }
+                }}
+              >
+                {t("Find parameter positions")}
+              </Button>
+              {bindings.query === template.query_json &&
+                !bindings.slots.length && (
+                  <p className="help">
+                    {t(
+                      "No supported value positions. Add fixed native parameter values or document filters first.",
+                    )}
+                  </p>
+                )}
               {(template.parameters || []).map((param, i) => (
                 <ParameterFields
                   key={i}
                   value={param}
+                  slots={
+                    bindings.query === template.query_json ? bindings.slots : []
+                  }
                   onChange={(v) =>
                     editTemplate({
                       parameters: template.parameters.map((p, n) =>

@@ -1,4 +1,12 @@
-import type { OntologyBinding } from "./ontology-types";
+import type {
+  OntologyBinding,
+  EntityType,
+  Property,
+  RelationType,
+  EntityMapping,
+  PropertyMapping,
+  RelationMapping,
+} from "./ontology-types";
 export interface ObjectReference {
   namespace: string;
   object: string;
@@ -35,6 +43,12 @@ export interface QueryTemplate {
   execution_version?: string;
 }
 export interface SemanticEntry {
+  definition?: EntityType | Property | RelationType;
+  mapping?: (EntityMapping | PropertyMapping | RelationMapping) & {
+    verification_status?: string;
+    checked_at?: string;
+  };
+  ancestors?: EntityType[];
   id: string;
   kind: string;
   name: string;
@@ -87,6 +101,24 @@ export interface SemanticState {
   }[];
 }
 export const entryKinds = ["term", "object", "field", "relationship", "metric"];
+export function semanticKindLabel(kind: string): string {
+  return (
+    (
+      {
+        term: "Business term",
+        object: "Data object",
+        field: "Field",
+        relationship: "Relationship",
+        metric: "Metric",
+        template: "Query template",
+        entity_type: "Entity type",
+        property: "Property",
+        relation_type: "Relation type",
+        overview: "Overview",
+      } as Record<string, string>
+    )[kind] || kind
+  );
+}
 export function templatePayload(
   source: string,
   template: SemanticEntry,

@@ -5,7 +5,12 @@ import { Button, ErrorNote, Loading, Protection, Field } from "./components";
 import { SourceEditor } from "./SourceEditor";
 import { SourceDetails } from "./SourceDetails";
 import { TemplatePreview } from "./SemanticTools";
-import { readinessLabel, semanticsURL, useReadiness } from "./readiness";
+import {
+  connectionReady as isConnected,
+  readinessLabel,
+  semanticsURL,
+  useReadiness,
+} from "./readiness";
 import type { SemanticEntry, SemanticState } from "./semantic-types";
 import type { Source, Agent, Capability } from "./types";
 import "./product-workflows.css";
@@ -71,11 +76,7 @@ export function SourceSetup({
   const active = agents.filter((a) => data?.active_agents.includes(a.id));
   const selectedAgent =
     active.find((a) => a.id === agentID)?.id || active[0]?.id || "";
-  const connectionReady = !!(
-    source.enabled &&
-    source.probe?.connected &&
-    source.probe.permission_status !== "unverified"
-  );
+  const connectionReady = isConnected(source);
   const workspaceReady = !!(
     source.enabled &&
     selectedAgent &&
@@ -108,6 +109,11 @@ export function SourceSetup({
             <li key={queryTemplate.id}>
               <div>
                 <strong>{queryTemplate.name}</strong>
+                {queryTemplate.description && (
+                  <p className="template-purpose">
+                    {queryTemplate.description}
+                  </p>
+                )}
                 <small>
                   {queryTemplate.executable
                     ? t("Executable")
@@ -293,8 +299,10 @@ export function SourceSetup({
               complete={connectionReady}
               detail={
                 source.probe?.connected
-                  ? `Connected · last checked ${date(source.probe.checked_at)}`
-                  : "Test the connection to begin"
+                  ? t("Connected · last checked {time}", {
+                      time: date(source.probe.checked_at),
+                    })
+                  : t("Test the connection to begin")
               }
             >
               <Protection probe={source.probe} detail />
@@ -318,8 +326,10 @@ export function SourceSetup({
               complete={!!selectedAgent}
               detail={
                 selectedAgent
-                  ? `${active.length} active authorized Agents`
-                  : "Create an Agent and grant this source"
+                  ? t("{count} active authorized Agents", {
+                      count: active.length,
+                    })
+                  : t("Create an Agent and grant this source")
               }
             >
               <p>
@@ -349,8 +359,10 @@ export function SourceSetup({
               complete={!!data.last_query}
               detail={
                 data.last_query
-                  ? `Latest successful query: ${date(data.last_query)}`
-                  : "Waiting for the first successful client query"
+                  ? t("Latest successful query: {time}", {
+                      time: date(data.last_query),
+                    })
+                  : t("Waiting for the first successful client query")
               }
             >
               <p>

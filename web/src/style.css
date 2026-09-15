@@ -248,9 +248,12 @@ details ul {
   flex-direction: column;
   gap: 8px;
   padding-right: 9px;
+  min-height: 0;
+  overflow-y: auto;
 }
 .sidebar nav a {
   height: 43px;
+  flex-shrink: 0;
   padding: 0 20px;
   display: flex;
   align-items: center;
@@ -270,6 +273,7 @@ details ul {
   font-weight: 600;
 }
 .account {
+  flex-shrink: 0;
   margin: auto 15px 18px;
   padding-top: 16px;
   border-top: 1px solid #d9e3ea;
@@ -1808,4 +1812,106 @@ tbody tr.selected {
 .configuration-mcp .drawer header h2 {
   font-size: 22px;
   margin-bottom: 0;
+}
+
+.attention-row {
+  background: #fff8e6;
+  outline-offset: -2px;
+}
+.health-expiring-agent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding: 12px 0;
+  border-top: 1px solid var(--line);
+}
+.settings-navigation,
+.source-config-navigation {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 12px 0;
+  background: white;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  border-bottom: 1px solid var(--line);
+  margin-bottom: 20px;
+}
+.settings-navigation button,
+.source-config-navigation button {
+  flex-shrink: 0;
+}
+.settings-body [id],
+.http-api-editor,
+#source-connection,
+#source-query-policy {
+  scroll-margin-top: 76px;
+}
+.mapping-entity-selector {
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f7fafb;
+  margin: 20px 0;
+}
+.mapping-entity-selector .field {
+  max-width: 540px;
+}
+.field-discovery {
+  grid-column: 1 / -1;
+}
+.field-discovery .field {
+  margin-top: 12px;
+}
+.evaluation-runs.single {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 850px;
+}
+.native-query-editor {
+  margin-top: 18px;
+}
+.native-query-editor .button-row {
+  margin-bottom: 12px;
+}
+.http-operation-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.http-operation-overview button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  white-space: normal;
+  height: auto;
+  padding: 12px;
+}
+.http-operation-overview small {
+  color: var(--muted);
+  overflow-wrap: anywhere;
+}
+button[aria-pressed="true"] {
+  border-color: var(--accent, #008da1);
+  background: #eaf5f6;
+  color: #136b78;
+}
+@media (max-width: 600px) {
+  .settings-navigation,
+  .source-config-navigation {
+    position: static;
+    flex-wrap: wrap;
+  }
+  .definition-mapping,
+  .definition-properties,
+  .template-business-context {
+    padding: 12px;
+  }
+  .mapping-entity-selector {
+    padding: 12px;
+  }
 }

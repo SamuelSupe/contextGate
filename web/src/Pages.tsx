@@ -25,7 +25,7 @@ export function CatalogPage({ catalog }: { catalog: Capability[] }) {
     <>
       <div className="page-header">
         <div>
-          <h1>{t("Supported databases")}</h1>
+          <h1>{t("Data source types")}</h1>
           <p>
             {t("Native query capabilities, protection and tested versions")}
           </p>
@@ -35,8 +35,8 @@ export function CatalogPage({ catalog }: { catalog: Capability[] }) {
         <div className="search-input">
           <Search size={16} />
           <input
-            placeholder={t("Search databases")}
-            aria-label={t("Search supported databases")}
+            placeholder={t("Search data source types")}
+            aria-label={t("Search data source types")}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -45,12 +45,12 @@ export function CatalogPage({ catalog }: { catalog: Capability[] }) {
           {shown.length}
           {t(" of ")}
           {catalog.length}
-          {t(" products")}
+          {t(" connectors")}
         </span>
       </div>
       {!shown.length ? (
         <Empty
-          title={t("No matching databases")}
+          title={t("No matching connectors")}
           description={t("Try another name or clear the search.")}
           action={
             <Button onClick={() => setSearch("")}>{t("Clear search")}</Button>
@@ -137,8 +137,29 @@ export function SettingsPage({
           <p>{t("Service connection and administrator security settings")}</p>
         </div>
       </div>
+      <nav className="settings-navigation" aria-label={t("Settings sections")}>
+        {[
+          ["language", "Language"],
+          ["service", "Service information"],
+          ["configuration", "Configuration MCP"],
+          ["diagnostics", "Diagnostics"],
+          ["audit", "Audit export"],
+          ["security", "Administrator security"],
+        ].map(([id, label]) => (
+          <Button
+            key={id}
+            onClick={() => {
+              const section = document.getElementById("settings-" + id);
+              section?.scrollIntoView({ block: "start" });
+              section?.focus({ preventScroll: true });
+            }}
+          >
+            {t(label)}
+          </Button>
+        ))}
+      </nav>
       <div className="settings-body">
-        <section>
+        <section id="settings-language" tabIndex={-1}>
           <h2>{t("Language")}</h2>
           <Field
             label={t("Display language")}
@@ -159,7 +180,7 @@ export function SettingsPage({
             </select>
           </Field>
         </section>
-        <section>
+        <section id="settings-service" tabIndex={-1}>
           <h2>{t("Service information")}</h2>
           <div className="service-brand">
             <Brand tagline />
@@ -222,10 +243,25 @@ export function SettingsPage({
             )}
           </p>
         </section>
-        <ConfigurationMCP notify={notify} />
-        <Diagnostics />
-        <AuditExport notify={notify} />
-        <section>
+        <p className="help">
+          <a
+            href="https://github.com/SamuelSupe/contextGate/blob/main/docs/operations.md"
+            target="_blank"
+            rel="noreferrer"
+          >
+            {t("Deployment and recovery guide")}
+          </a>
+        </p>
+        <div id="settings-configuration" tabIndex={-1}>
+          <ConfigurationMCP notify={notify} />
+        </div>
+        <div id="settings-diagnostics" tabIndex={-1}>
+          <Diagnostics />
+        </div>
+        <div id="settings-audit" tabIndex={-1}>
+          <AuditExport notify={notify} />
+        </div>
+        <section id="settings-security" tabIndex={-1}>
           <h2>{t("Change administrator password")}</h2>
           <p className="help">
             {t(
@@ -255,6 +291,16 @@ export function SettingsPage({
               }
             }}
           >
+            <input
+              type="text"
+              name="username"
+              autoComplete="username"
+              value="administrator"
+              readOnly
+              className="sr-only"
+              tabIndex={-1}
+              aria-hidden="true"
+            />
             <Field label={t("Current password")} required>
               <input
                 type="password"
@@ -286,8 +332,8 @@ export function SettingsPage({
             </Button>
           </form>
         </section>
-        <section>
-          <h2>{t("Administrator recovery")}</h2>
+        <details className="advanced">
+          <summary>{t("Administrator recovery")}</summary>
           <p>
             {t(
               "Use the same MCPDBHUB_DATABASE_URL and master key as the service. Stop the service, provide a new password through standard input, then restart:",
@@ -299,7 +345,7 @@ export function SettingsPage({
               "Keep the existing master key. Recovery signs out all administrator sessions and retains data sources, Agent credentials and audit history.",
             )}
           </p>
-        </section>
+        </details>
       </div>
     </>
   );

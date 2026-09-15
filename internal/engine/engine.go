@@ -246,7 +246,11 @@ func (e *Engine) execute(ctx context.Context, p model.Principal, operation strin
 		if run.Ontology != nil {
 			ontologyID, ontologyVersion = run.Ontology.OntologyID, run.Ontology.Version
 		}
-		if auditErr := e.Store.Audit(model.Audit{RequestID: requestID, NativeCode: nativeCode, Preview: p.Preview, At: started, AgentID: principal, SourceID: q.SourceID, Operation: auditOperation, TemplateID: run.ID, TemplateVersion: run.Version, OntologyID: ontologyID, OntologyVersion: ontologyVersion, Fingerprint: fp, ElapsedMS: time.Since(started).Milliseconds(), Rows: rows, ErrorCode: code}); auditErr != nil {
+		eventKind := "query"
+		if p.SystemCheck {
+			eventKind = "system"
+		}
+		if auditErr := e.Store.Audit(model.Audit{EventKind: eventKind, RequestID: requestID, NativeCode: nativeCode, Preview: p.Preview, At: started, AgentID: principal, SourceID: q.SourceID, Operation: auditOperation, TemplateID: run.ID, TemplateVersion: run.Version, OntologyID: ontologyID, OntologyVersion: ontologyVersion, Fingerprint: fp, ElapsedMS: time.Since(started).Milliseconds(), Rows: rows, ErrorCode: code}); auditErr != nil {
 			result = nil
 			err = &model.Error{Code: "audit_unavailable", Message: "Query result withheld because audit storage is unavailable.", RequestID: requestID}
 		}

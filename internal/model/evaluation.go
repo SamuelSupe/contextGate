@@ -41,6 +41,7 @@ type EvaluationCapture struct {
 }
 
 type Evaluation struct {
+	Mode         string                        `json:"mode,omitempty"`
 	ID           string                        `json:"id"`
 	Revision     int64                         `json:"revision,string"`
 	SourceID     string                        `json:"source_id"`

@@ -1539,6 +1539,21 @@ func TestHealthDriftDiagnosticsAndManagementAudit(t *testing.T) {
 	h.json("PUT", "/api/settings/health", cfg, 200)
 	h.json("PUT", "/api/settings/health", cfg, 409)
 	initial := h.json("POST", "/api/health/"+id+"/check", nil, 200)
+	systemChecks, err := h.s.Store.Audits(store.AuditFilter{Source: id, View: "system"}, 100)
+	if err != nil || len(systemChecks) != 1 || systemChecks[0].EventKind != "system" || systemChecks[0].Operation != "describe" {
+		t.Fatal("health checks must have a distinct audit origin", systemChecks, err)
+	}
+	for _, view := range []string{"client", "preview"} {
+		rows, err := h.s.Store.Audits(store.AuditFilter{Source: id, View: view}, 100)
+		if err != nil {
+			t.Fatal(err)
+		}
+		for _, row := range rows {
+			if row.ID == systemChecks[0].ID {
+				t.Fatal("system check leaked into activity view", view)
+			}
+		}
+	}
 	if initial["structure"].([]any)[0].(map[string]any)["status"] != "baseline" {
 		t.Fatal(initial)
 	}
@@ -1619,5 +1634,35 @@ func TestHealthDriftDiagnosticsAndManagementAudit(t *testing.T) {
 	h.json("DELETE", "/api/sources/"+id, nil, 200)
 	if _, err := h.s.Store.SourceHealth(id); !errors.Is(err, sql.ErrNoRows) {
 		t.Fatal("source health was not deleted", err)
+	}
+}
+
+func TestSingleAnswerEvaluation(t *testing.T) {
+	h := newHub(t)
+	source := h.source()
+	base := "/api/sources/" + source + "/evaluation/history"
+	a := h.json("POST", "/api/agents", map[string]any{"name": "Single check", "sources": []string{source}, "enabled": true}, 200)
+	agent := a["agent"].(map[string]any)["id"].(string)
+	input := map[string]any{"name": "Amount check", "question": "What is the amount?", "criteria": "Expected amount", "agent_id": agent, "kind": "baseline", "mode": "single"}
+	h.json("POST", base, input, 400)
+	input["kind"] = "guided"
+	v := h.json("POST", base, input, 200)
+	path := base + "/" + v["id"].(string)
+	client := h.mcp(a["token"].(string))
+	call(t, client, "query_sql", map[string]any{"source_id": source, "query": "SELECT amount FROM events"}, false)
+	v = h.json("POST", path+"/capture", map[string]any{"revision": v["revision"], "kind": "guided", "action": "collect"}, 200)
+	run := v["runs"].(map[string]any)["guided"].(map[string]any)
+	if run["stats"].(map[string]any)["successful_queries"] != float64(1) {
+		t.Fatal(v)
+	}
+	h.json("POST", path+"/capture", map[string]any{"revision": v["revision"], "kind": "baseline", "action": "start"}, 400)
+	v = h.json("PUT", path+"/review", map[string]any{"revision": v["revision"], "reviews": map[string]any{"guided": map[string]any{"verdict": "correct", "notes": "Reviewed"}}}, 200)
+	persisted := h.json("GET", path, nil, 200)
+	if persisted["mode"] != "single" || len(persisted["runs"].(map[string]any)) != 1 || persisted["runs"].(map[string]any)["guided"].(map[string]any)["verdict"] != "correct" {
+		t.Fatal(persisted)
+	}
+	summary := h.json("GET", base, nil, 200)["summary"].(map[string]any)
+	if summary["single_checks"] != float64(1) || summary["completed_singles"] != float64(1) || summary["reviewed_singles"] != float64(1) || summary["single_correct"] != float64(1) || summary["completed_pairs"] != float64(0) {
+		t.Fatal("Single answer missing from history summary", summary)
 	}
 }

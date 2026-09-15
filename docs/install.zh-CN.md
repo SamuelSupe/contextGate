@@ -1,12 +1,12 @@
 # 安装 ContextGate
 
-[English](install.md) · [发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0)
+[English](install.md) · [发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0)
 
-**ContextGate 0.4.0** 使用 `contextgate` 主命令，并保留 `mcpdbhub` 别名。
+**ContextGate 0.5.0** 使用 `contextgate` 主命令，并保留 `mcpdbhub` 别名。
 
 ## PostgreSQL 元数据
 
-0.4.0 必须配置 `MCPDBHUB_DATABASE_URL` 并预先创建 PostgreSQL 数据库；账号需要建表及读写权限。Compose 可自动创建专用数据库。`--data-dir` 仅保存独立加密主密钥，元数据由 PostgreSQL 保存。
+0.5.0 必须配置 `MCPDBHUB_DATABASE_URL` 并预先创建 PostgreSQL 数据库；账号需要建表及读写权限。Compose 可自动创建专用数据库。`--data-dir` 仅保存独立加密主密钥，元数据由 PostgreSQL 保存。
 
 **从 0.3.0 或更早版本升级：** 不提供 SQLite 元数据导入或兼容后端，需要重新初始化管理员、配置数据源和授权。保留旧数据库及主密钥备份，使用全新的 PG 数据库。SQLite 查询数据源仍支持。详见[升级说明](releases/0.4.0.md#upgrading-from-03x-or-earlier)。
 
@@ -18,11 +18,11 @@
 
 ```sh
 # 示例：Linux arm64。amd64 用户替换文件名中的 arm64。
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.4.0/contextgate-0.4.0-linux-arm64.tar.gz
-curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.4.0/SHA256SUMS
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/contextgate-0.5.0-linux-arm64.tar.gz
+curl -fLO https://github.com/SamuelSupe/contextGate/releases/download/v0.5.0/SHA256SUMS
 sha256sum --ignore-missing -c SHA256SUMS
-tar -xzf contextgate-0.4.0-linux-arm64.tar.gz
-cd contextgate-0.4.0-linux-arm64
+tar -xzf contextgate-0.5.0-linux-arm64.tar.gz
+cd contextgate-0.5.0-linux-arm64
 ./contextgate version
 mkdir -p data databases
 # Use a pre-created PostgreSQL database and its dedicated owner role.

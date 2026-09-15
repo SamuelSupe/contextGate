@@ -86,7 +86,7 @@ func (s *Server) adminChange(next http.HandlerFunc, w http.ResponseWriter, r *ht
 		switch key {
 		case "password", "current_password", "token", "headers", "clear_headers", "clear_secret", "auth_mode":
 			fields = append(fields, "credentials")
-		case "snapshot", "entry", "draft", "definition":
+		case "snapshot", "entry", "draft", "definition", "http_api":
 			fields = append(fields, "definition")
 		case "name", "enabled", "sources", "expires_at", "host", "port", "database", "username", "path", "tls_mode", "ca_cert", "options", "limits", "query_access_mode", "version", "interval_minutes", "client_name", "redirect_uris", "grant_types", "response_types", "scope", "token_endpoint_auth_method", "agent_id", "allow", "archived", "endpoint", "protocol", "service_name", "insecure":
 			fields = append(fields, key)

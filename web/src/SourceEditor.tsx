@@ -1,5 +1,7 @@
+import { HTTPAPIEditor, initialHTTPAPI } from "./HTTPAPIEditor";
+import { SourceChangeImpact } from "./SourceChangeImpact";
 import { t } from "./i18n";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api, APIError, message, payload } from "./api";
 import { Button, Drawer, ErrorNote, Field, Protection } from "./components";
 import type { Source, Capability, Probe } from "./types";
@@ -38,7 +40,11 @@ export function SourceEditor({
   source: Source | null;
   catalog: Capability[];
   onClose: () => void;
-  onSaved: (notice: string, close?: boolean) => Promise<void>;
+  onSaved: (
+    notice: string,
+    close?: boolean,
+    sourceID?: string,
+  ) => Promise<void>;
 }) {
   const [form, setForm] = useState<Source>(() =>
     source ? structuredClone(source) : initial(),
@@ -47,6 +53,11 @@ export function SourceEditor({
   const [probe, setProbe] = useState(source?.probe);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState("");
+  const errorRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (error) errorRef.current?.scrollIntoView({ block: "start" });
+  }, [error]);
+  const httpAPI = form.kind === "http_api";
   const local = ["sqlite", "duckdb"].includes(form.kind);
   const field = <K extends keyof Source>(k: K, v: Source[K]) => {
     setForm((f) => ({ ...f, [k]: v }));
@@ -107,11 +118,15 @@ export function SourceEditor({
             value1: message(e),
           }),
         );
-        await onSaved("", false);
+        await onSaved("", false, saved.id);
         return;
       }
       setProbe(checked);
-      await onSaved(t("Configuration saved and connection check passed."));
+      await onSaved(
+        t("Configuration saved and connection check passed."),
+        true,
+        saved.id,
+      );
     } catch (e) {
       setError(message(e));
     } finally {
@@ -120,6 +135,7 @@ export function SourceEditor({
   }
   return (
     <Drawer
+      wide={httpAPI}
       title={savedSource ? t("Configure data source") : t("Add data source")}
       subtitle={t("Configure the connection, credentials and query limits")}
       onClose={onClose}
@@ -140,7 +156,33 @@ export function SourceEditor({
         </>
       }
     >
-      <ErrorNote error={error} />
+      {httpAPI && (
+        <nav
+          className="source-config-navigation"
+          aria-label={t("Source configuration sections")}
+        >
+          {[
+            ["source-connection", "Connection"],
+            ["http-api-operations", "API operations"],
+            ["source-query-policy", "Query access and limits"],
+          ].map(([id, label]) => (
+            <Button
+              key={id}
+              onClick={() => {
+                const section = document.getElementById(id);
+                section?.scrollIntoView({ block: "start" });
+                section?.focus({ preventScroll: true });
+              }}
+            >
+              {t(label)}
+            </Button>
+          ))}
+        </nav>
+      )}
+      <div ref={errorRef}>
+        <ErrorNote error={error} />
+      </div>
+      {savedSource && <SourceChangeImpact saved={savedSource} form={form} />}
       <form
         id="source-form"
         onSubmit={(e) => {
@@ -148,6 +190,9 @@ export function SourceEditor({
           save();
         }}
       >
+        <h3 id="source-connection" tabIndex={-1}>
+          {t("Connection")}
+        </h3>
         <Field label={t("Name")} required>
           <input
             required
@@ -156,7 +201,7 @@ export function SourceEditor({
             onChange={(e) => field("name", e.target.value)}
           />
         </Field>
-        <Field label={t("Database type")} required>
+        <Field label={t("Source type")} required>
           <select
             value={form.kind}
             onChange={(e) => {
@@ -165,9 +210,17 @@ export function SourceEditor({
                 ...f,
                 kind: c.kind,
                 port: c.port,
-                version: c.kind === "influxdb" ? "2" : undefined,
+                version:
+                  c.kind === "influxdb"
+                    ? "2"
+                    : c.kind === "http_api"
+                      ? "1"
+                      : undefined,
+                http_api: c.kind === "http_api" ? initialHTTPAPI() : undefined,
                 options: {},
-                auth_mode: c.kind === "influxdb" ? "token" : "password",
+                auth_mode: ["influxdb", "http_api"].includes(c.kind)
+                  ? "token"
+                  : "password",
                 clear_password: false,
                 clear_token: false,
                 password: "",
@@ -225,43 +278,76 @@ export function SourceEditor({
           </Field>
         ) : (
           <>
-            <div className="field-grid host-port">
-              <Field label={t("Host")} required>
-                <input
-                  required
-                  placeholder="db.internal"
-                  value={form.host || ""}
-                  onChange={(e) => field("host", e.target.value)}
-                />
-              </Field>
-              <Field label={t("Port")} required>
-                <input
-                  required
-                  type="number"
-                  min={1}
-                  max={65535}
-                  value={form.port || ""}
-                  onChange={(e) => field("port", Number(e.target.value))}
-                />
-              </Field>
-            </div>
-            <div className="field-grid">
+            {httpAPI ? (
               <Field
-                label={
-                  ["elasticsearch", "opensearch"].includes(form.kind)
-                    ? t("Index / index pattern")
-                    : ["cassandra", "scylla"].includes(form.kind)
-                      ? t("Keyspace")
-                      : ["redis", "valkey"].includes(form.kind)
-                        ? t("Database index")
-                        : t("Database")
-                }
+                label={t("Base URL")}
+                required
+                hint={t(
+                  "Fixed HTTP(S) address. Do not include credentials or query parameters.",
+                )}
               >
                 <input
-                  value={form.database || ""}
-                  onChange={(e) => field("database", e.target.value)}
+                  required
+                  type="url"
+                  placeholder="https://api.example.com/v1"
+                  value={form.http_api?.base_url || ""}
+                  onChange={(e) => {
+                    const base_url = e.target.value;
+                    setForm((f) => ({
+                      ...f,
+                      http_api: {
+                        ...(f.http_api || initialHTTPAPI()),
+                        base_url,
+                      },
+                      tls_mode: base_url.startsWith("http://")
+                        ? "disable"
+                        : "verify",
+                    }));
+                    setProbe(undefined);
+                  }}
                 />
               </Field>
+            ) : (
+              <div className="field-grid host-port">
+                <Field label={t("Host")} required>
+                  <input
+                    required
+                    placeholder="db.internal"
+                    value={form.host || ""}
+                    onChange={(e) => field("host", e.target.value)}
+                  />
+                </Field>
+                <Field label={t("Port")} required>
+                  <input
+                    required
+                    type="number"
+                    min={1}
+                    max={65535}
+                    value={form.port || ""}
+                    onChange={(e) => field("port", Number(e.target.value))}
+                  />
+                </Field>
+              </div>
+            )}
+            <div className="field-grid">
+              {!httpAPI && (
+                <Field
+                  label={
+                    ["elasticsearch", "opensearch"].includes(form.kind)
+                      ? t("Index / index pattern")
+                      : ["cassandra", "scylla"].includes(form.kind)
+                        ? t("Keyspace")
+                        : ["redis", "valkey"].includes(form.kind)
+                          ? t("Database index")
+                          : t("Database")
+                  }
+                >
+                  <input
+                    value={form.database || ""}
+                    onChange={(e) => field("database", e.target.value)}
+                  />
+                </Field>
+              )}
               {form.auth_mode === "password" ? (
                 <Field label={t("Username")}>
                   <input
@@ -289,9 +375,12 @@ export function SourceEditor({
               >
                 <option value="none">{t("None")}</option>
                 <option value="password">{t("Username and password")}</option>
-                {["influxdb", "elasticsearch", "opensearch"].includes(
-                  form.kind,
-                ) ? (
+                {[
+                  "influxdb",
+                  "elasticsearch",
+                  "opensearch",
+                  "http_api",
+                ].includes(form.kind) ? (
                   <option value="token">{t("Token")}</option>
                 ) : null}
               </select>
@@ -304,9 +393,15 @@ export function SourceEditor({
                       ? t("Access token")
                       : t("Password")
                   }
-                  hint={t(
-                    "Leave blank to keep the stored credential for this method. Enter a value to replace it, or select Clear below.",
-                  )}
+                  hint={
+                    savedSource
+                      ? t(
+                          "Leave blank to keep the stored credential for this method. Enter a value to replace it, or select Clear below.",
+                        )
+                      : t(
+                          "Stored encrypted and never returned to query Agents.",
+                        )
+                  }
                 >
                   <input
                     type="password"
@@ -332,27 +427,29 @@ export function SourceEditor({
                     }}
                   />
                 </Field>
-                <label className="check-row">
-                  <input
-                    type="checkbox"
-                    checked={
-                      !!(form.auth_mode === "token"
-                        ? form.clear_token
-                        : form.clear_password)
-                    }
-                    onChange={(e) => {
-                      const token = form.auth_mode === "token";
-                      setForm((f) => ({
-                        ...f,
-                        [token ? "clear_token" : "clear_password"]:
-                          e.target.checked,
-                        [token ? "token" : "password"]: "",
-                      }));
-                      setProbe(undefined);
-                    }}
-                  />
-                  {t("Clear the stored credential")}
-                </label>
+                {savedSource && (
+                  <label className="check-row">
+                    <input
+                      type="checkbox"
+                      checked={
+                        !!(form.auth_mode === "token"
+                          ? form.clear_token
+                          : form.clear_password)
+                      }
+                      onChange={(e) => {
+                        const token = form.auth_mode === "token";
+                        setForm((f) => ({
+                          ...f,
+                          [token ? "clear_token" : "clear_password"]:
+                            e.target.checked,
+                          [token ? "token" : "password"]: "",
+                        }));
+                        setProbe(undefined);
+                      }}
+                    />
+                    {t("Clear the stored credential")}
+                  </label>
+                )}
                 <p className="help">
                   {t(
                     "Changing the authentication method removes credentials for the previous method.",
@@ -363,6 +460,25 @@ export function SourceEditor({
               <p className="help">
                 {t("Saving removes any stored username, password and token.")}
               </p>
+            )}
+            {httpAPI && form.auth_mode === "token" && (
+              <Field
+                label={t("API key header (optional)")}
+                hint={t(
+                  "Leave blank for Authorization: Bearer. For an API key, use an X- header such as X-API-Key.",
+                )}
+              >
+                <input
+                  placeholder="X-API-Key"
+                  value={form.http_api?.token_header || ""}
+                  onChange={(e) =>
+                    field("http_api", {
+                      ...(form.http_api || initialHTTPAPI()),
+                      token_header: e.target.value,
+                    })
+                  }
+                />
+              </Field>
             )}
             <Field label={t("TLS mode")} required>
               <select
@@ -413,6 +529,28 @@ export function SourceEditor({
             </details>
           </>
         )}
+        {httpAPI && (
+          <>
+            <Field
+              label={t("API contract version")}
+              required
+              hint={t(
+                "Update this version when the upstream contract changes. Changing it expires template trials; it is not an automatically detected server version.",
+              )}
+            >
+              <input
+                required
+                maxLength={120}
+                value={form.version || ""}
+                onChange={(e) => field("version", e.target.value)}
+              />
+            </Field>
+            <HTTPAPIEditor
+              value={form.http_api || initialHTTPAPI()}
+              onChange={(value) => field("http_api", value)}
+            />
+          </>
+        )}
         {form.kind === "influxdb" && form.version === "2" ? (
           <div className="field-grid">
             <Field label={t("Organization (org)")} required>
@@ -442,7 +580,11 @@ export function SourceEditor({
             </p>
           ) : null}
         </section>
-        <section className="form-section">
+        <section
+          className="form-section"
+          id="source-query-policy"
+          tabIndex={-1}
+        >
           <h3>{t("Query access")}</h3>
           <Field
             label={t("Agent query access")}

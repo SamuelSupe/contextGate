@@ -1,3 +1,4 @@
+import type { EvaluationKind } from "./evaluation-types";
 import { t } from "./i18n";
 import { useEffect, useState } from "react";
 import { api, date, message, payload } from "./api";
@@ -53,6 +54,10 @@ export function EvaluationLibrary({
   const [filters, setFilters] = useState(state.filters);
   const [summary, setSummary] = useState<{
     total: number;
+    single_checks: number;
+    completed_singles: number;
+    reviewed_singles: number;
+    single_correct: number;
     completed_pairs: number;
     reviewed_pairs: number;
     changed_pairs: number;
@@ -228,10 +233,26 @@ export function EvaluationLibrary({
         <>
           <div className="history-summary" role="status">
             <span>
-              <strong>{summary.total}</strong>
-              {t(" matching")} {questions ? t("questions") : t("evaluations")}
+              {questions
+                ? t("{count} matching questions", { count: summary.total })
+                : t("{count} matching evaluations", { count: summary.total })}
             </span>
-            {!questions && (
+            {!questions && summary.single_checks > 0 && (
+              <>
+                <span>
+                  {t("{count} completed single checks", {
+                    count: summary.completed_singles,
+                  })}
+                </span>
+                <span>
+                  {t(
+                    "{count} reviewed single checks with unchanged configuration",
+                    { count: summary.reviewed_singles },
+                  )}
+                </span>
+              </>
+            )}
+            {!questions && summary.total > summary.single_checks && (
               <>
                 <span>
                   <strong>{summary.completed_pairs}</strong>
@@ -244,7 +265,18 @@ export function EvaluationLibrary({
               </>
             )}
           </div>
-          {!questions && (
+          {!questions && summary.single_checks > 0 && (
+            <p className="help">
+              {t(
+                "Single answer checks: {correct} of {reviewed} reviewed answers marked correct. Includes completed captures with query calls and unchanged configuration; all matching pages are counted.",
+                {
+                  correct: summary.single_correct,
+                  reviewed: summary.reviewed_singles,
+                },
+              )}
+            </p>
+          )}
+          {!questions && summary.total > summary.single_checks && (
             <details className="evaluation-context">
               <summary>
                 {t("Review summary across all matching history")}
@@ -355,7 +387,11 @@ export function EvaluationLibrary({
                             })
                           : t("Ad-hoc question")}
                       </small>
-                      {(["baseline", "guided"] as const).map((kind) => {
+                      {(
+                        (evaluation.mode === "single"
+                          ? ["guided"]
+                          : ["baseline", "guided"]) as EvaluationKind[]
+                      ).map((kind) => {
                         const r = evaluation.runs[kind];
                         return (
                           <small key={kind}>

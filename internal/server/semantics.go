@@ -17,11 +17,13 @@ import (
 
 func (s *Server) semanticRoutes(mux *http.ServeMux) {
 	for route, handler := range map[string]http.HandlerFunc{
+		"POST /api/sources/{id}/semantics/bindings":             s.semanticBindings,
 		"GET /api/sources/{id}/semantics/versions":              s.semanticVersions,
 		"GET /api/sources/{id}/semantics/versions/{version}":    s.semanticVersion,
 		"DELETE /api/sources/{id}/semantics/versions/{version}": s.deleteSemanticVersion,
 		"POST /api/sources/{id}/semantics/restore":              s.restoreSemantics,
 		"POST /api/sources/{id}/semantics/trial-all":            s.trialAllSemantics,
+		"GET /api/sources/{id}/semantics/impact":                s.semanticImpact,
 		"GET /api/sources/{id}/semantics":                       s.semantics,
 		"PUT /api/sources/{id}/semantics":                       s.saveSemantics,
 		"GET /api/sources/{id}/semantics/entries":               s.semanticEntries,
@@ -40,6 +42,27 @@ func (s *Server) semanticRoutes(mux *http.ServeMux) {
 	} {
 		mux.HandleFunc(route, s.requireAdmin(handler))
 	}
+}
+
+func (s *Server) semanticBindings(w http.ResponseWriter, r *http.Request) {
+	var in struct {
+		QueryJSON string `json:"query_json"`
+	}
+	if err := decode(r, &in); err != nil {
+		semanticFailure(w, model.Fail("invalid_input", "Invalid query definition"))
+		return
+	}
+	src, err := s.Store.Source(r.PathValue("id"))
+	if err != nil {
+		semanticFailure(w, err)
+		return
+	}
+	slots, err := semantic.BindingSlots(adapter.ForSource(src).Tool, in.QueryJSON)
+	if err != nil {
+		semanticFailure(w, err)
+		return
+	}
+	write(w, 200, map[string]any{"slots": slots})
 }
 
 func semanticFailure(w http.ResponseWriter, err error) {

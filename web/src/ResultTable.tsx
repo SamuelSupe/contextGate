@@ -7,6 +7,26 @@ function cell(value: unknown) {
       ? JSON.stringify(value)
       : String(value ?? "");
 }
+function documentCell(row: Record<string, unknown>, path: string): unknown {
+  if (Object.hasOwn(row, path)) return row[path];
+  const parts = path.startsWith("/")
+    ? path
+        .slice(1)
+        .split("/")
+        .map((part) => part.replace(/~1/g, "/").replace(/~0/g, "~"))
+    : path.split(".");
+  let value: unknown = row;
+  for (const part of parts) {
+    if (
+      value === null ||
+      typeof value !== "object" ||
+      !Object.hasOwn(value, part)
+    )
+      return undefined;
+    value = (value as Record<string, unknown>)[part];
+  }
+  return value;
+}
 export function ResultTable({ result }: { result: QueryResult }) {
   const first = result.data[0];
   const keys =
@@ -51,7 +71,7 @@ export function ResultTable({ result }: { result: QueryResult }) {
                     Array.isArray(row)
                       ? row[j]
                       : row && typeof row === "object"
-                        ? (row as Record<string, unknown>)[c.name]
+                        ? documentCell(row as Record<string, unknown>, c.name)
                         : row,
                   )}
                 </td>

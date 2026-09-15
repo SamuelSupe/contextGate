@@ -2,7 +2,21 @@
 
 [简体中文](operations.zh-CN.md)
 
-These features are included in **ContextGate 0.4.0**. The service uses PostgreSQL metadata and an independent encryption key. Settings and `contextgate version` show the build commit; local Go builds also mark a modified checkout when VCS metadata is available.
+This guide describes the current source tree; use the documentation at your release tag when running an older build. The service uses PostgreSQL metadata and an independent encryption key. Settings and `contextgate version` show the build commit; local Go builds also mark a modified checkout when VCS metadata is available.
+
+## Review before publishing
+
+**Data source → Semantics → Review and publish** combines validation, entry changes, explicitly linked queries and current Agent grants. It can run a missing template trial (the example and all configured regression cases) or check mappings without leaving the review. Failed or stale evidence blocks publication. The final action rechecks the draft revision and evidence; concurrent edits require reloading the review.
+
+The review distinguishes business-context changes from query execution changes. Description-only changes retain execution versions and running queries. Changing or revalidating a published execution definition follows the existing cancellation/version rules. Linked-query impact uses explicit catalog and ontology references; it does not infer complete dependencies from native query text. The listed Agents have active source grants, which does not prove that they have used a particular template.
+
+The source connection editor also explains live impact before saving connection, credential, enablement or query-mode changes. Connection changes invalidate template evidence. Name, description and limit edits do not invalidate it; execution still observes current limits.
+
+## Focus audit activity
+
+**Audit log** starts with **Real Agent calls**. **Manual previews** includes administrator and selected-Agent previews; **System checks** contains new background/manual health-discovery events; **All activity** also exposes management changes. These are combinable with source, caller, result and time filters. Health checks never count as successful Agent onboarding.
+
+System-discovery events use `event_kind=system`, including the existing OTLP Logs attribute. This classification applies to newly recorded events; historical records retain their original classification. Event content and retention remain unchanged, and no query text or results are added to audit records.
 
 ## Review and recover configuration changes
 
@@ -41,6 +55,8 @@ Adding or editing a regression contract requires a new successful trial. The con
 
 ## Back up and verify recovery
 
+Keep the configured key directory on persistent storage, never in `/tmp` or another directory cleared on restart. The PostgreSQL metadata database and its matching `master.key` are both required for recovery; generating a new key cannot decrypt existing records.
+
 Use a dedicated metadata database: `pg_dump` includes the whole configured database. For the bundled Compose deployment, keep the `.env` and deployment configuration in protected storage. Never regenerate its database password on restart. Run the scripts from the directory containing `compose.yaml`:
 
 ```sh
@@ -58,4 +74,8 @@ Backup freshness is not monitored by the service. Retain the verification output
 
 ## Verification record
 
-[Recorded local validation](verification/operations.json) separates executed checks from the database-matrix, long-running monitoring and release checks not performed for this increment.
+[UX fix validation](verification/product-ux-fixes.json) records the follow-up catalog, authoring, single-answer evaluation and responsive checks, including the isolated runtime recovery and remaining browser limitations.
+
+[Product workflow validation](verification/product-workflows.json) records the Home, business catalog, publication review and audit-view checks for the current local increment, including tests not rerun.
+
+[Earlier operations validation](verification/operations.json) records the previous backup, health and regression rollout, with its separate verification scope.

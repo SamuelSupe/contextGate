@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.5.0 — 2026-09-15
+
+- Add HTTP API sources with fixed, administrator-declared read-only GET/POST operations, scalar parameter contracts, lossless JSON results and token pagination. Reuse Agent grants, Configuration MCP, semantic templates, ontology mappings and sanitized audit/OTLP events.
+- Add Home onboarding, a published business catalog with executable-query views and authorized concept details, contextual template previews and actionable health/audit navigation.
+- Simplify template authoring with native query text, safe existing parameter-position suggestions and HTTP operation contracts. Keep query values lossless and optional API parameters absent when no value was configured.
+- Focus ontology mapping by entity and offer metadata field selection without sample-based inference.
+- Add single-answer evaluation with real-client call capture, manual review and independent history summaries; retain optional baseline/guided comparison.
+- Add publication review with change impact, focused audit activity views, accurate connection/readiness evidence, credential-expiry links, settings sections, bilingual corrections and keyboard/narrow-screen fixes.
+- Preserve PostgreSQL metadata and matching encryption keys when upgrading from 0.4.x; no new metadata backend or automatic upstream API permission claims.
+
 ## 0.4.0 — 2026-09-14
 
 - Publish under the renamed `SamuelSupe/contextGate` repository and Go module, with English-first documentation and Linux arm64/amd64 `contextgate` distributions.

@@ -104,6 +104,7 @@ export function AuditPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [filters, setFilters] = useState({
+    view: "client",
     event_kind: "",
     agent_id: "",
     source_id: "",
@@ -112,7 +113,7 @@ export function AuditPage({
     from: "",
     until: "",
   });
-  const [query, setQuery] = useState("");
+  const [query, setQuery] = useState("view=client");
   const [history, setHistory] = useState<string[]>([""]);
   const [refresh, setRefresh] = useState(0);
   const [detail, setDetail] = useState<Audit | null>(null);
@@ -146,6 +147,22 @@ export function AuditPage({
       });
     return () => controller.abort();
   }, [refresh]);
+  function applyFilters(next: typeof filters) {
+    const params = new URLSearchParams();
+    for (const [key, value] of Object.entries(next)) {
+      if (value)
+        params.set(
+          key,
+          key === "from" || key === "until"
+            ? new Date(value).toISOString()
+            : value.trim(),
+        );
+    }
+    setFilters(next);
+    setQuery(params.toString());
+    setHistory([""]);
+    setRefresh((n) => n + 1);
+  }
   const agentName = (id: string) =>
     id === "admin"
       ? t("Administrator")
@@ -170,35 +187,49 @@ export function AuditPage({
         </Button>
       </div>
       <ErrorNote error={callerError} />
+      <div className="audit-views" role="group" aria-label={t("Activity view")}>
+        {[
+          ["client", "Real Agent calls"],
+          ["preview", "Manual previews"],
+          ["system", "System checks"],
+          ["", "All activity"],
+        ].map(([view, label]) => (
+          <Button
+            key={label}
+            primary={filters.view === view}
+            aria-pressed={filters.view === view}
+            onClick={() => {
+              applyFilters({ ...filters, view, event_kind: "" });
+            }}
+          >
+            {t(label)}
+          </Button>
+        ))}
+      </div>
+      <p className="help">
+        {t(
+          "System checks are recorded separately from new manual previews. Historical records keep their original classification.",
+        )}
+      </p>
+
       <form
         className="audit-filters"
         onSubmit={(e) => {
           e.preventDefault();
-          const params = new URLSearchParams();
-          for (const [k, v] of Object.entries(filters)) {
-            if (v)
-              params.set(
-                k,
-                k === "from" || k === "until"
-                  ? new Date(v).toISOString()
-                  : v.trim(),
-              );
-          }
-          setQuery(params.toString());
-          setHistory([""]);
-          setRefresh((n) => n + 1);
+          applyFilters(filters);
         }}
       >
         <Field label={t("Event type")}>
           <select
             value={filters.event_kind}
             onChange={(e) =>
-              setFilters({ ...filters, event_kind: e.target.value })
+              setFilters({ ...filters, view: "", event_kind: e.target.value })
             }
           >
             <option value="">{t("All events")}</option>
             <option value="query">{t("Query calls")}</option>
             <option value="management">{t("Management changes")}</option>
+            <option value="system">{t("System checks")}</option>
           </select>
         </Field>
         <Field label={t("Agent")}>
@@ -292,6 +323,7 @@ export function AuditPage({
             type="button"
             onClick={() => {
               setFilters({
+                view: "",
                 event_kind: "",
                 agent_id: "",
                 source_id: "",
@@ -336,9 +368,11 @@ export function AuditPage({
                   <td className="nowrap">{date(a.at)}</td>
                   <td>
                     {agentName(a.agent_id)}
-                    {a.preview ? (
+                    {a.preview || a.event_kind === "system" ? (
                       <small className="block">
-                        {t("Administrator preview")}
+                        {a.event_kind === "system"
+                          ? t("System check")
+                          : t("Manual preview")}
                       </small>
                     ) : null}
                   </td>
@@ -434,7 +468,11 @@ export function AuditPage({
               <dt>{t("Caller")}</dt>
               <dd>
                 {agentName(detail.agent_id)}
-                {detail.preview ? t(" · Administrator preview") : ""}
+                {detail.event_kind === "system"
+                  ? " · " + t("System check")
+                  : detail.preview
+                    ? " · " + t("Manual preview")
+                    : ""}
               </dd>
             </div>
             <div>
@@ -540,13 +578,42 @@ export function AuditPage({
             <div className="button-row">
               {sources.some((s) => s.id === detail.source_id) && (
                 <Button
-                  onClick={() => navigate(`/sources/${detail.source_id}/setup`)}
+                  onClick={() => {
+                    const sourceID = detail.source_id;
+                    const url =
+                      detail.error_code === "templates_only"
+                        ? "/business?source_id=" +
+                          encodeURIComponent(sourceID) +
+                          "&agent_id=" +
+                          encodeURIComponent(detail.agent_id) +
+                          "&view=queries"
+                        : detail.template_id
+                          ? "/sources/" +
+                            sourceID +
+                            "/semantics?tab=Query%20templates&focus=" +
+                            encodeURIComponent(detail.template_id)
+                          : "/sources/" + sourceID + "/setup";
+                    setDetail(null);
+                    navigate(url);
+                  }}
                 >
-                  {t("Open source workspace")}
+                  {detail.error_code === "templates_only"
+                    ? t("Find an available query")
+                    : detail.template_id
+                      ? t("Review templates")
+                      : t("Open source workspace")}
                 </Button>
               )}
               {agents.some((a) => a.id === detail.agent_id) && (
-                <Button onClick={() => navigate("/agents")}>
+                <Button
+                  onClick={() => {
+                    setDetail(null);
+                    navigate(
+                      "/agents?attention=" +
+                        encodeURIComponent(detail.agent_id),
+                    );
+                  }}
+                >
                   {t("Review Agents")}
                 </Button>
               )}

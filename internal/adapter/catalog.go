@@ -34,6 +34,7 @@ var verifiedJSON []byte
 
 func Catalog() []Capability {
 	out := []Capability{
+		{"http_api", "HTTP API", "http_api", "query_http_api", 443, "declared_read_api", true, "configured opaque token", map[string]any{"operation": "list_customers", "named_params": map[string]any{}}, []string{"Administrator-declared GET and read-only POST JSON operations only; redirects and arbitrary URLs are denied", "Read-only behavior and response fields are declared by the administrator, not verified against upstream permissions", "API contract version must be updated when the upstream contract changes"}, nil},
 		{"postgres", "PostgreSQL", "sql", "query_sql", 5432, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT $1::bigint AS value", "params": []any{42}}, []string{"Custom functions and external access are denied"}, nil},
 		{"mysql", "MySQL", "sql", "query_sql", 3306, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT ? AS value", "params": []any{42}}, nil, nil},
 		{"mariadb", "MariaDB", "sql", "query_sql", 3306, "read_only_transaction", true, "explicit SQL", map[string]any{"query": "SELECT ? AS value", "params": []any{42}}, nil, nil},
@@ -76,6 +77,7 @@ func Get(kind string) (Capability, bool) {
 }
 
 type SourceCapability struct {
+	ExampleJSON string `json:"example_json,omitempty"`
 	Capability
 	Version   string   `json:"version,omitempty"`
 	Languages []string `json:"languages,omitempty"`
@@ -84,6 +86,16 @@ type SourceCapability struct {
 func ForSource(s model.Source) SourceCapability {
 	c, _ := Get(s.Kind)
 	out := SourceCapability{Capability: c, Version: s.Version}
+	if s.Kind == "http_api" && s.HTTPAPI != nil && len(s.HTTPAPI.Operations) > 0 {
+		op := s.HTTPAPI.Operations[0]
+		var params any
+		d := json.NewDecoder(strings.NewReader(op.ExampleJSON))
+		d.UseNumber()
+		_ = d.Decode(&params)
+		out.Example = map[string]any{"operation": op.ID, "named_params": params}
+		raw, _ := json.Marshal(out.Example)
+		out.ExampleJSON = string(raw)
+	}
 	if s.Kind != "influxdb" {
 		return out
 	}
@@ -144,6 +156,8 @@ func Open(ctx context.Context, s model.Source) (Connection, error) {
 		return openMongo(ctx, s)
 	case "redis":
 		return openRedis(ctx, s)
+	case "http_api":
+		return openHTTPAPI(ctx, s)
 	case "search", "influxdb":
 		return openHTTP(ctx, s)
 	case "cypher":
@@ -188,6 +202,12 @@ func ValidateSource(s *model.Source, fileRoot string) error {
 	}
 	if s.TLSMode != "verify" && s.TLSMode != "disable" {
 		return errors.New("tls_mode must be verify or disable")
+	}
+	if s.Kind == "http_api" {
+		return validateHTTPAPI(s)
+	}
+	if s.HTTPAPI != nil {
+		return errors.New("http_api configuration requires an HTTP API source")
 	}
 	if s.Kind == "sqlite" || s.Kind == "duckdb" {
 		root, e := filepath.EvalSymlinks(fileRoot)

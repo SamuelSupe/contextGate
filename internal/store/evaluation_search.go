@@ -17,12 +17,16 @@ type EvaluationFilter struct {
 }
 
 type EvaluationSummary struct {
-	Total           int `json:"total"`
-	CompletedPairs  int `json:"completed_pairs"`
-	ReviewedPairs   int `json:"reviewed_pairs"`
-	ChangedPairs    int `json:"changed_pairs"`
-	BaselineCorrect int `json:"baseline_correct"`
-	GuidedCorrect   int `json:"guided_correct"`
+	Total            int `json:"total"`
+	SingleChecks     int `json:"single_checks"`
+	CompletedSingles int `json:"completed_singles"`
+	ReviewedSingles  int `json:"reviewed_singles"`
+	SingleCorrect    int `json:"single_correct"`
+	CompletedPairs   int `json:"completed_pairs"`
+	ReviewedPairs    int `json:"reviewed_pairs"`
+	ChangedPairs     int `json:"changed_pairs"`
+	BaselineCorrect  int `json:"baseline_correct"`
+	GuidedCorrect    int `json:"guided_correct"`
 }
 
 type EvaluationAgent struct {
@@ -83,7 +87,18 @@ func (s *Store) SearchEvaluations(ctx context.Context, source string, questions 
 		}
 		page.Summary.Total++
 		baseline, guided := v.Runs["baseline"], v.Runs["guided"]
-		if baseline != nil && guided != nil && baseline.State == "completed" && guided.State == "completed" {
+		if v.Mode == "single" {
+			page.Summary.SingleChecks++
+			if guided != nil && guided.State == "completed" {
+				page.Summary.CompletedSingles++
+				if !guided.ConfigurationChanged && guided.Stats != nil && guided.Stats.Queries > 0 && reviewedVerdict(guided.Verdict) {
+					page.Summary.ReviewedSingles++
+					if guided.Verdict == "correct" {
+						page.Summary.SingleCorrect++
+					}
+				}
+			}
+		} else if baseline != nil && guided != nil && baseline.State == "completed" && guided.State == "completed" {
 			page.Summary.CompletedPairs++
 			if baseline.ConfigurationChanged || guided.ConfigurationChanged || baseline.Configuration != guided.Configuration {
 				page.Summary.ChangedPairs++

@@ -17,13 +17,15 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 产品原名 **MCP DB Hub**。仓库及 Go 模块已更名为 `SamuelSupe/contextGate`，历史提交和发行版继续保留。主命令为 `contextgate`，兼容 `mcpdbhub` 别名与已有 `MCPDBHUB_*` 配置键、遥测属性。详见[品牌说明](docs/brand/README.zh-CN.md)。
 
-[English](README.md) · [下载 v0.4.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
+[English](README.md) · [下载 v0.5.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
 
 ![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
 
 *真实运行的英文管理界面；截图使用隔离数据库与示例数据。*
 
 ## 能做什么
+
+**[0.5.0 新内容](docs/releases/0.5.0.zh-CN.md)：** 接入 HTTP API，在业务目录中发现可执行查询，按明确参数位置编辑模板，并直接评估一次真实 Agent 回答。首页引导、本体映射、发布审核与设置也提供了更清晰的操作路径。
 
 | 能力 | 提供的行为 |
 |---|---|
@@ -46,7 +48,7 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 
 ## 下载运行
 
-[**ContextGate 0.4.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.4.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
+[**ContextGate 0.5.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.5.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
 
 ## 启动
 
@@ -64,7 +66,7 @@ docker compose logs hub
 
 Compose 在私有容器网络启动 PostgreSQL，健康后再启动 ContextGate，仅发布 ContextGate 的本机 HTTP 端口。ContextGate 使用 UID 10001，查询数据库文件只读挂载。`hub-postgres` 保存元数据，`hub-data` 保存独立加密主密钥；重启和升级时保留两个卷及已有 `.env`，只在首次安装生成 `.env`。
 
-**存储变更：** 当前源码仅使用 PostgreSQL 保存配置、会话、授权、语义和审计，不迁移旧 SQLite 元数据，需要重新初始化管理员和配置数据源。SQLite 查询数据源仍然支持。0.3.0 及更早版本使用 SQLite 元数据；切换前请阅读[升级说明](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier)。
+**存储变更：** 当前源码仅使用 PostgreSQL 保存配置、会话、授权、语义和审计，从 0.4.x 升级保留已有 PostgreSQL 与匹配的主密钥；从 0.3.x 及更早版本升级不迁移旧 SQLite 元数据，需要重新初始化管理员和配置数据源。SQLite 查询数据源仍然支持。0.3.0 及更早版本使用 SQLite 元数据；切换前请阅读[升级说明](docs/releases/0.4.0.md#upgrading-from-03x-or-earlier)。
 
 本地编译需要 Go 1.26、C/C++ 工具链、Node.js 24（仅用于构建前端）。DuckDB 和 SQLite 使用 CGO，不能以 `CGO_ENABLED=0` 构建。Linux arm64/amd64 使用各自平台原生编译。
 
@@ -82,7 +84,7 @@ export MCPDBHUB_DATABASE_URL='postgres://mcpdbhub:REPLACE_ME@127.0.0.1:5432/mcpd
 
 ![经过验证的查询模板与真实样例结果](docs/screenshots/query-preview.png)
 
-支持 Streamable HTTP 和 stdio 桥接；二者使用同一个 HTTP 服务、同一套授权和审计。服务暴露 14 个 MCP 工具：4 个发现工具、7 个原生查询工具和 3 个语义目录/模板工具。
+支持 Streamable HTTP 和 stdio 桥接；二者使用同一个 HTTP 服务、同一套授权和审计。服务暴露 15 个 MCP 工具：4 个发现工具、8 个原生查询工具和 3 个语义目录/模板工具。
 
 HTTP 客户端配置示例（不同客户端的外层配置格式可能不同）：
 
@@ -102,7 +104,7 @@ stdio 客户端配置：
 {"name":"query_sql","arguments":{"source_id":"src_...","query":"WITH totals AS (SELECT region,sum(amount) AS total FROM orders WHERE created_at >= $1 GROUP BY region) SELECT region,total,rank() OVER (ORDER BY total DESC) FROM totals","params":["2026-09-01"],"max_rows":100,"timeout_seconds":10}}
 ```
 
-查询工具分别为 `query_sql`、`query_mongodb`、`query_redis`、`query_search`、`query_cypher`、`query_cql`、`query_influxdb`。参数结构由 MCP 工具 schema 定义。Agent 不能传入连接地址、凭证或 HTTP 路径。
+查询工具分别为 `query_sql`、`query_mongodb`、`query_redis`、`query_search`、`query_cypher`、`query_cql`、`query_influxdb`、`query_http_api`。参数结构由 MCP 工具 schema 定义。Agent 不能传入连接地址、凭证或 HTTP 路径。
 
 ## 数据库与结果
 
@@ -231,3 +233,5 @@ docker compose up -d hub
 项目许可证尚未选定。第三方组件的许可证与声明已随源码和发行包保留。
 
 数据源 **Agent setup** 串联连接证据、模板、授权和真实调用，完成后转为 **Query workspace**，预览前明确展示所选 Agent。本体卡片展示源映射和可执行模板数量，可直接打开 **Queries and sources**。业务问题支持保存复用，评估指标与人工评分以加密历史记录持久保存。参见[工作流与效果验证](docs/agent-workflows.zh-CN.md)。
+
+0.5.0 新增 [HTTP API 数据源](docs/http-api.zh-CN.md)：固定 GET 和管理员声明为只读的 POST JSON 操作，复用授权、语义目录、查询模板和本体映射。

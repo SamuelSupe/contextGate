@@ -32,6 +32,7 @@ export interface EvaluationCapture {
   notes: string;
 }
 export interface Evaluation {
+  mode?: "single" | "comparison";
   id: string;
   revision: string;
   source_id: string;

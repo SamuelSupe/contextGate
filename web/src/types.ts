@@ -15,6 +15,7 @@ export interface Probe {
   checked_at: string;
 }
 export interface Source {
+  http_api?: HTTPAPIConfig;
   query_access_mode?: "native_and_templates" | "templates_only";
   connection_revision?: string;
   id: string;
@@ -136,4 +137,36 @@ export interface OAuthClientConfig {
   revision: string;
   created_at: string;
   metadata_document: boolean;
+}
+
+export interface HTTPParameter {
+  name: string;
+  in: "path" | "query" | "body";
+  target: string;
+  type: "string" | "integer" | "number" | "boolean";
+  required: boolean;
+  default_json?: string;
+  enum_json?: string;
+  minimum?: string;
+  maximum?: string;
+}
+export interface HTTPOperation {
+  id: string;
+  name: string;
+  description?: string;
+  method: "GET" | "POST";
+  path: string;
+  read_only: boolean;
+  body_json?: string;
+  parameters?: HTTPParameter[];
+  example_json: string;
+  response_pointer?: string;
+  columns?: { name: string; type: string }[];
+  pagination?: { query_parameter: string; next_pointer: string };
+}
+export interface HTTPAPIConfig {
+  base_url: string;
+  token_header?: string;
+  probe_operation: string;
+  operations: HTTPOperation[];
 }

@@ -340,7 +340,7 @@ func (e *Engine) SearchSemantics(p model.Principal, in SemanticSearch) (map[stri
 	if in.Kind != "" && !slices.Contains([]string{"overview", "term", "object", "field", "relationship", "metric", "template", "entity_type", "property", "relation_type"}, in.Kind) {
 		return nil, model.Fail("invalid_arguments", "Unknown semantic entry kind")
 	}
-	entries, err := e.publishedEntries(src, st)
+	entries, err := e.PublishedEntries(src, st)
 	if err != nil {
 		return nil, err
 	}
@@ -392,7 +392,7 @@ func (e *Engine) SemanticEntry(p model.Principal, source, id string) (map[string
 	if err != nil {
 		return nil, err
 	}
-	entries, err := e.publishedEntries(src, st)
+	entries, err := e.PublishedEntries(src, st)
 	if err != nil {
 		return nil, err
 	}
@@ -433,7 +433,9 @@ func (e *Engine) SemanticEntry(p model.Principal, source, id string) (map[string
 	return nil, model.Fail("not_found", "Published semantic entry not found")
 }
 
-func (e *Engine) publishedEntries(src model.Source, st semantic.State) ([]semantic.Entry, error) {
+// PublishedEntries projects only published, source-mapped definitions. Callers
+// must authorize the source before calling; this does not read draft content.
+func (e *Engine) PublishedEntries(src model.Source, st semantic.State) ([]semantic.Entry, error) {
 	entries := append([]semantic.Entry{}, st.Published.Entries...)
 	if st.PublishedVersion > 0 && st.Published.Overview != "" {
 		entries = append([]semantic.Entry{{ID: "overview", Kind: "overview", Name: src.Name + " overview", Description: st.Published.Overview}}, entries...)

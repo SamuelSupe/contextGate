@@ -1,3 +1,5 @@
+import { httpTemplate } from "./http-template";
+import { SemanticReview } from "./SemanticReview";
 import { SemanticHistory } from "./SemanticHistory";
 import { t } from "./i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -61,7 +63,7 @@ export function Semantics({
   const initialPreviewOpened = useRef(false);
   const [mappingDirty, setMappingDirty] = useState(false);
   const [overview, setOverview] = useState("");
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(initial.get("focus") || "");
   const [kind, setKind] = useState("");
   const [page, setPage] = useState(0);
   const [error, setError] = useState("");
@@ -135,7 +137,7 @@ export function Semantics({
         ? en.kind === "template"
         : en.kind !== "template") &&
       (!kind || en.kind === kind) &&
-      `${en.name} ${(en.aliases || []).join(" ")} ${en.description || ""}`
+      `${en.id} ${en.name} ${(en.aliases || []).join(" ")} ${en.description || ""}`
         .toLowerCase()
         .includes(search.toLowerCase()),
   );
@@ -160,6 +162,9 @@ export function Semantics({
               query_json: JSON.stringify(example, null, 2),
               parameters: [],
               example_json: "{}",
+              ...(source.http_api?.operations[0]
+                ? httpTemplate(source.http_api.operations[0])
+                : {}),
             },
           }
         : {}),
@@ -224,10 +229,28 @@ export function Semantics({
             disabled={!!busy || unsavedOverview}
             onClick={() => setDialog("publish")}
           >
-            {t("Publish")}
+            {t("Review and publish")}
           </Button>
         </div>
       </div>
+      {dialog === "publish" && (
+        <SemanticReview
+          endpoint={endpoint}
+          state={state}
+          onState={accept}
+          onClose={() => setDialog("")}
+          onRepair={(nextTab, id) => {
+            setDialog("");
+            setTab(nextTab);
+            if (id)
+              setEditing(state.draft.entries.find((e) => e.id === id) || null);
+          }}
+          onPublished={() => {
+            setDialog("");
+            notify(t("Semantic catalog published."));
+          }}
+        />
+      )}
       <ErrorNote error={dialog ? "" : error} />
       <div className="semantic-publication-bar">
         <div className="semantic-status">
@@ -336,6 +359,7 @@ export function Semantics({
       </div>
       {tab === "Ontology mapping" ? (
         <OntologyMapping
+          sourceKind={source.kind}
           endpoint={endpoint}
           state={state}
           accept={accept}
@@ -569,7 +593,12 @@ export function Semantics({
                       (p) => p.id === en.id && p.template?.enabled,
                     );
                     return (
-                      <tr key={en.id}>
+                      <tr
+                        key={en.id}
+                        className={
+                          en.id === initial.get("focus") ? "attention-row" : ""
+                        }
+                      >
                         <td>
                           <button
                             className="text-button name-link"
@@ -733,6 +762,7 @@ export function Semantics({
       )}
       {editing && (
         <SemanticEditor
+          source={source}
           entry={editing}
           entries={entries}
           concepts={conceptRefs(state.draft.ontology)}
@@ -794,16 +824,14 @@ export function Semantics({
           onClose={() => setDialog("")}
         />
       )}
-      {["publish", "discard", "delete", "import"].includes(dialog) && (
+      {["discard", "delete", "import"].includes(dialog) && (
         <Drawer
           title={
-            dialog === "publish"
-              ? t("Publish semantic catalog")
-              : dialog === "discard"
-                ? t("Discard unpublished changes")
-                : dialog === "delete"
-                  ? t("Delete draft entry")
-                  : t("Import semantic JSON")
+            dialog === "discard"
+              ? t("Discard unpublished changes")
+              : dialog === "delete"
+                ? t("Delete draft entry")
+                : t("Import semantic JSON")
           }
           onClose={() => {
             if (!busy) setDialog("");
@@ -816,12 +844,6 @@ export function Semantics({
               <Button
                 primary
                 busy={!!busy}
-                disabled={
-                  dialog === "publish" &&
-                  (trialRequired > 0 ||
-                    (!!state.draft.ontology &&
-                      state.mapping_validation?.status !== "checked"))
-                }
                 onClick={() =>
                   action(dialog, async () => {
                     let suffix = dialog;
@@ -844,83 +866,21 @@ export function Semantics({
                       }),
                     );
                     setDialog("");
-                    notify(
-                      dialog === "publish"
-                        ? t("Semantic catalog published.")
-                        : t("Draft updated."),
-                    );
+                    notify(t("Draft updated."));
                   })
                 }
               >
-                {dialog === "publish"
-                  ? t("Confirm publication")
-                  : dialog === "discard"
-                    ? t("Discard draft")
-                    : dialog === "delete"
-                      ? t("Delete from draft")
-                      : t("Replace draft with import")}
+                {dialog === "discard"
+                  ? t("Discard draft")
+                  : dialog === "delete"
+                    ? t("Delete from draft")
+                    : t("Replace draft with import")}
               </Button>
             </>
           }
         >
           <ErrorNote error={error} />
-          {dialog === "publish" ? (
-            <>
-              <p>
-                {t("Publish ")}
-                {entries.length}
-                {t(" entries as version")}{" "}
-                {String(BigInt(state.published_version) + 1n)}
-                {t(". Agents will see this snapshot immediately.")}
-              </p>
-              <p>
-                {trialRequired
-                  ? t(
-                      "{trialRequired} enabled templates still require successful trials. Publication will be blocked until they pass.",
-                      { trialRequired: trialRequired },
-                    )
-                  : t(
-                      "All enabled templates have current trial evidence. Publication will also validate the complete catalog.",
-                    )}
-              </p>
-              {trialRequired > 0 && (
-                <Button
-                  onClick={() => {
-                    setDialog("");
-                    setTab("Query templates");
-                  }}
-                >
-                  {t("Review templates")}
-                </Button>
-              )}
-              {state.draft.ontology && (
-                <p>
-                  {t("Adopt ontology ")}
-                  <code>{state.draft.ontology.ontology_id}</code>{" "}
-                  {t("version ")}
-                  {state.draft.ontology.version}
-                  {t(" with")} {state.draft.ontology.entities.length}
-                  {t(" mapped entities.")}{" "}
-                  {state.mapping_validation?.status === "checked"
-                    ? t(
-                        "{value1} fields remain administrator-declared and unverified.",
-                        {
-                          value1:
-                            state.mapping_validation.checks?.filter(
-                              (c) => c.status === "unverified",
-                            ).length || 0,
-                        },
-                      )
-                    : t("Structure check is required before publication.")}
-                </p>
-              )}
-              <p className="help">
-                {t(
-                  "Changed or removed executable templates cancel affected queries. Description-only changes preserve running queries.",
-                )}
-              </p>
-            </>
-          ) : dialog === "discard" ? (
+          {dialog === "discard" ? (
             <p>
               {t(
                 "Replace the saved draft with the published snapshot. Unpublished edits will be lost.",

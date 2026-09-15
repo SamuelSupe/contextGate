@@ -25,6 +25,9 @@ func (s *Server) evaluationConfiguration(source, agent string) (model.Evaluation
 }
 
 func (s *Server) beginEvaluationCapture(v *model.Evaluation, kind string) error {
+	if v.Mode == "single" && kind != "guided" {
+		return model.Fail("invalid_input", "A single answer check only captures the guided query")
+	}
 	if kind != "baseline" && kind != "guided" {
 		return model.Fail("invalid_input", "Choose baseline or guided")
 	}
@@ -49,6 +52,7 @@ func (s *Server) beginEvaluationCapture(v *model.Evaluation, kind string) error 
 
 func (s *Server) createEvaluation(w http.ResponseWriter, r *http.Request) {
 	var in struct {
+		Mode         string `json:"mode"`
 		CaseID       string `json:"case_id"`
 		CaseRevision int64  `json:"case_revision,string"`
 		Name         string `json:"name"`
@@ -62,6 +66,10 @@ func (s *Server) createEvaluation(w http.ResponseWriter, r *http.Request) {
 		semanticFailure(w, model.Fail("invalid_input", "Invalid evaluation fields; measurements are collected by the server"))
 		return
 	}
+	if in.Mode != "" && in.Mode != "single" && in.Mode != "comparison" {
+		semanticFailure(w, model.Fail("invalid_input", "Choose single or comparison evaluation"))
+		return
+	}
 	if err := validateEvaluationQuestion(in.Name, in.Question, in.Criteria, in.Client); err != nil {
 		semanticFailure(w, err)
 		return
@@ -69,6 +77,7 @@ func (s *Server) createEvaluation(w http.ResponseWriter, r *http.Request) {
 	s.Store.Mutations.Lock()
 	defer s.Store.Mutations.Unlock()
 	v := model.Evaluation{ID: "eval_" + secure.Random(16), Revision: 1, SourceID: r.PathValue("id"), CaseID: in.CaseID, CaseRevision: in.CaseRevision, Name: in.Name, Question: in.Question, Criteria: in.Criteria, Client: in.Client, AgentID: in.AgentID, Created: time.Now().UTC(), Runs: map[string]*model.EvaluationCapture{}}
+	v.Mode = in.Mode
 	if in.CaseID != "" {
 		q, err := s.Store.EvaluationQuestion(v.SourceID, in.CaseID)
 		if err != nil {

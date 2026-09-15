@@ -14,6 +14,8 @@ const labels: Record<string, string> = {
   read_role: "Read role and operation restrictions",
   command_allowlist: "Read command allowlist",
   query_api: "Fixed query APIs",
+  declared_read_api: "Administrator-declared read API",
+  "configured opaque token": "Configured API token pagination",
   engine_classification: "Engine statement classification",
 };
 export function capabilityLabel(value: string) {

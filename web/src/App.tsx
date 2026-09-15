@@ -2,6 +2,8 @@ import { t, useLocale, setLocale, validLocale } from "./i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Database,
+  Home as HomeIcon,
+  BookOpen,
   Network,
   Users,
   ClipboardList,
@@ -19,6 +21,8 @@ import { canNavigate } from "./useNavigationGuard";
 import { Semantics } from "./Semantics";
 import { SourceSetup } from "./SourceSetup";
 import { QueryEvaluation } from "./QueryEvaluation";
+import { Home } from "./Home";
+import { BusinessCatalog } from "./BusinessCatalog";
 import { HealthPage } from "./Health";
 import { Sources } from "./Sources";
 import { Brand } from "./Brand";
@@ -28,12 +32,14 @@ import { CatalogPage, SettingsPage, ConsentPage } from "./Pages";
 import type { Agent, Capability, Session, Settings, Source } from "./types";
 
 const nav = [
+  ["/", "Home", HomeIcon],
+  ["/business", "Business catalog", BookOpen],
   ["/sources", "Data sources", Database],
   ["/ontologies", "Ontologies", Network],
   ["/agents", "Agents", Users],
   ["/health", "Health", CheckCircle2],
   ["/audit", "Audit log", ClipboardList],
-  ["/catalog", "Supported databases", ListChecks],
+  ["/catalog", "Data source types", ListChecks],
   ["/settings", "Settings", SettingsIcon],
 ] as const;
 export function App() {
@@ -74,8 +80,15 @@ export function App() {
     };
   }, []);
   useEffect(() => {
-    window.scrollTo(0, 0);
-    mainRef.current?.focus({ preventScroll: true });
+    const target =
+      mainRef.current?.querySelector<HTMLElement>("[data-route-focus]");
+    if (target) {
+      target.scrollIntoView({ block: "center" });
+      target.focus({ preventScroll: true });
+    } else {
+      window.scrollTo(0, 0);
+      mainRef.current?.focus({ preventScroll: true });
+    }
   }, [path]);
   useEffect(() => {
     if (!mobile) return;
@@ -204,7 +217,7 @@ export function App() {
       new URL(next, location.origin).origin === location.origin
     )
       location.assign(next);
-    else navigate("/sources");
+    else navigate("/");
   };
   if (!session)
     return (
@@ -232,7 +245,7 @@ export function App() {
   const ontologyID = path.match(/^\/ontologies\/([^/]+)$/)?.[1];
   const active = ontologyID
     ? "/ontologies"
-    : workflowRoute || semanticID || path === "/"
+    : workflowRoute || semanticID
       ? "/sources"
       : nav.find((n) => n[0] === path)?.[0];
   return (
@@ -396,6 +409,22 @@ export function App() {
               </Button>
             </div>
           )
+        ) : active === "/" ? (
+          <Home
+            sources={sources}
+            catalog={catalog}
+            navigate={navigate}
+            reload={reload}
+            notify={notify}
+          />
+        ) : active === "/business" ? (
+          <BusinessCatalog
+            key={routeQuery}
+            initialQuery={routeQuery}
+            sources={sources}
+            agents={agents}
+            navigate={navigate}
+          />
         ) : active === "/sources" ? (
           <Sources
             navigate={navigate}

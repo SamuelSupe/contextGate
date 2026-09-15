@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md)
 
-A complete, fictional example for the current **0.4.0** build: four entity types, twenty properties, three relationships, four PostgreSQL object mappings and three executable templates. You can import the ontology alone to explore the graph; a database is needed only for the mapped queries.
+A complete, fictional example for the **0.4.0 and later**: four entity types, twenty properties, three relationships, four PostgreSQL object mappings and three executable templates. You can import the ontology alone to explore the graph; a database is needed only for the mapped queries.
 
 ```mermaid
 erDiagram

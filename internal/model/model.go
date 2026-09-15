@@ -38,6 +38,7 @@ func (l Limits) Validate() error {
 }
 
 type Source struct {
+	HTTPAPI            *HTTPAPIConfig    `json:"http_api,omitempty"`
 	ObservedVersion    string            `json:"observed_version,omitempty"`
 	QueryAccessMode    string            `json:"query_access_mode"`
 	ConnectionRevision int64             `json:"connection_revision,string"`
@@ -147,6 +148,7 @@ type Principal struct {
 	AgentID         string
 	Admin           bool
 	Preview         bool
+	SystemCheck     bool
 	CredentialValid func() bool
 }
 type Query struct {

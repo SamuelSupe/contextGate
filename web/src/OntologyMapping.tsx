@@ -9,6 +9,7 @@ import {
   type MappingKind,
 } from "./OntologyMappingEditor";
 import {
+  effectiveEntities,
   type OntologyBinding,
   type OntologyState,
   type OntologySummary,
@@ -18,12 +19,14 @@ import type { SemanticState } from "./semantic-types";
 
 export function OntologyMapping({
   endpoint,
+  sourceKind,
   state,
   accept,
   notify,
   onDirty,
 }: {
   endpoint: string;
+  sourceKind: string;
   state: SemanticState;
   accept: (v: SemanticState) => void;
   notify: (text: string) => void;
@@ -43,6 +46,7 @@ export function OntologyMapping({
     item: MappingItem;
     index: number;
   } | null>(null);
+  const [entityFilter, setEntityFilter] = useState("");
   const [dialog, setDialog] = useState("");
   const [diff, setDiff] = useState<unknown>(null);
   const [remove, setRemove] = useState<{
@@ -125,6 +129,39 @@ export function OntologyMapping({
   const prior = state.published.ontology;
   const selected = ontologies.find((o) => o.id === binding?.ontology_id);
   const validation = state.mapping_validation;
+  const selectedEntity =
+    entityFilter === "*"
+      ? ""
+      : version?.definition.entities.some((e) => e.id === entityFilter)
+        ? entityFilter
+        : version?.definition.entities[0]?.id || "";
+  function visibleMapping(m: MappingItem) {
+    if (!selectedEntity) return true;
+    if ("entity" in m) return m.entity === selectedEntity;
+    const relation = version?.definition.relations.find(
+      (r) => r.id === m.relation,
+    );
+    return relation?.from === selectedEntity || relation?.to === selectedEntity;
+  }
+  function conceptName(m: MappingItem) {
+    if ("property" in m)
+      return (
+        version?.definition.properties.find(
+          (p) =>
+            p.id === m.property &&
+            effectiveEntities(version.definition, m.entity).includes(p.entity),
+        )?.name || m.property
+      );
+    if ("entity" in m)
+      return (
+        version?.definition.entities.find((e) => e.id === m.entity)?.name ||
+        m.entity
+      );
+    return (
+      version?.definition.relations.find((r) => r.id === m.relation)?.name ||
+      m.relation
+    );
+  }
   return (
     <div role="tabpanel" className="ontology-mapping">
       <ErrorNote error={dialog || editing ? "" : error} />
@@ -351,6 +388,38 @@ export function OntologyMapping({
                 </div>
               </details>
             )}
+            <section className="mapping-entity-selector">
+              <Field label={t("Work on an entity")}>
+                <select
+                  value={selectedEntity || "*"}
+                  onChange={(e) => setEntityFilter(e.target.value)}
+                >
+                  {version.definition.entities.map((e) => (
+                    <option key={e.id} value={e.id}>
+                      {e.name}
+                    </option>
+                  ))}
+                  <option value="*">
+                    {t("All mappings, including unresolved references")}
+                  </option>
+                </select>
+              </Field>
+              <p className="help">
+                {t("{mapped} of {total} entities mapped", {
+                  mapped: binding.entities.length,
+                  total: version.definition.entities.length,
+                })}{" "}
+                ·{" "}
+                {t("{count} property mappings", {
+                  count: binding.properties.filter(visibleMapping).length,
+                })}
+              </p>
+              <p className="help">
+                {t(
+                  "Only mapped concepts are visible to Agents. Select an entity to maintain its objects, properties and relationships together.",
+                )}
+              </p>
+            </section>
             {(["entities", "properties", "relations"] as const).map((kind) => (
               <section className="ontology-mapping-section" key={kind}>
                 <div className="page-header">
@@ -370,12 +439,12 @@ export function OntologyMapping({
                         item:
                           kind === "entities"
                             ? {
-                                entity: "",
+                                entity: selectedEntity,
                                 objects: [{ namespace: "", object: "" }],
                               }
                             : kind === "properties"
                               ? {
-                                  entity: "",
+                                  entity: selectedEntity,
                                   property: "",
                                   reference: {
                                     namespace: "",
@@ -396,7 +465,7 @@ export function OntologyMapping({
                     {t("mapping")}
                   </Button>
                 </div>
-                {binding[kind].length === 0 ? (
+                {!binding[kind].some(visibleMapping) ? (
                   <p className="help">
                     {t("No ")}
                     {t(kind)}
@@ -413,51 +482,59 @@ export function OntologyMapping({
                         </tr>
                       </thead>
                       <tbody>
-                        {binding[kind].map((m, i) => (
-                          <tr key={mappingKey(m)}>
-                            <td>{mappingKey(m)}</td>
-                            <td>
-                              {"objects" in m
-                                ? m.objects
-                                    .map((o) => `${o.namespace}.${o.object}`)
-                                    .join(", ")
-                                : "property" in m
-                                  ? m.reference
-                                    ? `${m.reference.namespace}.${m.reference.object}.${m.reference.field}${m.declared ? t(" · declaration allowed") : ""}`
-                                    : t("Template: {value1}", {
-                                        value1: m.template_id || "missing",
-                                      })
-                                  : t("{value1} field pairs{value2}", {
-                                      value1: m.fields?.length || 0,
-                                      value2: m.template_id
-                                        ? ` · Template: ${m.template_id}`
-                                        : "",
-                                    })}
-                            </td>
-                            <td>
-                              <div className="button-row">
-                                <Button
-                                  disabled={dirty || busy}
-                                  onClick={() =>
-                                    setEditing({ kind, item: m, index: i })
-                                  }
-                                >
-                                  {t("Edit")}
-                                </Button>
-                                <Button
-                                  disabled={dirty || busy}
-                                  className="danger"
-                                  onClick={() => {
-                                    setRemove({ kind, index: i });
-                                    setDialog("remove");
-                                  }}
-                                >
-                                  {t("Remove")}
-                                </Button>
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
+                        {binding[kind]
+                          .map((m, i) => ({ m, i }))
+                          .filter(({ m }) => visibleMapping(m))
+                          .map(({ m, i }) => (
+                            <tr key={mappingKey(m)}>
+                              <td>
+                                <strong>{conceptName(m)}</strong>
+                                <small className="block mono">
+                                  {mappingKey(m)}
+                                </small>
+                              </td>
+                              <td>
+                                {"objects" in m
+                                  ? m.objects
+                                      .map((o) => `${o.namespace}.${o.object}`)
+                                      .join(", ")
+                                  : "property" in m
+                                    ? m.reference
+                                      ? `${m.reference.namespace}.${m.reference.object}.${m.reference.field}${m.declared ? t(" · declaration allowed") : ""}`
+                                      : t("Template: {value1}", {
+                                          value1: m.template_id || "missing",
+                                        })
+                                    : t("{value1} field pairs{value2}", {
+                                        value1: m.fields?.length || 0,
+                                        value2: m.template_id
+                                          ? ` · Template: ${m.template_id}`
+                                          : "",
+                                      })}
+                              </td>
+                              <td>
+                                <div className="button-row">
+                                  <Button
+                                    disabled={dirty || busy}
+                                    onClick={() =>
+                                      setEditing({ kind, item: m, index: i })
+                                    }
+                                  >
+                                    {t("Edit")}
+                                  </Button>
+                                  <Button
+                                    disabled={dirty || busy}
+                                    className="danger"
+                                    onClick={() => {
+                                      setRemove({ kind, index: i });
+                                      setDialog("remove");
+                                    }}
+                                  >
+                                    {t("Remove")}
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
                       </tbody>
                     </table>
                   </div>
@@ -469,6 +546,8 @@ export function OntologyMapping({
       )}
       {editing && binding && version && (
         <OntologyMappingEditor
+          sourceID={endpoint.split("/")[3]}
+          sourceKind={sourceKind}
           kind={editing.kind}
           item={editing.item}
           existing={editing.index >= 0}

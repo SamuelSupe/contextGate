@@ -12,12 +12,13 @@ import (
 )
 
 type templateReadiness struct {
-	ID         string   `json:"id"`
-	Name       string   `json:"name"`
-	Version    string   `json:"execution_version"`
-	Status     string   `json:"status"`
-	Executable bool     `json:"executable"`
-	Concepts   []string `json:"concept_refs"`
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Version     string   `json:"execution_version"`
+	Status      string   `json:"status"`
+	Executable  bool     `json:"executable"`
+	Concepts    []string `json:"concept_refs"`
 }
 
 type sourceReadiness struct {
@@ -55,7 +56,7 @@ func (s *Server) sourceReadiness(w http.ResponseWriter, r *http.Request) {
 			continue
 		}
 		v := s.Engine.PublishedTemplateValidation(src, en)
-		out.Templates = append(out.Templates, templateReadiness{ID: en.ID, Name: en.Name, Version: en.Template.ExecutionVersion, Status: v.Status, Executable: v.Valid, Concepts: en.Template.ConceptRefs})
+		out.Templates = append(out.Templates, templateReadiness{ID: en.ID, Name: en.Name, Description: catalogText(en.Description, 256), Version: en.Template.ExecutionVersion, Status: v.Status, Executable: v.Valid, Concepts: en.Template.ConceptRefs})
 		if v.Valid {
 			out.ExecutableTemplates++
 		}

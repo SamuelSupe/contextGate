@@ -1,0 +1,48 @@
+{
+  "date": "2026-09-15",
+  "scope": "HTTP API source implementation; isolated local fixtures, not certification of arbitrary upstream APIs",
+  "environment": "OrbStack Linux arm64; native Chrome",
+  "go_full_suite": "go test ./... passed with isolated PostgreSQL metadata; external 18-product matrix not rerun",
+  "http_race_suite": "go test -race ./internal/adapter ./internal/server -run TestHTTPAPI passed",
+  "ui": "TypeScript/Vite build and 8 existing Node UI tests passed; Vite reports existing large-chunk warning",
+  "runtime_assets": {
+    "19843": [
+      "/assets/index-BHb53_Cs.js",
+      "/assets/index-BlrNMMRg.css"
+    ],
+    "19844": [
+      "/assets/index-BHb53_Cs.js",
+      "/assets/index-BlrNMMRg.css"
+    ]
+  },
+  "verified": [
+    "HTTP GET and declared read-only POST JSON execution",
+    "Bearer and X-API-Key authentication; verified TLS with private CA",
+    "Fixed destinations and scalar query/path/body binding; unknown arguments and traversal rejected before upstream call",
+    "Redirects, oversized responses, invalid JSON and rate-limit errors handled without upstream secret text",
+    "Lossless integer/decimal responses; native and template equivalence",
+    "Pagination, identity/query binding, local truncation does not skip rows",
+    "Request cancellation releases upstream connection",
+    "Configuration MCP source creation and secret redaction; encrypted source storage",
+    "Draft isolation, required trial, ontology context, declared field checks remain unverified",
+    "Templates-only mode including Agent preview; version invalidation, retrial and republish; revocation",
+    "Native Chrome source creation, GET and POST editing, connection test, preview and GET pagination",
+    "Native Chrome 1512x861 and 390x844 layouts, keyboard Tab, English and Chinese labels, no console errors",
+    "Existing HTTP API source configuration restored after local service restart"
+  ],
+  "not_verified": [
+    "Full external database matrix was not rerun",
+    "Arbitrary third-party API behavior and permissions are not independently verified",
+    "Outbound OAuth, OpenAPI import, streaming, XML and binary APIs are not implemented"
+  ],
+  "evidence_directory": "/tmp/contextgate-http-api-20260915",
+  "implementation_sha256": {
+    "internal/model/http_api.go": "4431cc2d753dfd08bfea84fe2662151795af0b9b86c60677d681796b0cefd081",
+    "internal/adapter/http_api.go": "1d02abb3d59a304b3ed3ad7e114a6afab354c4425bd2e6a85ac00602891c5ac6",
+    "internal/adapter/http_api_config.go": "b7103526fb3dd12cad07239e5cc59c4bfcb4aa0a2dc771f89b46abcca1ccc0e8",
+    "internal/adapter/http_api_test.go": "61c6bd2d12589bd7d436b41cc469baaa307d9f9fc6ccb4b3e80519aad4355c6b",
+    "internal/server/http_api_test.go": "d0a2f5f3e49aeeb3b0f0fbb3071e96ab8b6dbd22e463566fba6c410d6416b142",
+    "web/src/HTTPAPIEditor.tsx": "7db8aa9a64ac06e57c90836bceded3a4769017ca046ceed02ccdfb67fd5a6268",
+    "web/src/HTTPAPIParameters.tsx": "81bf0323ac357743384f5d1d600818be8ac230a910c223b02cc430a16b4bd995"
+  }
+}

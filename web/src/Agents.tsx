@@ -1,5 +1,5 @@
 import { t } from "./i18n";
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 import { Plus, RefreshCw } from "lucide-react";
 import { api, date, message, payload } from "./api";
 import { Button, CopyButton, Drawer, Empty, ErrorNote } from "./components";
@@ -26,6 +26,14 @@ export function Agents({
   initialQuery?: string;
 }) {
   const entry = new URLSearchParams(initialQuery);
+  const attention = entry.get("attention") || "";
+  const target = useRef<HTMLTableRowElement>(null);
+  useEffect(() => {
+    if (attention && target.current) {
+      target.current.scrollIntoView({ block: "center" });
+      target.current.focus({ preventScroll: true });
+    }
+  }, [attention]);
   const [editing, setEditing] = useState<Agent | null | undefined>(
     entry.get("create") === "1" ? null : undefined,
   );
@@ -141,12 +149,21 @@ export function Agents({
             <tbody>
               {agents.map((a) => {
                 const expired = new Date(a.expires_at) <= new Date();
+                const expiring =
+                  !expired &&
+                  new Date(a.expires_at).getTime() - Date.now() <= 7 * 86400000;
                 const grants = a.sources || [];
                 const usable = grants.filter((id) =>
                   sources.some((s) => s.id === id && s.enabled),
                 ).length;
                 return (
-                  <tr key={a.id}>
+                  <tr
+                    key={a.id}
+                    ref={a.id === attention ? target : undefined}
+                    data-route-focus={a.id === attention ? "" : undefined}
+                    tabIndex={a.id === attention ? -1 : undefined}
+                    className={a.id === attention ? "attention-row" : ""}
+                  >
                     <td>
                       <strong>{a.name}</strong>
                       <small className="block">
@@ -168,7 +185,7 @@ export function Agents({
                     </td>
                     <td>
                       <span
-                        className={`status ${a.revoked_at || !a.enabled || expired ? "muted" : "green"}`}
+                        className={`status ${a.revoked_at || !a.enabled || expired ? "muted" : expiring ? "amber" : "green"}`}
                       >
                         {a.revoked_at
                           ? t("Permanently revoked")
@@ -176,7 +193,9 @@ export function Agents({
                             ? t("Paused")
                             : expired
                               ? t("Expired")
-                              : t("Active")}
+                              : expiring
+                                ? t("Expiring soon")
+                                : t("Active")}
                       </span>
                       <small className="block">
                         {t("Expires ")}
@@ -224,7 +243,10 @@ export function Agents({
                           {t("Edit grants")}
                         </button>
                         {!a.revoked_at || a.auth_type === "token" ? (
-                          <details className="agent-secondary-actions">
+                          <details
+                            className="agent-secondary-actions"
+                            open={a.id === attention}
+                          >
                             <summary
                               aria-label={t("More actions for {name}", {
                                 name: a.name,

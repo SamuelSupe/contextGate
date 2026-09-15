@@ -14,8 +14,10 @@ const verdicts: Record<string, string> = {
 };
 export function EvaluationComparison({ value }: { value: Evaluation }) {
   const { baseline, guided } = value.runs;
+  const single = value.mode === "single";
   const complete =
-    baseline?.state === "completed" && guided?.state === "completed";
+    (single || baseline?.state === "completed") &&
+    guided?.state === "completed";
   const metrics: {
     label: string;
     read: (run: EvaluationCapture) => string | number | undefined;
@@ -41,17 +43,23 @@ export function EvaluationComparison({ value }: { value: Evaluation }) {
       <h2>{value.name}</h2>
       <p className="help">
         {value.agent_name} · {date(value.created_at)} ·{" "}
-        {complete ? t("Both captures completed") : t("Evaluation in progress")}
+        {complete
+          ? single
+            ? t("Answer capture completed")
+            : t("Both captures completed")
+          : t("Evaluation in progress")}
       </p>
       <div className="table-scroll">
         <table>
           <caption className="sr-only">
-            {t("Baseline and guided results")}
+            {single
+              ? t("Single answer check")
+              : t("Baseline and guided results")}
           </caption>
           <thead>
             <tr>
               <th scope="col">{t("Measure")}</th>
-              <th scope="col">{t("Baseline")}</th>
+              {!single && <th scope="col">{t("Baseline")}</th>}
               <th scope="col">{t("With semantic guidance")}</th>
             </tr>
           </thead>
@@ -59,7 +67,7 @@ export function EvaluationComparison({ value }: { value: Evaluation }) {
             {metrics.map((metric) => (
               <tr key={t(metric.label)}>
                 <th scope="row">{t(metric.label)}</th>
-                {[baseline, guided].map((run, i) => (
+                {(single ? [guided] : [baseline, guided]).map((run, i) => (
                   <td key={i}>
                     {run ? (metric.read(run) ?? "—") : t("Not started")}
                   </td>
@@ -69,7 +77,8 @@ export function EvaluationComparison({ value }: { value: Evaluation }) {
           </tbody>
         </table>
       </div>
-      {complete && !matchingConditions(value) ? (
+      {complete &&
+      (single ? guided?.configuration_changed : !matchingConditions(value)) ? (
         <div className="notice warning">
           {t(
             "Source configuration or Agent grants changed. Repeat under stable conditions before comparing results.",
@@ -81,9 +90,13 @@ export function EvaluationComparison({ value }: { value: Evaluation }) {
             ? t(
                 "Call durations exclude model and network time. Answer correctness is your manual assessment.",
               )
-            : t(
-                "Complete both captures, then review the answers against your acceptance criteria.",
-              )}
+            : single
+              ? t(
+                  "Collect the client calls and review the answer against your acceptance criteria.",
+                )
+              : t(
+                  "Complete both captures, then review the answers against your acceptance criteria.",
+                )}
         </p>
       )}
       <details className="evaluation-context">

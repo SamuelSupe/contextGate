@@ -1,0 +1,79 @@
+{
+  "verified_at": "2026-09-15T03:02:39.292002+00:00",
+  "base_commit": "543d36f39b2b0bd7d67fda9d5664d95f7996725d",
+  "delivery": "Uncommitted local workflow improvements; not a GitHub release",
+  "environment": {
+    "backend": "OrbStack Linux arm64 containers",
+    "metadata": "Existing PostgreSQL QA metadata and isolated PostgreSQL test schemas",
+    "browser": "Native Chrome through existing computer-use tooling",
+    "viewports": [
+      "1512x861",
+      "390x844",
+      "1100x540"
+    ]
+  },
+  "gates": [
+    {
+      "command": "go test ./internal/server ./internal/engine ./internal/store ./internal/auditexport",
+      "result": "passed"
+    },
+    {
+      "command": "npm run build",
+      "result": "passed",
+      "warning": "Existing single application bundle remains above the 500 kB Vite advisory threshold."
+    },
+    {
+      "command": "npm test",
+      "result": "passed",
+      "tests": 8
+    },
+    {
+      "command": "go build -trimpath -o /tmp/contextgate-ux ./cmd/mcpdbhub",
+      "result": "passed",
+      "architecture": "linux/arm64"
+    }
+  ],
+  "backend_behaviors": [
+    "Business catalog excludes drafts, unauthorized sources and unmapped ontology definitions.",
+    "Administrator workflow endpoints reject query Agent tokens.",
+    "Catalog pagination binds publication and access state; draft saves preserve the current published page revision.",
+    "Stale publication details and stale review revisions are rejected; revoked Agents cannot read their former catalog view.",
+    "Publication review distinguishes description changes from execution changes and exposes required trials.",
+    "Health discovery creates system audit events excluded from real-client and manual-preview filters."
+  ],
+  "chrome_behaviors": [
+    "Home displays the next source-to-Agent step, attention items and optional ontology guidance.",
+    "Customer search, source/Agent visibility filtering, metric filtering, empty results and keyboard Enter submission.",
+    "Published Customer definition opens linked template preview; Retail demo reader receives two real PostgreSQL rows.",
+    "Catalog pages contain 20 entries; moving to page 2 of 37 entries scrolls back to the top.",
+    "Query edit requires a new trial and disables publication; running saved example and regression cases in review enables publication.",
+    "Commerce QA publication moves from version 2 to 3 and survives the service restart.",
+    "Connection edits show live impact before save; Escape closes the unsaved editor without changing the stored source.",
+    "Audit defaults to real Agent calls; manual previews and system checks have separate views.",
+    "English and Chinese controls, 390-pixel home/catalog layouts without horizontal document overflow.",
+    "Short-window navigation scrolls while the account controls remain within the viewport.",
+    "Final embedded Home renders after restart; no console errors or warnings observed."
+  ],
+  "local_runtime": [
+    {
+      "url": "http://localhost:19843",
+      "healthz": 200,
+      "scripts": [
+        "/assets/index-tHhKQXhM.js"
+      ]
+    },
+    {
+      "url": "http://localhost:19844",
+      "healthz": 200,
+      "scripts": [
+        "/assets/index-tHhKQXhM.js"
+      ]
+    }
+  ],
+  "not_verified": [
+    "Full 18-product / 20-version database matrix was not rerun; query adapters did not change.",
+    "No new amd64 build, distribution release or GitHub download verification.",
+    "No live OTLP receiver revalidation specifically for system events; audit-export package tests passed.",
+    "The real browser workflow used the isolated QA instance on port 19844; the retained user instance on port 19843 passed health and embedded-asset checks."
+  ]
+}

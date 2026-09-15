@@ -1,6 +1,7 @@
+import type { QueryResult } from "./types";
 import { t } from "./i18n";
 import { useState } from "react";
-import { message } from "./api";
+import { api, message } from "./api";
 import { Button, Drawer, ErrorNote, Field } from "./components";
 import {
   effectiveEntities,
@@ -22,16 +23,41 @@ export const mappingKey = (value: MappingItem) =>
       : value.relation;
 
 function PhysicalField({
+  sourceID,
+  sourceKind,
   label,
   value,
   objects,
   onChange,
 }: {
+  sourceID: string;
+  sourceKind: string;
   label: string;
   value: ObjectReference;
   objects: ObjectReference[];
   onChange: (v: ObjectReference) => void;
 }) {
+  const [discovery, setDiscovery] = useState<{
+    object: string;
+    fields: { name: string; type: string }[];
+  } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const discoverable = [
+    "postgresql",
+    "postgres",
+    "mysql",
+    "mariadb",
+    "tidb",
+    "cockroachdb",
+    "timescaledb",
+    "sqlite",
+    "duckdb",
+    "clickhouse",
+    "cassandra",
+    "scylladb",
+    "http_api",
+  ].includes(sourceKind);
   const selected = JSON.stringify({
     namespace: value.namespace,
     object: value.object,
@@ -70,11 +96,88 @@ function PhysicalField({
           onChange={(e) => onChange({ ...value, field: e.target.value })}
         />
       </Field>
+      {discoverable && (
+        <div className="field-discovery">
+          <Button
+            busy={busy}
+            disabled={!value.object}
+            onClick={async () => {
+              setBusy(true);
+              setError("");
+              try {
+                const params = new URLSearchParams({
+                  operation: "describe",
+                  namespace: value.namespace,
+                  object: value.object,
+                });
+                const result = await api<QueryResult>(
+                  "/api/sources/" + sourceID + "/objects?" + params,
+                );
+                const data = result.data as {
+                  name: string;
+                  type: string;
+                  columns?: { name: string; type: string }[];
+                }[];
+                setDiscovery({
+                  object: selected,
+                  fields:
+                    sourceKind === "http_api"
+                      ? data.flatMap((o) => o.columns || [])
+                      : data,
+                });
+              } catch (e) {
+                setError(message(e));
+              } finally {
+                setBusy(false);
+              }
+            }}
+          >
+            {t("Discover fields")}
+          </Button>
+          {discovery?.object === selected && (
+            <Field label={t("Available fields")}>
+              <select
+                value=""
+                onChange={(e) =>
+                  e.target.value &&
+                  onChange({ ...value, field: e.target.value })
+                }
+              >
+                <option value="">{t("Choose a field")}</option>
+                {discovery.fields.map((f) => (
+                  <option key={f.name} value={f.name}>
+                    {f.name} · {f.type}
+                  </option>
+                ))}
+              </select>
+              <p className="help">
+                {sourceKind === "http_api"
+                  ? t(
+                      "API fields are administrator declared, not verified against response samples.",
+                    )
+                  : t(
+                      "Choose metadata or enter a field path manually. Check the saved mapping before publishing.",
+                    )}
+              </p>
+              {!discovery.fields.length && (
+                <p className="help">
+                  {t(
+                    "No discoverable fields. Enter a path and explicitly allow a declaration if needed.",
+                  )}
+                </p>
+              )}
+            </Field>
+          )}
+          <ErrorNote error={error} />
+        </div>
+      )}
     </div>
   );
 }
 
 export function OntologyMappingEditor({
+  sourceID,
+  sourceKind,
   kind,
   item,
   existing,
@@ -84,6 +187,8 @@ export function OntologyMappingEditor({
   onSave,
   onClose,
 }: {
+  sourceID: string;
+  sourceKind: string;
   kind: MappingKind;
   item: MappingItem;
   existing: boolean;
@@ -324,6 +429,8 @@ export function OntologyMappingEditor({
             {property.reference ? (
               <>
                 <PhysicalField
+                  sourceID={sourceID}
+                  sourceKind={sourceKind}
                   label={t("Property")}
                   value={property.reference}
                   objects={objects(property.entity)}
@@ -383,6 +490,8 @@ export function OntologyMappingEditor({
             {(relation.fields || []).map((pair, i) => (
               <section className="semantic-parameter" key={i}>
                 <PhysicalField
+                  sourceID={sourceID}
+                  sourceKind={sourceKind}
                   label={t("Origin {value1}", { value1: i + 1 })}
                   value={pair.from}
                   objects={objects(relationType?.from || "")}
@@ -395,6 +504,8 @@ export function OntologyMappingEditor({
                   }
                 />
                 <PhysicalField
+                  sourceID={sourceID}
+                  sourceKind={sourceKind}
                   label={t("Target {value1}", { value1: i + 1 })}
                   value={pair.to}
                   objects={objects(relationType?.to || "")}

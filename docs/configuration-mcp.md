@@ -52,7 +52,7 @@ The stdio bridge forwards calls to the same authenticated HTTP endpoint. It does
 
 Ontology versions are pinned, never automatically adopted. Catalog, templates and mapping publish atomically through the existing UI. A configuration save does not publish. On a revision conflict, reload and intentionally merge; do not blindly retry a replacement write.
 
-All database products supported by the source catalog are configurable. Templates retain the seven existing native families (`query_sql`, `query_mongodb`, `query_redis`, `query_search`, `query_cypher`, `query_cql`, `query_influxdb`) and their specific safety limits. See [semantic examples](../examples/semantics/) and the [retail ontology example](../examples/ontologies/retail-demo/).
+All database products supported by the source catalog are configurable. HTTP API sources additionally expose fixed read operations through `query_http_api`; see [HTTP API configuration](http-api.md). Database templates retain the seven existing native families (`query_sql`, `query_mongodb`, `query_redis`, `query_search`, `query_cypher`, `query_cql`, `query_influxdb`) and their specific safety limits. See [semantic examples](../examples/semantics/) and the [retail ontology example](../examples/ontologies/retail-demo/).
 
 ## Tools and boundaries
 

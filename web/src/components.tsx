@@ -147,7 +147,9 @@ export function Protection({
                 : t("Account read permissions verified")
               : isolated
                 ? t("Query API isolation")
-                : t("Account permissions unverified")}
+                : probe.protection === "declared_read_api"
+                  ? t("Administrator-declared read-only operation")
+                  : t("Account permissions unverified")}
           </strong>
           <p>
             {verified
@@ -160,22 +162,31 @@ export function Protection({
                 ? t(
                     "Only query APIs are exposed. The database token itself has administrator permissions.",
                   )
-                : t(
-                    "Query operations are restricted. Verify account grants in the database.",
-                  )}
+                : probe.protection === "declared_read_api"
+                  ? t(
+                      "ContextGate restricts the request, but cannot prove an arbitrary API is read-only. This declaration is not a verified upstream permission.",
+                    )
+                  : t(
+                      "Query operations are restricted. Verify account grants in the database.",
+                    )}
           </p>
           <details>
             <summary>{t("View verification evidence")}</summary>
             <ul>
               {probe.evidence.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item}>{t(item)}</li>
               ))}
             </ul>
             <small>
               {probe.server_version
-                ? t("Database version {server_version} · ", {
-                    server_version: probe.server_version,
-                  })
+                ? t(
+                    probe.protection === "declared_read_api"
+                      ? "API contract {server_version} · "
+                      : "Database version {server_version} · ",
+                    {
+                      server_version: probe.server_version,
+                    },
+                  )
                 : ""}
               {date(probe.checked_at)}
             </small>
@@ -192,7 +203,9 @@ export function Protection({
           : t("Account verified")
         : isolated
           ? t("API isolation")
-          : t("Permissions unverified")}
+          : probe.protection === "declared_read_api"
+            ? t("Declared read-only")
+            : t("Permissions unverified")}
     </span>
   );
 }
@@ -203,6 +216,7 @@ export function Drawer({
   footer,
   onClose,
   wide = false,
+  returnFocus,
 }: {
   title: string;
   subtitle?: string;
@@ -210,12 +224,14 @@ export function Drawer({
   footer?: ReactNode;
   onClose: () => void;
   wide?: boolean;
+  returnFocus?: HTMLElement | null;
 }) {
   const ref = useRef<HTMLElement>(null);
   const closeRef = useRef(onClose);
   closeRef.current = onClose;
   useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null;
+    const previous =
+      returnFocus || (document.activeElement as HTMLElement | null);
     const pane = ref.current;
     const first = pane?.querySelector<HTMLElement>(
       "input,button,select,textarea",
@@ -244,7 +260,7 @@ export function Drawer({
     document.addEventListener("keydown", handle);
     return () => {
       document.removeEventListener("keydown", handle);
-      previous?.focus();
+      if (previous?.isConnected) previous.focus();
     };
   }, []);
   return (

@@ -170,9 +170,13 @@ func (s *Server) audit(w http.ResponseWriter, r *http.Request) {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit cursor"))
 		return
 	}
-	f := store.AuditFilter{Before: before, EventKind: q.Get("event_kind"), Agent: q.Get("agent_id"), Source: q.Get("source_id"), Status: q.Get("status"), RequestID: q.Get("request_id")}
-	if f.EventKind != "" && f.EventKind != "query" && f.EventKind != "management" {
+	f := store.AuditFilter{Before: before, View: q.Get("view"), EventKind: q.Get("event_kind"), Agent: q.Get("agent_id"), Source: q.Get("source_id"), Status: q.Get("status"), RequestID: q.Get("request_id")}
+	if f.EventKind != "" && f.EventKind != "query" && f.EventKind != "management" && f.EventKind != "system" {
 		fail(w, 400, model.Fail("invalid_input", "Invalid audit event kind"))
+		return
+	}
+	if f.View != "" && f.View != "client" && f.View != "preview" && f.View != "system" {
+		fail(w, 400, model.Fail("invalid_input", "Invalid audit view"))
 		return
 	}
 	if f.Status != "" && f.Status != "success" && f.Status != "error" {

@@ -1,0 +1,111 @@
+{
+  "verified_at": "2026-09-15T07:45:22.427968+00:00",
+  "base_commit": "543d36f39b2b0bd7d67fda9d5664d95f7996725d",
+  "delivery": "Uncommitted local UX fixes; not a release",
+  "environment": {
+    "backend": "OrbStack Linux arm64",
+    "metadata": "Dedicated PostgreSQL QA database and isolated test schemas",
+    "browser": "Native local Chrome; no browser automation framework added",
+    "responsive_viewport": "390x844 via Chrome device toolbar"
+  },
+  "gates": [
+    {
+      "command": "go test ./internal/semantic ./internal/server ./internal/engine ./internal/store",
+      "result": "passed"
+    },
+    {
+      "command": "npm run build && npm test",
+      "result": "passed",
+      "tests": 9,
+      "warning": "Vite application bundle remains above its 500 kB advisory threshold."
+    },
+    {
+      "command": "go build -o /work/bin/contextgate-ux-final ./cmd/mcpdbhub",
+      "result": "passed",
+      "architecture": "linux/arm64"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "regressions": [
+    "Catalog query view excludes non-executable entries; pagination binds the selected view.",
+    "Concept details preserve the authorized projection and exclude unmapped/private fields.",
+    "Suggested JSON Pointer bindings use the existing execution restrictions; query text, operation names and Redis command options are excluded.",
+    "HTTP API template generation preserves integer/decimal lexemes and leaves optional parameters without a configured value absent.",
+    "Single-answer evaluation rejects baseline capture and persists its mode, real-call statistics, manual verdict and independent history summary."
+  ],
+  "chrome_before_environment_restart": [
+    "Connected HTTP API sources advance onboarding while permission evidence stays unverified.",
+    "Customer concept shows mapped fields and relationships; an Agent template preview returns two PostgreSQL rows, Back to concept retains context and Escape returns focus.",
+    "SQL text/JSON switching preserves 9007199254740993 and an exact decimal; cancelled editing does not persist changes.",
+    "HTTP API operation selection creates a parameterized template; trial and publication complete against the local demo API.",
+    "Entity filtering limits ontology mapping rows; Discover fields offers PostgreSQL metadata fields without reading samples."
+  ],
+  "chrome_final_runtime": [
+    "390x844 Chinese catalog has stacked filters and query cards; fixed operation/query previews fit the viewport with a reachable action footer.",
+    "Template preview executes a real two-row PostgreSQL query; Escape returns keyboard focus to the preview trigger.",
+    "Agent attention link opens the matching row, focuses it, expands its actions and displays Expiring soon.",
+    "Single-answer workflow: enter question/criteria, start capture, execute one MCP template call, collect, mark correct, save and open history.",
+    "After the final rebuild and restart, history shows two completed/reviewed single checks and two correct verdicts instead of zero completed comparison pairs.",
+    "Settings section navigation, language selection and responsive rendering exercised; two missing section translations and unlocalized onboarding status strings corrected afterward.",
+    "Chrome console showed no application errors during catalog/preview checks; a password-form username accessibility advisory was corrected in the final build."
+  ],
+  "live_checks": {
+    "verified_at": "2026-09-15T07:27:14.160579+00:00",
+    "runtime": "http://localhost:19846",
+    "retail_template_rows": 2,
+    "ontology_context": "retail-example",
+    "single_evaluation": {
+      "mode": "single",
+      "runs": 1,
+      "verdict": "correct",
+      "stats": {
+        "calls": 1,
+        "queries": 1,
+        "successful_queries": 1,
+        "errors": 0,
+        "elapsed_ms": 8,
+        "template_calls": 1
+      }
+    },
+    "templates_only_denial": true,
+    "cross_source_semantics_denial": true,
+    "binding_positions_exclude_query_and_operation": true,
+    "http_api_connectivity": true,
+    "http_api_permissions": "unverified",
+    "restarted_configuration": {
+      "sources": 2,
+      "published_version": "1"
+    },
+    "history_after_final_restart": {
+      "total": 2,
+      "single_checks": 2,
+      "completed_singles": 2,
+      "reviewed_singles": 2,
+      "single_correct": 2,
+      "completed_pairs": 0,
+      "reviewed_pairs": 0,
+      "changed_pairs": 0,
+      "baseline_correct": 0,
+      "guided_correct": 0
+    }
+  },
+  "runtime": {
+    "url": "http://localhost:19846",
+    "healthz": 200,
+    "assets": [
+      "/assets/index-ByIQuFKs.js",
+      "/assets/index-DDe_qedH.css"
+    ],
+    "binary_sha256": "c4cc761c86f55456ac058cec80baca11611f7a697b6b8aea13febaf6453c8701",
+    "configuration_storage": "Persistent directory mounted separately from metadata"
+  },
+  "limitations": [
+    "Full 18-product / 20-version database matrix was not rerun.",
+    "No new amd64 build, distribution, GitHub publication or OTLP receiver revalidation.",
+    "Chrome intermittently returned ScreenCaptureKit -3811 after the local restart. Final audit repair-link navigation and the last translation-only patch were not rechecked in Chrome; backend tests and final UI build passed.",
+    "The former QA services on ports 19843/19844 cannot decrypt their retained metadata after their temporary master-key directories disappeared on restart. Existing metadata was preserved. Available repository backup keys did not match; recovery requires the original matching key. The new QA instance uses independent metadata and persistent key storage."
+  ]
+}

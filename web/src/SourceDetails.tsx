@@ -1,3 +1,4 @@
+import { httpOperationQuery } from "./HTTPAPIEditor";
 import { t } from "./i18n";
 import { ResultTable } from "./ResultTable";
 import { useEffect, useRef, useState } from "react";
@@ -36,7 +37,9 @@ export function SourceDetails({
   const [agentID, setAgentID] = useState(initialAgentID);
   const [view, setView] = useState("table");
   const [query, setQuery] = useState(() =>
-    JSON.stringify(cap?.example || {}, null, 2),
+    source.http_api?.operations[0]
+      ? httpOperationQuery(source.http_api.operations[0])
+      : JSON.stringify(cap?.example || {}, null, 2),
   );
   const [discovery, setDiscovery] = useState("");
   const controller = useRef<AbortController | null>(null);
@@ -91,6 +94,14 @@ export function SourceDetails({
       return api<QueryResult>("/api/query", { method: "POST", body, signal });
     });
   }
+  let selectedOperation = "";
+  if (source.http_api) {
+    try {
+      selectedOperation = JSON.parse(query).operation || "";
+    } catch {
+      /* Keep editing incomplete JSON. */
+    }
+  }
   function changeQuery(text: string) {
     setQuery(text);
     setResult(null);
@@ -99,7 +110,7 @@ export function SourceDetails({
   return (
     <Drawer
       title={source.name}
-      subtitle={t("Explore database structure and preview read-only queries")}
+      subtitle={t("Explore source structure and preview read-only queries")}
       onClose={() => {
         controller.current?.abort();
         onClose();
@@ -175,6 +186,29 @@ export function SourceDetails({
           {t("Query preview ")}
           <code>{cap?.tool}</code>
         </h3>
+        {source.http_api && (
+          <Field label={t("API operation")}>
+            <select
+              disabled={busy}
+              value={selectedOperation}
+              onChange={(e) => {
+                const op = source.http_api?.operations.find(
+                  (op) => op.id === e.target.value,
+                );
+                if (op) changeQuery(httpOperationQuery(op));
+              }}
+            >
+              <option value="" disabled>
+                {t("Choose an operation to load its example")}
+              </option>
+              {source.http_api.operations.map((op) => (
+                <option key={op.id} value={op.id}>
+                  {op.name} · {op.method}
+                </option>
+              ))}
+            </select>
+          </Field>
+        )}
         <textarea
           disabled={busy}
           className="query-editor"

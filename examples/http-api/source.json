@@ -1,0 +1,92 @@
+{
+  "name": "Customer HTTP API",
+  "kind": "http_api",
+  "version": "1",
+  "tls_mode": "disable",
+  "enabled": true,
+  "auth_mode": "none",
+  "query_access_mode": "native_and_templates",
+  "http_api": {
+    "base_url": "http://host.docker.internal:19845",
+    "probe_operation": "list_customers",
+    "operations": [
+      {
+        "id": "list_customers",
+        "name": "List customers",
+        "description": "Customers in the requested region.",
+        "method": "GET",
+        "path": "/customers",
+        "read_only": true,
+        "parameters": [
+          {
+            "name": "region",
+            "in": "query",
+            "target": "region",
+            "type": "string",
+            "required": true,
+            "enum_json": "[\"east\",\"west\"]"
+          }
+        ],
+        "example_json": "{\"region\":\"east\"}",
+        "response_pointer": "/data",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "region",
+            "type": "string"
+          }
+        ],
+        "pagination": {
+          "query_parameter": "cursor",
+          "next_pointer": "/next_cursor"
+        }
+      },
+      {
+        "id": "search_customers",
+        "name": "Search customers",
+        "description": "Customers in the requested region.",
+        "method": "POST",
+        "path": "/customers/search",
+        "read_only": true,
+        "parameters": [
+          {
+            "name": "region",
+            "in": "body",
+            "target": "/filter/region",
+            "type": "string",
+            "required": true,
+            "enum_json": "[\"east\",\"west\"]"
+          }
+        ],
+        "example_json": "{\"region\":\"east\"}",
+        "response_pointer": "/data",
+        "columns": [
+          {
+            "name": "id",
+            "type": "integer"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "region",
+            "type": "string"
+          }
+        ],
+        "pagination": {
+          "query_parameter": "cursor",
+          "next_pointer": "/next_cursor"
+        },
+        "body_json": "{\"filter\":{\"region\":\"\"}}"
+      }
+    ]
+  }
+}

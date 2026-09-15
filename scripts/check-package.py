@@ -42,7 +42,7 @@ def source_digest():
     return digest.hexdigest()
 
 
-client = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+client = urllib.request.build_opener(urllib.request.ProxyHandler({}), urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
 csrf = ""
 base = ""
 
@@ -86,6 +86,7 @@ binary = 'contextgate'
 manifest = None
 collector = None
 metadata = None
+http_fixture = None
 
 
 def export_view():
@@ -99,6 +100,63 @@ def await_export(predicate):
             return view
         time.sleep(.25)
     raise RuntimeError('Audit export did not reach the expected state: '+str(view['status']))
+
+
+def check_http_workflow():
+    global http_fixture
+    examples = (package if args.archive else ROOT)/'examples/http-api'
+    http_fixture = name+'-http'
+    docker('run', '-d', '--name', http_fixture, '--network', 'mcpdbhub-test',
+           '--read-only', '--cap-drop', 'ALL', '--memory', '128m', '--cpus', '1',
+           '-v', str(examples)+':/example:ro', 'python:3.13-alpine', 'python', '/example/server.py')
+    for _ in range(40):
+        if docker('exec', http_fixture, 'python', '-c', "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/customers', timeout=1).read()", check=False).returncode == 0:
+            break
+        time.sleep(.25)
+    else:
+        raise RuntimeError('HTTP API fixture did not become ready')
+    config = json.loads((examples/'source.json').read_text())
+    config['http_api']['base_url'] = 'http://'+http_fixture+':8080'
+    api_source = request('POST', '/api/sources', config)
+    probe = request('POST', '/api/sources/'+api_source['id']+'/test', {})
+    assert probe['connected'] and probe['permission_status'] == 'unverified'
+    reader = request('POST', '/api/agents', {'name': 'Package API reader', 'sources': [api_source['id']], 'enabled': True})
+    def call(tool, arguments, error=False):
+        reply = request('POST', '/mcp', {'jsonrpc': '2.0', 'id': 150, 'method': 'tools/call',
+                        'params': {'name': tool, 'arguments': arguments}}, reader['token'])['result']
+        assert bool(reply.get('isError')) == error, 'Unexpected HTTP API tool status: '+tool
+        return reply.get('structuredContent')
+    native = call('query_http_api', {'source_id': api_source['id'], 'operation': 'list_customers', 'named_params': {'region': 'east'}})
+    post = call('query_http_api', {'source_id': api_source['id'], 'operation': 'search_customers', 'named_params': {'region': 'east'}})
+    assert post['data'] == native['data'] and native['data'][0]['id'] == '9007199254740993'
+    page = call('query_http_api', {'source_id': api_source['id'], 'operation': 'list_customers', 'named_params': {'region': 'east'}, 'cursor': native['next_cursor']})
+    assert page['data'][0]['name'] == 'Northwind' and not page.get('next_cursor')
+    path = '/api/sources/'+api_source['id']+'/semantics'
+    snapshot = json.loads((examples/'semantics.json').read_text())
+    snapshot['entries'][1]['template']['example_json'] = '{"region":"west"}'
+    draft = request('PUT', path, {'revision': '0', 'snapshot': snapshot})
+    request('POST', path+'/publish', {'revision': draft['revision']}, expected=400)
+    slots = request('POST', path+'/bindings', {'query_json': snapshot['entries'][1]['template']['query_json']})
+    assert slots['slots'] == ['/named_params/region']
+    request('POST', path+'/trial', {'revision': draft['revision'], 'template_id': 'customers-by-region'})
+    request('POST', path+'/publish', {'revision': draft['revision']})
+    api_source = next(s for s in request('GET', '/api/sources') if s['id'] == api_source['id'])
+    api_source['query_access_mode'] = 'templates_only'
+    request('PUT', '/api/sources/'+api_source['id'], api_source)
+    call('query_http_api', {'source_id': api_source['id'], 'operation': 'list_customers', 'named_params': {'region': 'east'}}, error=True)
+    catalog = request('GET', '/api/business-catalog?view=queries&source_id='+api_source['id']+'&agent_id='+reader['agent']['id'])
+    assert len(catalog['entries']) == 1 and catalog['entries'][0]['id'] == 'customers-by-region'
+    evaluation_path = '/api/sources/'+api_source['id']+'/evaluation/history'
+    evaluation = request('POST', evaluation_path, {'mode': 'single', 'kind': 'guided', 'name': 'API customer check',
+                         'question': 'List east-region customers.', 'criteria': 'First page contains Acme with its exact integer ID.', 'agent_id': reader['agent']['id']})
+    actual = call('execute_query_template', {'source_id': api_source['id'], 'template_id': 'customers-by-region', 'execution_version': '1', 'parameters': {'region': 'east'}})
+    assert actual['data'] == native['data']
+    evaluation_path += '/'+evaluation['id']
+    evaluation = request('POST', evaluation_path+'/capture', {'revision': evaluation['revision'], 'kind': 'guided', 'action': 'collect'})
+    assert evaluation['runs']['guided']['stats']['successful_queries'] == 1
+    request('PUT', evaluation_path+'/review', {'revision': evaluation['revision'], 'reviews': {'guided': {'verdict': 'correct', 'notes': 'Exact fixture result verified.'}}})
+    summary = request('GET', '/api/sources/'+api_source['id']+'/evaluation/history')['summary']
+    assert summary['completed_singles'] == 1 and summary['single_correct'] == 1 and summary['completed_pairs'] == 0
 
 
 try:
@@ -213,7 +271,8 @@ try:
         assert initialized['result']['serverInfo']['name'] == 'contextgate'
         bridge.stdin.write(json.dumps({'jsonrpc': '2.0', 'method': 'notifications/initialized'})+'\n')
         tools = bridge_call({'jsonrpc': '2.0', 'id': 2, 'method': 'tools/list'})
-        assert len(tools['result']['tools']) == 14
+        assert len(tools['result']['tools']) == 15
+        assert 'query_http_api' in {tool['name'] for tool in tools['result']['tools']}
         bridged = bridge_call({**query, 'id': 3})['result']['structuredContent']
         assert bridged['data'] == [['3']]
     finally:
@@ -370,6 +429,7 @@ try:
     assert recovered["data"] == [["3"]] and recovered["ontology_context"] == content["ontology_context"]
     assert request('POST', '/mcp', native_query, agent['token'])['result']['isError'] is True
     assert configure('get_configuration_guide', {})['publication'] == 'administrator_only'
+    check_http_workflow()
     request('DELETE', '/api/configuration-agents/'+configuration['id'])
     request('POST', '/mcp/config', query, configuration_token, expected=401)
     request("DELETE", "/api/agents/"+agent["agent"]["id"])
@@ -388,6 +448,10 @@ try:
     result['checks'].extend(['configuration_MCP_typed_discovery', 'configuration_MCP_credential_isolation',
                              'configuration_MCP_semantic_trial_and_ontology_workflow', 'configuration_MCP_stdio',
                              'configuration_MCP_restart_and_revocation'])
+    result['checks'].extend(['HTTP_API_GET_POST_lossless_results', 'HTTP_API_native_pagination',
+                             'HTTP_API_unverified_permission_evidence', 'HTTP_API_trial_publication_and_native_template_equivalence',
+                             'HTTP_API_templates_only_denial', 'business_catalog_executable_query_view',
+                             'parameter_binding_position_suggestions', 'single_answer_capture_review_and_history_summary'])
     if args.otlp:
         result['checks'].append('OTLP_configuration_MCP_correlation_and_redaction')
         result['collector_version'] = '0.160.0'
@@ -400,7 +464,7 @@ try:
                       archive_sha256=hashlib.sha256(args.archive.read_bytes()).hexdigest())
         result['checks'].extend(['independent_archive_extraction', 'private_runtime_libraries', 'version_matches_source', 'bilingual_installation_guides'])
         result['checks'].extend(['bilingual_semantics_guides_and_examples', 'bilingual_ontology_guides_and_examples'])
-        assert all((package/p).exists() for p in ('docs/README.md', 'docs/README.zh-CN.md', 'docs/getting-started.md', 'docs/configuration-mcp.md', 'docs/configuration-mcp.zh-CN.md', 'docs/operations.md', 'docs/releases/0.4.0.md'))
+        assert all((package/p).exists() for p in ('docs/README.md', 'docs/README.zh-CN.md', 'docs/getting-started.md', 'docs/configuration-mcp.md', 'docs/configuration-mcp.zh-CN.md', 'docs/operations.md', 'docs/releases/'+manifest['version']+'.md', 'docs/http-api.md', 'docs/http-api.zh-CN.md'))
         result['checks'].append('bundled_configuration_and_operations_help')
     args.report.parent.mkdir(parents=True, exist_ok=True)
     args.report.write_text(json.dumps(result, indent=2)+"\n")
@@ -418,6 +482,8 @@ finally:
         docker("rm", "-fv", metadata, check=False)
     if collector:
         docker('rm', '-f', collector, check=False)
+    if http_fixture:
+        docker('rm', '-f', http_fixture, check=False)
     docker("volume", "rm", volume, check=False)
     if unpacked:
         unpacked.cleanup()

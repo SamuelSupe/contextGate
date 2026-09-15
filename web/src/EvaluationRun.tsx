@@ -5,6 +5,7 @@ import type { EvaluationCapture, EvaluationKind } from "./evaluation-types";
 
 export function EvaluationRun({
   kind,
+  single = false,
   run,
   prompt,
   busy,
@@ -13,6 +14,7 @@ export function EvaluationRun({
   onReview,
 }: {
   kind: EvaluationKind;
+  single?: boolean;
   run?: EvaluationCapture;
   prompt: string;
   busy: boolean;
@@ -29,9 +31,11 @@ export function EvaluationRun({
   return (
     <section className="evaluation-run">
       <h2>
-        {kind === "baseline"
-          ? t("1. Baseline")
-          : t("2. With semantic guidance")}
+        {single
+          ? t("Check the client answer")
+          : kind === "baseline"
+            ? t("1. Baseline")
+            : t("2. With semantic guidance")}
       </h2>
       <p className="help">
         {run
@@ -55,9 +59,15 @@ export function EvaluationRun({
           disabled={!canStart || busy}
           onClick={() => onCapture(kind, "start")}
         >
-          {t("Start ")}
-          {t(kind)}
-          {t(" capture")}
+          {single ? (
+            t("Start answer capture")
+          ) : (
+            <>
+              {t("Start ")}
+              {t(kind)}
+              {t(" capture")}
+            </>
+          )}
         </Button>
       ) : run.state === "capturing" ? (
         <>

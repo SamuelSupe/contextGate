@@ -63,6 +63,22 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 		}
 	}
 	checkUsage(1)
+	catalog := h.json("GET", "/api/business-catalog?kind=entity_type", nil, 200)
+	catalogRaw, _ := json.Marshal(catalog)
+	if catalog["total"] != float64(1) || bytes.Contains(catalogRaw, []byte("unmapped-private-entity")) || bytes.Contains(catalogRaw, []byte("hidden-ancestor-description")) {
+		t.Fatal("business catalog must project only mapped ontology definitions", string(catalogRaw))
+	}
+	detail := h.json("GET", "/api/business-catalog?source_id="+source+"&agent_id="+a["agent"].(map[string]any)["id"].(string)+"&entry_id=ontology:entity_type:event&published_version=1", nil, 200)
+	contextEntries := detail["context_entries"].([]any)
+	if len(contextEntries) != 2 {
+		t.Fatal("mapped and inherited properties missing from concept details", detail)
+	}
+	detailRaw, _ := json.Marshal(detail)
+	for _, hidden := range []string{"unmapped-identity-key", "hidden-ancestor-description", "unmapped-private-entity", "private-relation"} {
+		if bytes.Contains(detailRaw, []byte(hidden)) {
+			t.Fatal("concept context leaked a hidden definition", hidden)
+		}
+	}
 	entry := call(t, agent, "get_semantic_entry", map[string]any{"source_id": source, "entry_id": ontology.Ref("entity_type", "event")}, false)
 	raw, _ := json.Marshal(entry)
 	for _, secret := range []string{"unmapped-identity-key", "hidden-ancestor-description", "unmapped-private-entity", "private-relation", "\"identity\"", "\"usage\""} {
@@ -108,7 +124,7 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 		t.Fatal(string(raw))
 	}
 	// Retained semantic publications still reference the old ontology version.
- h.json("DELETE", op+"/versions/1", map[string]any{"revision": pub["revision"]}, 409)
+	h.json("DELETE", op+"/versions/1", map[string]any{"revision": pub["revision"]}, 409)
 	pub = h.json("POST", op+"/archive", map[string]any{"revision": pub["revision"], "archived": true}, 200)
 	call(t, agent, "execute_query_template", execution, false)
 	h.json("DELETE", op, map[string]any{"revision": pub["revision"]}, 409)

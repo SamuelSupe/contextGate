@@ -23,6 +23,101 @@ func semanticFixture() semantic.Entry {
 	return semantic.Entry{ID: "amount", Kind: "template", Name: "Event amount", Description: "金额查询", Template: &semantic.Template{Enabled: true, Tool: "query_sql", QueryJSON: `{"query":"SELECT amount FROM events WHERE id = ?","params":[0]}`, Parameters: []semantic.Parameter{{Name: "id", Type: "integer", Required: true, Pointers: []string{"/params/0"}, Minimum: "1", Maximum: "100"}}, ExampleJSON: `{"id":1}`}}
 }
 
+func TestBusinessCatalogAndPublicationReview(t *testing.T) {
+	h := newHub(t)
+	id, other := h.source(), h.source()
+	path := "/api/sources/" + id + "/semantics"
+	a := h.json("POST", "/api/agents", map[string]any{"name": "Catalog reader", "sources": []string{id}, "enabled": true}, 200)
+	agentID := a["agent"].(map[string]any)["id"].(string)
+	draft := semantic.Empty()
+	draft.Entries = []semantic.Entry{semanticFixture()}
+	for n := range 22 {
+		draft.Entries = append(draft.Entries, semantic.Entry{ID: fmt.Sprintf("term-%02d", n), Kind: "term", Name: fmt.Sprintf("Business term %02d", n), Aliases: []string{"客户"}})
+	}
+	saved := h.json("PUT", path, semanticInput{Snapshot: draft}, 200)
+	impact := h.json("GET", path+"/impact?revision="+saved["revision"].(string), nil, 200)
+	if impact["can_publish"] != false || len(impact["issues"].([]any)) == 0 || len(impact["agents"].([]any)) != 1 {
+		t.Fatal("review must expose blockers and source grants", impact)
+	}
+	if page := h.json("GET", "/api/business-catalog?agent_id="+agentID, nil, 200); page["total"] != float64(0) {
+		t.Fatal("business catalog leaked a draft", page)
+	}
+	h.json("POST", path+"/trial", map[string]any{"revision": saved["revision"], "template_id": "amount"}, 200)
+	impact = h.json("GET", path+"/impact?revision="+saved["revision"].(string), nil, 200)
+	if impact["can_publish"] != true {
+		t.Fatal(impact)
+	}
+	saved = h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
+	otherPath := "/api/sources/" + other + "/semantics"
+	secret := h.json("PUT", otherPath, semanticInput{Snapshot: semantic.Snapshot{FormatVersion: 2, Entries: []semantic.Entry{{ID: "secret", Name: "other-source-private", Kind: "term"}}}}, 200)
+	h.json("POST", otherPath+"/publish", map[string]any{"revision": secret["revision"]}, 200)
+	base := "/api/business-catalog?agent_id=" + agentID
+	queryPage := h.json("GET", base+"&view=queries", nil, 200)
+	if queryPage["total"] != float64(1) || queryPage["entries"].([]any)[0].(map[string]any)["id"] != "amount" {
+		t.Fatal("query view should include only executable business entries", queryPage)
+	}
+	h.json("GET", base+"&offset=20&revision="+queryPage["revision"].(string), nil, 409)
+	slots := h.json("POST", path+"/bindings", map[string]any{"query_json": draft.Entries[0].Template.QueryJSON}, 200)
+	if len(slots["slots"].([]any)) != 1 || slots["slots"].([]any)[0] != "/params/0" {
+		t.Fatal(slots)
+	}
+	page := h.json("GET", base, nil, 200)
+	if page["total"] != float64(23) || len(page["entries"].([]any)) != 20 {
+		t.Fatal(page)
+	}
+	raw, _ := json.Marshal(page)
+	if bytes.Contains(raw, []byte("other-source-private")) || bytes.Contains(raw, []byte("SELECT amount")) {
+		t.Fatal("summary scope or query text leak", string(raw))
+	}
+	next := h.json("GET", base+"&offset=20&revision="+page["revision"].(string), nil, 200)
+	if len(next["entries"].([]any)) != 3 {
+		t.Fatal(next)
+	}
+	h.json("GET", base+"&offset=20", nil, 409)
+	h.json("GET", base+"&source_id="+other+"&entry_id=secret", nil, 404)
+	if alias := h.json("GET", base+"&keyword=%E5%AE%A2%E6%88%B7", nil, 200); alias["total"] != float64(22) {
+		t.Fatal(alias)
+	}
+	entry := h.json("GET", base+"&source_id="+id+"&entry_id=amount&published_version=1", nil, 200)
+	if entry["executable"] != true {
+		t.Fatal(entry)
+	}
+	for _, endpoint := range []string{base, path + "/impact?revision=" + saved["revision"].(string)} {
+		req, _ := http.NewRequest("GET", h.http.URL+endpoint, nil)
+		req.Header.Set("Authorization", "Bearer "+a["token"].(string))
+		response, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 401 {
+			t.Fatal("Agent accessed administrator workflow", response.StatusCode)
+		}
+	}
+	rev, _ := strconv.ParseInt(saved["revision"].(string), 10, 64)
+	draft.Entries[0].Description = "updated business explanation"
+	saved = h.json("PUT", path, semanticInput{Revision: rev, Snapshot: draft}, 200)
+	h.json("GET", path+"/impact?revision="+strconv.FormatInt(rev, 10), nil, 409)
+	impact = h.json("GET", path+"/impact?revision="+saved["revision"].(string), nil, 200)
+	if impact["can_publish"] != true || impact["interrupted_templates"] != float64(0) {
+		t.Fatal("description edit invalidated execution", impact)
+	}
+	// Saving drafts does not invalidate published discovery pages.
+	h.json("GET", base+"&offset=20&revision="+page["revision"].(string), nil, 200)
+	saved = h.json("POST", path+"/publish", map[string]any{"revision": saved["revision"]}, 200)
+	h.json("GET", base+"&offset=20&revision="+page["revision"].(string), nil, 409)
+	h.json("GET", base+"&source_id="+id+"&entry_id=amount&published_version=1", nil, 409)
+	rev, _ = strconv.ParseInt(saved["revision"].(string), 10, 64)
+	draft.Entries[0].Template.QueryJSON = `{"query":"SELECT amount FROM events WHERE id = ? ORDER BY id","params":[0]}`
+	saved = h.json("PUT", path, semanticInput{Revision: rev, Snapshot: draft}, 200)
+	impact = h.json("GET", path+"/impact?revision="+saved["revision"].(string), nil, 200)
+	if impact["can_publish"] != false || impact["interrupted_templates"] != float64(1) {
+		t.Fatal("execution change omitted from review", impact)
+	}
+	h.json("DELETE", "/api/agents/"+agentID, nil, 200)
+	h.json("GET", base, nil, 404)
+}
+
 func TestSemanticPublicationAuthorizationAndPersistence(t *testing.T) {
 	h := newHub(t)
 	id := h.source()

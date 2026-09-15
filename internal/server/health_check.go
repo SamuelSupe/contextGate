@@ -117,7 +117,7 @@ func (s *Server) checkSourceHealth(ctx context.Context, id string) (model.Source
 				v.Structure = append(v.Structure, check)
 				continue
 			}
-			result, err := s.Engine.Execute(ctx, model.Principal{Admin: true, Preview: true}, "describe", model.Query{SourceID: id, Namespace: ref.Namespace, Object: ref.Object})
+			result, err := s.Engine.Execute(ctx, model.Principal{Admin: true, Preview: true, SystemCheck: true}, "describe", model.Query{SourceID: id, Namespace: ref.Namespace, Object: ref.Object})
 			if err != nil {
 				check.Status = model.ErrorCode(err)
 			} else if result.Truncated || result.NextCursor != "" {

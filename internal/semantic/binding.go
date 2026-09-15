@@ -143,6 +143,10 @@ func allowed(tool string, parts []string) (native bool, err error) {
 		if len(parts) == 2 && parts[0] == "params" {
 			return true, nil
 		}
+	case "query_http_api":
+		if len(parts) == 2 && parts[0] == "named_params" {
+			return false, nil
+		}
 	case "query_cypher", "query_influxdb":
 		if len(parts) == 2 && parts[0] == "named_params" {
 			return true, nil
@@ -243,7 +247,8 @@ func number(v any) (*big.Rat, bool) {
 	return r, ok
 }
 
-func validateValue(p Parameter, v any) error {
+// ValidateValue checks a typed parameter without converting exact JSON numbers.
+func ValidateValue(p Parameter, v any) error {
 	ok := false
 	switch p.Type {
 	case "string":
@@ -319,7 +324,7 @@ func Bind(t Template, supplied map[string]any, examples bool) (model.Query, erro
 		return q, invalid("Native query must be a JSON object")
 	}
 	fields := map[string]string{
-		"query_sql": "query params named_params", "query_cql": "query params", "query_cypher": "query named_params", "query_influxdb": "query named_params language", "query_redis": "command args", "query_mongodb": "namespace object operation query filter projection sort pipeline", "query_search": "object operation query body",
+		"query_sql": "query params named_params", "query_cql": "query params", "query_cypher": "query named_params", "query_influxdb": "query named_params language", "query_redis": "command args", "query_mongodb": "namespace object operation query filter projection sort pipeline", "query_search": "object operation query body", "query_http_api": "operation named_params",
 	}
 	for key := range root {
 		if !slices.Contains(strings.Fields(fields[t.Tool]), key) {
@@ -362,7 +367,7 @@ func Bind(t Template, supplied map[string]any, examples bool) (model.Query, erro
 			contract := p
 			contract.EnumJSON = ""
 			for _, value := range list {
-				if err = validateValue(contract, value); err != nil {
+				if err = ValidateValue(contract, value); err != nil {
 					return q, err
 				}
 			}
@@ -372,7 +377,7 @@ func Bind(t Template, supplied map[string]any, examples bool) (model.Query, erro
 			if err != nil {
 				return q, err
 			}
-			if err = validateValue(p, value); err != nil {
+			if err = ValidateValue(p, value); err != nil {
 				return q, err
 			}
 		}
@@ -388,7 +393,7 @@ func Bind(t Template, supplied map[string]any, examples bool) (model.Query, erro
 			return q, invalid("Missing required parameter: " + p.Name)
 		}
 		if present {
-			if err = validateValue(p, val); err != nil {
+			if err = ValidateValue(p, val); err != nil {
 				return q, err
 			}
 		}
@@ -431,7 +436,7 @@ func Bind(t Template, supplied map[string]any, examples bool) (model.Query, erro
 			}
 			if !present {
 				val = original
-				if err = validateValue(p, val); err != nil {
+				if err = ValidateValue(p, val); err != nil {
 					return q, err
 				}
 			}

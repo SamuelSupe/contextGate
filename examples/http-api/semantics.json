@@ -1,0 +1,39 @@
+{
+  "format_version": 2,
+  "overview": "Customer API business catalog. Response fields are administrator-declared.",
+  "entries": [
+    {
+      "id": "customers",
+      "kind": "object",
+      "name": "Customers",
+      "description": "Customers returned by the API, filtered by business region.",
+      "reference": {
+        "namespace": "api",
+        "object": "list_customers"
+      }
+    },
+    {
+      "id": "customers-by-region",
+      "kind": "template",
+      "name": "Customers by region",
+      "template": {
+        "enabled": true,
+        "tool": "query_http_api",
+        "query_json": "{\"operation\":\"list_customers\",\"named_params\":{\"region\":\"\"}}",
+        "parameters": [
+          {
+            "name": "region",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/named_params/region"
+            ],
+            "enum_json": "[\"east\",\"west\"]"
+          }
+        ],
+        "example_json": "{\"region\":\"east\"}",
+        "result_description": "Native customer documents; numeric values retain exact string encoding."
+      }
+    }
+  ]
+}

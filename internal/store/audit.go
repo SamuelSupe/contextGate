@@ -10,9 +10,9 @@ import (
 )
 
 type AuditFilter struct {
-	Before                                      int64
-	Agent, Source, Status, RequestID, EventKind string
-	From, Until                                 time.Time
+	Before                                            int64
+	Agent, Source, Status, RequestID, EventKind, View string
+	From, Until                                       time.Time
 }
 
 func (s *Store) Audit(a model.Audit) error {
@@ -54,6 +54,14 @@ func (s *Store) Audits(f AuditFilter, limit int) ([]model.Audit, error) {
 			args = append(args, v.value)
 			where = append(where, fmt.Sprintf(v.clause, len(args)))
 		}
+	}
+	switch f.View {
+	case "client":
+		where = append(where, "event_kind='query' AND preview=FALSE AND agent_id<>'admin'")
+	case "preview":
+		where = append(where, "event_kind='query' AND preview=TRUE")
+	case "system":
+		where = append(where, "event_kind='system'")
 	}
 	if f.Status == "success" {
 		where = append(where, "error_code=''")
