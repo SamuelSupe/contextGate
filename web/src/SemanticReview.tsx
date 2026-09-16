@@ -30,6 +30,7 @@ export function SemanticReview({
   onClose,
   onRepair,
   onPublished,
+  focusedTemplateID,
 }: {
   endpoint: string;
   state: SemanticState;
@@ -37,6 +38,7 @@ export function SemanticReview({
   onClose: () => void;
   onRepair: (tab: string, id?: string) => void;
   onPublished: () => void;
+  focusedTemplateID?: string;
 }) {
   const [impact, setImpact] = useState<Impact | null>(null);
   const [loading, setLoading] = useState(true);
@@ -44,6 +46,7 @@ export function SemanticReview({
   const [error, setError] = useState("");
   const [loadError, setLoadError] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const [acknowledgedRevision, setAcknowledgedRevision] = useState("");
   useEffect(() => {
     const abort = new AbortController();
     setLoading(true);
@@ -90,6 +93,9 @@ export function SemanticReview({
     }
   }
   const hasChanges = !!impact?.changes.length;
+  const includesOtherChanges =
+    !!focusedTemplateID &&
+    !!impact?.changes.some((change) => change.id !== focusedTemplateID);
   return (
     <Drawer
       wide
@@ -113,6 +119,8 @@ export function SemanticReview({
               loading ||
               !!loadError ||
               !impact?.can_publish ||
+              (includesOtherChanges &&
+                acknowledgedRevision !== impact?.revision) ||
               !hasChanges
             }
             onClick={() => action("publish")}
@@ -146,6 +154,36 @@ export function SemanticReview({
       ) : (
         impact && (
           <>
+            {focusedTemplateID && (
+              <div className="notice warning">
+                <div>
+                  <strong>
+                    {t("Publication includes the entire data source draft")}
+                  </strong>
+                  <p>
+                    {t(
+                      "Review every change below. Publishing this query also publishes any other saved catalog, template and ontology mapping changes on this source.",
+                    )}
+                  </p>
+                  {includesOtherChanges && (
+                    <label className="checkbox-row">
+                      <input
+                        type="checkbox"
+                        checked={acknowledgedRevision === impact.revision}
+                        onChange={(e) =>
+                          setAcknowledgedRevision(
+                            e.target.checked ? impact.revision : "",
+                          )
+                        }
+                      />
+                      {t(
+                        "I reviewed the other draft changes included in this publication",
+                      )}
+                    </label>
+                  )}
+                </div>
+              </div>
+            )}
             <div className="review-summary">
               <strong>
                 {t("Draft {revision} → publication {version}", {

@@ -1,4 +1,5 @@
 import { t } from "./i18n";
+import { HelpTip } from "./HelpTip";
 import { useState, type ReactNode } from "react";
 import { api, date, message } from "./api";
 import { Button, ErrorNote, Loading, Protection, Field } from "./components";
@@ -21,8 +22,10 @@ export function SourceSetup({
   reload,
   navigate,
   notify,
+  onCreateQuery,
 }: {
   source: Source;
+  onCreateQuery: (source: Source, query: string) => void;
   agents: Agent[];
   catalog: Capability[];
   reload: () => Promise<void>;
@@ -163,9 +166,7 @@ export function SourceSetup({
         </Button>
       </div>
       <p className="help">
-        {t(
-          "Previews enforce current permissions and are labeled separately in audit. Complete a query in your actual MCP client to verify the connection from that client.",
-        )}
+        {t("Previews do not confirm a real client connection.")}
       </p>
     </>
   );
@@ -180,15 +181,6 @@ export function SourceSetup({
             {workspaceReady ? t("Query workspace") : t("Agent setup")}{" "}
             <span className="semantic-source">/ {source.name}</span>
           </h1>
-          <p>
-            {workspaceReady
-              ? t(
-                  "Run a query with your Agent, explore templates, or review a business question.",
-                )
-              : t(
-                  "Connect, prepare a safe query, and confirm a real client result.",
-                )}
-          </p>
         </div>
         <Button
           disabled={busy}
@@ -210,21 +202,22 @@ export function SourceSetup({
       ) : (
         <>
           <div className="workflow-summary">
-            <strong>{readinessLabel(source, data)}</strong>
+            <div className="label-with-help">
+              <strong>{readinessLabel(source, data)}</strong>
+              <HelpTip title={t("Snapshot and evidence")}>
+                <p>
+                  {t("Configuration snapshot ")}
+                  {date(data.checked_at)}
+                  {t(". Connection and client evidence are historical checks.")}
+                </p>
+              </HelpTip>
+            </div>
             <span>
               {data.executable_templates}
               {t(" executable templates · ")}
               {active.length} {t("active Agents · source publication ")}
               {data.published_version}
             </span>
-            <details>
-              <summary>{t("Snapshot and evidence")}</summary>
-              <p className="help">
-                {t("Configuration snapshot ")}
-                {date(data.checked_at)}
-                {t(". Connection and client evidence are historical checks.")}
-              </p>
-            </details>
           </div>
           <section
             className="workflow-identity"
@@ -263,7 +256,7 @@ export function SourceSetup({
                   }
                 }}
               >
-                {t("Connect selected Agent")}
+                {t("Get connection configuration")}
               </Button>
               {!selectedAgent && (
                 <Button
@@ -414,6 +407,7 @@ export function SourceSetup({
       )}
       {dialog === "native" && (
         <SourceDetails
+          onCreateQuery={onCreateQuery}
           source={source}
           catalog={catalog}
           agents={agents}

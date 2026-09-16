@@ -12,21 +12,21 @@
 
 让 Agent 理解业务，安全查询数据。
 
-ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查询访问真实数据。管理员定义业务术语、指标和共享本体，为各数据源建立映射，再发布经过真实试跑的原生查询模板。所有执行受授权、只读保护、查询限制和审计约束。Go 实现，内嵌管理 UI，运行时无需 Node.js；Agent 通过 MCP 的 HTTP 或 stdio 接入。
+ContextGate 将企业已有业务查询发布为经过验证、可授权、可追溯的 Agent 工具。提供可用 SQL 或固定读取 API，说明用途和输入、完成试跑后，即可在已有 Agent 客户端中复用。业务定义与共享本体按需引入。Go 实现，内嵌中英文管理 UI，运行时无需 Node.js；Agent 通过 MCP HTTP 或 stdio 接入。
 
 **Context** 承载业务含义：术语、指标、本体、映射和模板。**Gate** 控制访问边界：授权、查询保护、验证和审计。查询结果保留原生结构；产品不提供知识图谱实例存储或事实推理引擎。
 
 产品原名 **MCP DB Hub**。仓库及 Go 模块已更名为 `SamuelSupe/contextGate`，历史提交和发行版继续保留。主命令为 `contextgate`，兼容 `mcpdbhub` 别名与已有 `MCPDBHUB_*` 配置键、遥测属性。详见[品牌说明](docs/brand/README.zh-CN.md)。
 
-[English](README.md) · [下载 v0.7.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
+[English](README.md) · [下载 v0.8.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) · [帮助文档](docs/README.zh-CN.md) · [安装指南](docs/install.zh-CN.md) · [支持矩阵](docs/support-matrix.zh-CN.md) · [只读账号](docs/read-only-accounts.zh-CN.md) · [架构](docs/architecture.zh-CN.md)
 
-![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
+![Query catalog — actual ContextGate 0.8.0 English UI](docs/screenshots/0.8.0/query-tools.png)
 
 *真实运行的英文管理界面；截图使用隔离数据库与示例数据。*
 
 ## 能做什么
 
-**[0.7.0 新内容](docs/releases/0.7.0.zh-CN.md)：** 新增 Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 预览适配器，支持原生 SQL 参数、语义模板和本体映射，复用已有授权及审计。云端兼容性尚未真实验证，详见[配置指南与限制](docs/cloud-warehouses.zh-CN.md)。
+**[0.8.0 新内容](docs/releases/0.8.0.zh-CN.md)：** 将已有查询连续保存、试跑、审阅发布并确认真实 Agent 调用；从业务概念关联或创建查询，在统一目录管理可用查询、草稿和待处理项，并从首页继续最近工作。
 
 | 能力 | 提供的行为 |
 |---|---|
@@ -40,17 +40,27 @@ ContextGate 让 Agent 理解业务概念，并通过受控、经过验证的查�
 | 独立管理员账号 | 超级管理员/管理员两级角色、个人配置 MCP 身份、操作者审计及定向凭证撤销 |
 | 一体化管理 | 内嵌 UI、加密凭证、结构预览、调用审计与本地密码恢复 |
 
+## 从已有查询到 Agent 工具
+
+1. **选择来源**：使用只读账号并检查保护证据。
+2. **提供查询**：粘贴原生查询或选择固定 HTTP 操作，确认参数契约。
+3. **说明用途与结果**：明确适用问题、输入和业务边界。
+4. **试跑并审阅**：检查整个数据源草稿后明确发布。
+5. **接入确认**：在真实客户端调用当前模板版本，单独评审业务正确性。
+
+从 **首页 → 新建查询** 开始，或通过“继续上次配置”恢复已保存草稿。参阅[发布指南](docs/query-publishing.zh-CN.md)、[客服查询示例](examples/query-publishing/README.zh-CN.md)和[试点工作表](docs/query-pilot.zh-CN.md)。已有原生查询模式和 URL 保持兼容。
+
 ## 配置 MCP
 
 在 **设置 → 我的配置 MCP** 为受信任的 Agent 创建短期专用 Token，即可配置所有数据源连接、语义草稿、模板试跑和共享本体／映射。数据源修改立即生效，草稿发布及查询 Agent 授权仍由管理员完成。详见[配置指南](docs/configuration-mcp.zh-CN.md)。
 
 ## 运维与恢复
 
-运维能力包含管理变更记录、加密的语义发布历史与草稿恢复、可选定期健康检查、模板回归用例、PG 诊断及备份恢复回验。入口为“健康状态”“语义 → 发布历史”和“设置 → 部署诊断”。全局健康检查策略和部署诊断需要超级管理员权限。具体边界和恢复步骤见[运维指南](docs/operations.zh-CN.md)。
+运维能力包含管理变更记录、加密的语义发布历史与草稿恢复、可选定期健康检查、模板回归用例、PG 诊断及备份恢复回验。入口为“运维 → 健康状态”“语义 → 发布历史”和“设置 → 部署诊断”。全局健康检查策略和部署诊断需要超级管理员权限。具体边界和恢复步骤见[运维指南](docs/operations.zh-CN.md)。
 
 ## 下载运行
 
-[**ContextGate 0.7.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
+[**ContextGate 0.8.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) 提供 Linux **arm64 / amd64** 发行包，包含内嵌 UI、C++ 运行库、中英文文档、示例、依赖声明与校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。下载、校验和启动步骤见[安装指南](docs/install.zh-CN.md)。
 
 ## 启动
 
@@ -70,7 +80,7 @@ docker compose logs hub
 
 Compose 在私有容器网络启动 PostgreSQL，健康后再启动 ContextGate，仅发布 ContextGate 的本机 HTTP 端口。ContextGate 使用 UID 10001，查询数据库文件只读挂载。`hub-postgres` 保存元数据，`hub-data` 保存独立加密主密钥；重启和升级时保留两个卷及已有 `.env`，只在首次安装生成 `.env`。
 
-**从 0.6.x 升级：** 备份并保留 PostgreSQL 元数据库、匹配主密钥和部署配置，停止服务后替换为 0.7.0。本版本不新增元数据迁移，也不强制轮换凭证。详见[升级说明](docs/releases/0.7.0.zh-CN.md#升级)。
+**从 0.6.x 或 0.7.x 升级：** 备份并保留 PostgreSQL 元数据库、匹配主密钥和部署配置，停止服务后替换为 0.8.0。本版本不新增元数据迁移，也不强制轮换凭证。详见[升级说明](docs/releases/0.8.0.zh-CN.md#兼容与升级)。
 
 **从 0.4.x 或 0.5.x 升级：** 备份并保留 PostgreSQL 元数据库及匹配主密钥。使用用户名 `admin` 和原密码重新登录；所有旧配置 MCP Token 被撤销，每名管理员需要签发个人 Token 并更新客户端。业务配置、查询 Agent/OAuth 授权保持不变。参阅[账号升级清单](docs/administrators.zh-CN.md)。
 
@@ -90,7 +100,7 @@ export MCPDBHUB_DATABASE_URL='postgres://mcpdbhub:REPLACE_ME@127.0.0.1:5432/mcpd
 
 ## Agent 接入
 
-![经过验证的查询模板与真实样例结果](docs/screenshots/query-preview.png)
+![已发布的查询工作区：业务概念、输入输出与客户端确认](docs/screenshots/0.8.0/query-workspace.png)
 
 支持 Streamable HTTP 和 stdio 桥接；二者使用同一个 HTTP 服务、同一套授权和审计。`/mcp` 提供 15 个工具：4 个发现工具、8 个原生查询工具（7 类数据库查询加 HTTP API）和 3 个语义目录/模板工具。个人配置 MCP 使用独立端点，提供 [22 个配置工具](docs/configuration-mcp.zh-CN.md#工具与边界)。
 
@@ -124,7 +134,7 @@ SQL 支持原生关联、子查询、只读 CTE、聚合和窗口函数。MongoD
 
 返回值包含 `format`、`data`、可用的原生类型信息、`row_count`、`elapsed_ms`、`truncated`、`bytes`，原生分页可返回 `next_cursor`。MCP 同时返回结构化内容与 JSON 文本，兼容仅读取文本的客户端。64 位整数和 Decimal 使用字符串，二进制使用带 `encoding: base64` 的对象，时间保留可用精度。MongoDB 使用规范 Extended JSON；Flux 保留每张表的列名和类型。某些引擎/API 不提供计算列的精确类型，不能将缺失类型解释为字符串类型。
 
-**0.7.0 云数仓预览：** Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 已接入同一 `query_sql`、语义模板及本体流程。已包含在 0.7.0 下载包中，但没有真实云环境验证，不计入已验证产品清单。[云数仓配置与限制](docs/cloud-warehouses.zh-CN.md) · [示例](examples/cloud-warehouses/README.md)。
+**云数仓预览（自 0.7.0 起）：** Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 已接入同一 `query_sql`、语义模板及本体流程。继续包含在当前下载包中，但没有真实云环境验证，不计入已验证产品清单。[云数仓配置与限制](docs/cloud-warehouses.zh-CN.md) · [示例](examples/cloud-warehouses/README.md)。
 
 默认上限为 30 秒、1,000 条、5 MiB，管理员可提高至 120 秒、10,000 条、20 MiB。Agent 可通过 `max_rows`、`timeout_seconds`、`max_bytes` 收紧限制。字节预算包含 MCP 的两种结果表示，因此实际数据可小于配置上限。单行或原生响应过大时可能返回明确的大小错误；不会把不完整 JSON 当完整结果。
 
@@ -144,7 +154,7 @@ SQL 数据源的命名空间、表和字段发现支持 `next_cursor`，管理�
 
 ## 语义目录与查询模板
 
-![已发布的语义查询模板，来自实际管理界面](docs/screenshots/semantics.png)
+![已发布查询目录及其关联业务概念](docs/screenshots/0.8.0/query-tools.png)
 
 每个数据源拥有独立的业务目录和已验证原生查询模板。在 **Data sources → Semantics** 导入结构骨架、维护术语/字段/关系/指标、真实试跑模板并发布快照。**Templates only** 模式统一限制 HTTP、stdio、OAuth 和 Agent 身份预览。
 
@@ -156,7 +166,7 @@ SQL 数据源的命名空间、表和字段发现支持 `next_cursor`，管理�
 
 ## 共享业务本体
 
-![共享本体与数据源、查询模板映射](docs/screenshots/ontology.png)
+![共享本体与数据源、查询模板映射](docs/screenshots/0.8.0/ontology.png)
 
 通过 **Ontologies** 与 **Semantics → Ontology mapping** 维护共享业务定义。Customer、Order 等定义可以跨源复用，各源独立映射表、集合和字段，并显式选择不可变本体版本。Agent 仅发现其已授权源中映射的概念，模板保持原生结果并附加 `ontology_context`。
 
@@ -200,7 +210,7 @@ python3 scripts/matrix.py postgres mysql mongodb
 
 ## 管理操作说明
 
-![Per-Agent data source grants](docs/screenshots/agents.png)
+![Per-Agent data source grants](docs/screenshots/0.8.0/agents.png)
 
 管理界面默认英文。在 **Settings → Language（设置 → 语言）** 中选择 **English** 或 **简体中文**，立即生效并由当前浏览器记住。业务定义、查询文本、参数和结果保留原始内容。
 

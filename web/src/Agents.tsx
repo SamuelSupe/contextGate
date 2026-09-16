@@ -96,7 +96,6 @@ export function Agents({
       <div className="page-header">
         <div>
           <h1>{t("Agents")}</h1>
-          <p>{t("Credentials, data source grants and client connections")}</p>
         </div>
         <div className="button-row">
           <Button disabled={busy} onClick={() => void refresh()}>
@@ -136,7 +135,7 @@ export function Agents({
         />
       ) : (
         <div className="table-scroll">
-          <table className="agents-table">
+          <table className="agents-table responsive-table">
             <thead>
               <tr>
                 <th>{t("Agent")}</th>
@@ -164,13 +163,13 @@ export function Agents({
                     tabIndex={a.id === attention ? -1 : undefined}
                     className={a.id === attention ? "attention-row" : ""}
                   >
-                    <td>
+                    <td data-label={t("Agent")}>
                       <strong>{a.name}</strong>
                       <small className="block">
                         {a.auth_type === "oauth" ? "OAuth" : t("Token")}
                       </small>
                     </td>
-                    <td>
+                    <td data-label={t("Data source grants")}>
                       {grants
                         .map(
                           (id) =>
@@ -183,7 +182,7 @@ export function Agents({
                         {t(" enabled data sources")}
                       </small>
                     </td>
-                    <td>
+                    <td data-label={t("Credential")}>
                       <span
                         className={`status ${a.revoked_at || !a.enabled || expired ? "muted" : expiring ? "amber" : "green"}`}
                       >
@@ -202,7 +201,7 @@ export function Agents({
                         {date(a.expires_at)}
                       </small>
                     </td>
-                    <td>
+                    <td data-label={t("Client activity · 30 days")}>
                       {a.activity?.last_call ? (
                         <>
                           <span
@@ -224,7 +223,7 @@ export function Agents({
                         <span className="muted">{t("No recorded calls")}</span>
                       )}
                     </td>
-                    <td>
+                    <td data-label={t("Actions")}>
                       <div className="row-actions wrap">
                         <button
                           className="text-button"

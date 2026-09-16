@@ -70,6 +70,12 @@ Defaults are 30 seconds, 1,000 rows and 5 MiB per request. Administrators can co
 
 AES-GCM cursors bind identity, source revision, original query/parameters/limits and expire after five minutes. MongoDB keeps at most 64 native cursors per source, closes them at expiration, and consumes continuation handles once; a restart invalidates them. CQL uses PageState, Redis uses SCAN cursors and Search uses search_after. SQL and Cypher queries are not implicitly rewritten for pagination. Byte truncation never issues a continuation that could skip rows.
 
+## Administrator query workspace
+
+The publishing UI reuses source semantics, trials and atomic publication. It does not create a separate execution or authorization layer. `/api/business-catalog` requires an administrator session and accepts `view=queries|all|drafts|attention`. `agent_id` selects a published Agent projection and cannot be combined with management views. Summaries omit query bodies, parameters and results. Pages bind their principal, filters, source revision and publication; management pages also bind the draft revision.
+
+`/api/sources/{id}/readiness` exposes current validation/grants and a 30-day activity window. Optional `template_id` and `agent_id` select exact execution-version call evidence; previews, administrator/system events, failures and unrelated identities are excluded. A browser-only two-minute wait polls this endpoint sequentially, cancelling on navigation or visibility/access changes. It creates no background scheduler. Recent-query browser storage keeps at most five source/template/Agent references per administrator and reloads definitions from the server.
+
 ## Read-only implementation and limits
 
 - PostgreSQL-family statements use the PostgreSQL AST; MySQL-family statements use the TiDB parser AST; ClickHouse uses a separate parser. The complete tree is checked for writing CTEs, INTO, locks and related operations. Lexical validation rejects multiple statements and dangerous syntax before execution.

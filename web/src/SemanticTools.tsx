@@ -346,10 +346,10 @@ export function TemplatePreview({
         )}
         {entry.caveats && <p className="notice warning">{entry.caveats}</p>}
         {entry.template?.result_description && (
-          <details open>
-            <summary>{t("How to interpret this result")}</summary>
+          <div className="result-interpretation">
+            <h3>{t("Returns")}</h3>
             <p>{entry.template.result_description}</p>
-          </details>
+          </div>
         )}
       </section>
       <Field

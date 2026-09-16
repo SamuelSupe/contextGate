@@ -1,54 +1,111 @@
 import { t } from "./i18n";
 import { useEffect, useState } from "react";
-import { api, message } from "./api";
+import { api, APIError, message, payload } from "./api";
 import { Button, ErrorNote, Field, Loading } from "./components";
 import { useReadiness, semanticsURL } from "./readiness";
-import type { OntologyVersion } from "./ontology-types";
+import { useOntologyVersion } from "./BusinessConcepts";
+import {
+  conceptQueries,
+  coverageLabel,
+  linkQueryConcept,
+} from "./query-concepts";
+import { queryToolURL, sameQueryEntry } from "./query-publishing";
+import { TemplatePreview } from "./SemanticTools";
+import { useNavigationGuard } from "./useNavigationGuard";
+import type { SemanticEntry, SemanticState } from "./semantic-types";
 import type { Source, Agent } from "./types";
 import "./product-workflows.css";
+
 export function ConceptUsage({
   ontologyID,
   entityID,
   sources,
   agents,
   navigate,
+  initialSourceID = "",
+  mappedSourceIDs,
 }: {
   ontologyID: string;
   entityID: string;
   sources: Source[];
   agents: Agent[];
   navigate: (url: string) => void;
+  initialSourceID?: string;
+  mappedSourceIDs: string[];
 }) {
-  const [selected, setSelected] = useState(sources[0]?.id || "");
-  const source = sources.find((s) => s.id === selected) || sources[0];
+  const [selected, setSelected] = useState(initialSourceID);
+  const [showOther, setShowOther] = useState(
+    !!initialSourceID && !mappedSourceIDs.includes(initialSourceID),
+  );
+  const mappedSources = sources.filter((s) => mappedSourceIDs.includes(s.id));
+  const otherSources = sources.filter((s) => !mappedSourceIDs.includes(s.id));
+  const [busy, setBusy] = useState(false);
+  const source =
+    sources.find((s) => s.id === selected) || mappedSources[0] || sources[0];
   return (
     <section className="concept-usage">
-      <h3>{t("Where it’s used")}</h3>
-      <p className="help">
-        {t(
-          "Published mappings and executable templates, scoped to the adopted version in each source. Unsaved definition edits do not change Agent visibility.",
-        )}
-      </p>
       {!source ? (
-        <p className="help">
-          {t(
-            "No published source bindings yet. Open a data source’s Semantics → Ontology mapping to adopt this ontology.",
-          )}
-        </p>
+        <div className="empty-inline">
+          <p>{t("Connect a data source to use this concept.")}</p>
+          <Button onClick={() => navigate("/sources")}>
+            {t("Data sources")}
+          </Button>
+        </div>
       ) : (
         <>
-          <Field label={t("Inspect adopted data source")}>
-            <select
-              value={source.id}
-              onChange={(e) => setSelected(e.target.value)}
-            >
-              {sources.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name}
-                </option>
-              ))}
-            </select>
-          </Field>
+          {mappedSources.length === 1 &&
+          !showOther &&
+          source.id === mappedSources[0].id ? (
+            <div className="section-heading">
+              <div>
+                <small className="help">{t("Data source")}</small>
+                <p>
+                  <strong>{source.name}</strong>
+                </p>
+              </div>
+              {otherSources.length > 0 && (
+                <Button disabled={busy} onClick={() => setShowOther(true)}>
+                  {t("Connect another data source")}
+                </Button>
+              )}
+            </div>
+          ) : (
+            <>
+              <Field label={t("Data source")}>
+                <select
+                  disabled={busy}
+                  value={source.id}
+                  onChange={(e) => setSelected(e.target.value)}
+                >
+                  {mappedSources.length > 0 && (
+                    <optgroup label={t("Mapped data sources")}>
+                      {mappedSources.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {(showOther || !mappedSources.length) && (
+                    <optgroup label={t("Other data sources")}>
+                      {otherSources.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              </Field>
+              {!showOther &&
+                mappedSources.length > 0 &&
+                otherSources.length > 0 && (
+                  <Button disabled={busy} onClick={() => setShowOther(true)}>
+                    {t("Connect another data source")}
+                  </Button>
+                )}
+            </>
+          )}
           <SourceConcept
             key={source.id + entityID}
             ontologyID={ontologyID}
@@ -56,223 +113,378 @@ export function ConceptUsage({
             source={source}
             agents={agents}
             navigate={navigate}
+            onBusy={setBusy}
           />
         </>
       )}
     </section>
   );
 }
+
 function SourceConcept({
   ontologyID,
   entityID,
   source,
   agents,
   navigate,
+  onBusy,
 }: {
   ontologyID: string;
   entityID: string;
   source: Source;
   agents: Agent[];
   navigate: (url: string) => void;
+  onBusy: (busy: boolean) => void;
 }) {
-  const { data, error, refresh } = useReadiness(source.id, source.revision);
-  const [version, setVersion] = useState<OntologyVersion | null>(null),
-    [loadError, setLoadError] = useState(""),
-    [agentID, setAgentID] = useState(""),
-    [retry, setRetry] = useState(0);
-  const binding =
-    data?.ontology?.ontology_id === ontologyID ? data.ontology : null;
+  const [reloadKey, setReloadKey] = useState(0);
+  const ready = useReadiness(source.id, `${source.revision}:${reloadKey}`);
+  const [state, setState] = useState<SemanticState | null>(null);
+  const [error, setError] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [selectedQuery, setSelectedQuery] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [conflict, setConflict] = useState(false);
+  const [saved, setSaved] = useState("");
+  const [preview, setPreview] = useState<SemanticEntry | null>(null);
+  useNavigationGuard(false, busy);
+  const endpoint = `/api/sources/${encodeURIComponent(source.id)}/semantics`;
   useEffect(() => {
-    setVersion(null);
-    setLoadError("");
-    if (!binding) return;
     const abort = new AbortController();
-    api<OntologyVersion>(
-      `/api/ontologies/${encodeURIComponent(ontologyID)}/versions/${binding.version}`,
-      { signal: abort.signal },
-    )
-      .then(setVersion)
+    setError("");
+    setConflict(false);
+    setState(null);
+    api<SemanticState>(endpoint, { signal: abort.signal })
+      .then(setState)
       .catch((e) => {
-        if (!abort.signal.aborted) setLoadError(message(e));
+        if (!abort.signal.aborted) setError(message(e));
       });
     return () => abort.abort();
-  }, [ontologyID, binding?.version, retry]);
-  const entity = binding?.entities.find((e) => e.entity === entityID);
-  const properties =
-    binding?.properties.filter((p) => p.entity === entityID) || [];
-  const relationIDs = new Set(
-    version?.definition.relations
-      .filter((r) => r.from === entityID || r.to === entityID)
-      .map((r) => r.id),
+  }, [endpoint, reloadKey]);
+  const publishedBinding =
+    state?.published.ontology?.ontology_id === ontologyID
+      ? state.published.ontology
+      : undefined;
+  const draftBinding =
+    state?.draft.ontology?.ontology_id === ontologyID
+      ? state.draft.ontology
+      : undefined;
+  const publishedVersion = useOntologyVersion(publishedBinding);
+  const sameVersion =
+    !!draftBinding && draftBinding.version === publishedBinding?.version;
+  const loadedDraftVersion = useOntologyVersion(
+    sameVersion ? undefined : draftBinding,
   );
-  const relations =
-    binding?.relations.filter((r) => relationIDs.has(r.relation)) || [];
-  const refs = new Set([
-    `ontology:entity_type:${entityID}`,
-    ...properties.map((p) => `ontology:property:${entityID}:${p.property}`),
-    ...relations.map((r) => `ontology:relation_type:${r.relation}`),
-  ]);
-  const ids = new Set(
-    [
-      ...properties.map((p) => p.template_id),
-      ...relations.map((r) => r.template_id),
-    ].filter(Boolean),
-  );
-  const templates = entity
-    ? data?.templates.filter(
-        (queryTemplate) =>
-          ids.has(queryTemplate.id) ||
-          queryTemplate.concept_refs?.some((ref) => refs.has(ref)),
-      ) || []
+  const draftVersion = sameVersion ? publishedVersion : loadedDraftVersion;
+  const entity = publishedBinding?.entities.find((m) => m.entity === entityID);
+  const draftEntity = draftBinding?.entities.find((m) => m.entity === entityID);
+  const ref = `ontology:entity_type:${entityID}`;
+  const context = { ontology_id: ontologyID, concept_ref: ref };
+  const publishedQueries = state
+    ? conceptQueries(
+        state.published,
+        ontologyID,
+        entityID,
+        publishedVersion.data?.definition,
+      )
     : [];
-  const active = agents.filter((a) => data?.active_agents.includes(a.id));
-  const agent = active.find((a) => a.id === agentID)?.id || active[0]?.id || "";
+  const draftQueries = state
+    ? conceptQueries(
+        state.draft,
+        ontologyID,
+        entityID,
+        draftVersion.data?.definition,
+      )
+    : [];
+  const queries = [
+    ...publishedQueries,
+    ...draftQueries.filter((e) => !publishedQueries.some((p) => p.id === e.id)),
+  ];
+  const candidates =
+    state?.draft.entries.filter(
+      (e) => e.template && !e.template.concept_refs?.includes(ref),
+    ) || [];
+  const activeAgent = agents.find((a) =>
+    ready.data?.active_agents.includes(a.id),
+  );
+  const executable = publishedQueries.filter(
+    (entry) =>
+      source.enabled &&
+      ready.data?.templates.some((r) => r.id === entry.id && r.executable),
+  ).length;
+  const loadingVersion =
+    (!!publishedBinding && !publishedVersion.data && !publishedVersion.error) ||
+    (!!draftBinding && !draftVersion.data && !draftVersion.error);
+  const loadError =
+    error || ready.error || publishedVersion.error || draftVersion.error;
+  async function link() {
+    const entry = candidates.find((e) => e.id === selectedQuery);
+    if (!state || !entry) return;
+    setBusy(true);
+    onBusy(true);
+    setError("");
+    try {
+      const linked = linkQueryConcept(state.draft, entry, ontologyID, ref);
+      const next = await api<SemanticState>(
+        `${endpoint}/entries/${encodeURIComponent(entry.id)}`,
+        {
+          method: "PUT",
+          body: payload({ revision: state.revision, entry: linked }),
+        },
+      );
+      setState(next);
+      setSaved(entry.id);
+      setLinking(false);
+      setSelectedQuery("");
+      ready.refresh();
+    } catch (e) {
+      setConflict(e instanceof APIError && e.detail.code === "conflict");
+      setError(message(e));
+    } finally {
+      setBusy(false);
+      onBusy(false);
+    }
+  }
+  function refresh() {
+    setReloadKey((n) => n + 1);
+    publishedVersion.retry();
+    loadedDraftVersion.retry();
+    setSaved("");
+  }
   return (
     <>
-      <ErrorNote error={error || loadError} />
+      <ErrorNote error={loadError} />
       {loadError && (
-        <Button onClick={() => setRetry((v) => v + 1)}>
-          {t("Retry adopted version")}
+        <Button disabled={busy} onClick={refresh}>
+          {t("Reload queries")}
         </Button>
       )}
-      {!data ? (
-        error ? (
-          <Button onClick={refresh}>{t("Retry usage")}</Button>
-        ) : (
-          <Loading />
-        )
-      ) : !binding ? (
-        <p className="help">
-          {t("This source no longer has a published binding to this ontology.")}
-        </p>
+      {(!state || !ready.data || loadingVersion) && !loadError ? (
+        <Loading />
       ) : (
-        <div className="concept-source">
-          <h4>
-            {source.name}
-            {t(" · ontology version ")}
-            {binding.version}
-          </h4>
-          <p className="help">
-            {t("Source publication ")}
-            {data.published_version}
-            {data.draft_ontology?.version !== binding.version
-              ? t(" · A different binding is selected in the draft")
-              : ""}
-          </p>
-          {!entity ? (
-            <p>
-              {t(
-                "This entity is not mapped in the adopted version. It is not visible to Agents on this source.",
+        state &&
+        ready.data &&
+        !loadingVersion &&
+        !publishedVersion.error &&
+        !draftVersion.error &&
+        !ready.error && (
+          <>
+            <div className="concept-coverage">
+              <span className={`status ${executable ? "green" : "muted"}`}>
+                {t(
+                  coverageLabel({
+                    sources: entity ? 1 : 0,
+                    linked_templates: publishedQueries.length,
+                    templates: executable,
+                  }),
+                )}
+              </span>
+              {publishedBinding && (
+                <small>
+                  {t("Adopted version {version}", {
+                    version: publishedBinding.version,
+                  })}
+                </small>
               )}
-            </p>
-          ) : (
-            <>
-              <p>
-                <strong>{t("Physical objects")}</strong>
-              </p>
-              <ul>
-                {entity.objects.map((o, i) => (
-                  <li key={i}>
-                    <code>
-                      {o.namespace ? `${o.namespace}.` : ""}
-                      {o.object}
-                    </code>
-                  </li>
-                ))}
-              </ul>
+              <Button disabled={busy} onClick={refresh}>
+                {t("Refresh")}
+              </Button>
+            </div>
+            {!!entity && (
               <p className="help">
-                {properties.length}
-                {t(" mapped properties · ")}
-                {relations.length} {t("mapped relationships")}
+                {t("{count} executable queries", { count: executable })}
               </p>
-              {properties.length > 0 && (
-                <details>
-                  <summary>{t("Property mappings")}</summary>
-                  <ul>
-                    {properties.map((p) => (
-                      <li key={p.property}>
-                        <strong>{p.property}</strong> →{" "}
-                        {p.reference
-                          ? `${p.reference.namespace}.${p.reference.object}.${p.reference.field || ""}`
-                          : t("Template: {template_id}", {
-                              template_id: p.template_id,
-                            })}
-                      </li>
-                    ))}
-                  </ul>
-                </details>
-              )}
-              <Field label={t("Agent for template preview")}>
-                <select
-                  value={agent}
-                  onChange={(e) => setAgentID(e.target.value)}
-                >
-                  {!active.length && (
-                    <option value="">{t("No active authorized Agent")}</option>
-                  )}
-                  {active.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              {!version && !loadError ? (
-                <Loading />
-              ) : templates.length ? (
-                <ul className="workflow-items">
-                  {templates.map((queryTemplate) => (
-                    <li key={queryTemplate.id}>
-                      <div>
-                        <strong>{queryTemplate.name}</strong>
-                        <small>
-                          {queryTemplate.executable
-                            ? t("Executable")
-                            : t(queryTemplate.status.replaceAll("_", " "))}
-                        </small>
-                      </div>
-                      <Button
-                        disabled={
-                          !queryTemplate.executable || !source.enabled || !agent
-                        }
-                        onClick={() =>
-                          navigate(
-                            semanticsURL(
-                              source.id,
-                              "Query templates",
-                              queryTemplate.id,
-                              agent,
-                            ),
-                          )
-                        }
-                      >
-                        {t("Preview as Agent")}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="help">
+            )}
+            {!draftEntity && (
+              <div className="notice">
+                <span>
                   {t(
-                    "No published templates explicitly linked to this concept. Link a template or mapping to make the query path discoverable.",
+                    "Map this concept in the source draft before linking queries.",
                   )}
-                </p>
-              )}
-            </>
-          )}
-          <div className="button-row">
-            <Button
-              onClick={() =>
-                navigate(semanticsURL(source.id, "Ontology mapping"))
-              }
-            >
-              {t("Open mapping")}
-            </Button>
-            <Button onClick={() => navigate(`/sources/${source.id}/setup`)}>
-              {t("Agent setup")}
-            </Button>
-          </div>
-        </div>
+                </span>
+                <Button
+                  onClick={() =>
+                    navigate(semanticsURL(source.id, "Ontology mapping"))
+                  }
+                >
+                  {t("Set up mapping")}
+                </Button>
+              </div>
+            )}
+            {!!draftEntity && !entity && (
+              <p className="help">
+                {t("Mapping in draft · not visible to Agents yet")}
+              </p>
+            )}
+            {saved && (
+              <div className="notice success" role="status">
+                <span>{t("Association saved to draft.")}</span>
+                <Button
+                  onClick={() =>
+                    navigate(queryToolURL(source.id, saved, "", context))
+                  }
+                >
+                  {t("Review and publish")}
+                </Button>
+              </div>
+            )}
+            <div className="button-row">
+              <Button
+                primary
+                disabled={busy || !draftEntity}
+                onClick={() =>
+                  navigate(queryToolURL(source.id, "", "", context, true))
+                }
+              >
+                {t("Create query")}
+              </Button>
+              <Button
+                disabled={busy || !draftEntity}
+                aria-expanded={linking}
+                onClick={() => setLinking(!linking)}
+              >
+                {t("Link existing query")}
+              </Button>
+            </div>
+            {linking && (
+              <section className="concept-link-form">
+                <Field label={t("Query to link")}>
+                  <select
+                    disabled={busy}
+                    value={selectedQuery}
+                    onChange={(e) => setSelectedQuery(e.target.value)}
+                  >
+                    <option value="">{t("Select a query")}</option>
+                    {candidates.map((entry) => (
+                      <option key={entry.id} value={entry.id}>
+                        {entry.name}
+                      </option>
+                    ))}
+                  </select>
+                </Field>
+                {!candidates.length && (
+                  <p className="help">
+                    {t("No unlinked query drafts in this source.")}
+                  </p>
+                )}
+                <div className="button-row">
+                  <Button
+                    primary
+                    busy={busy}
+                    disabled={!selectedQuery || conflict}
+                    onClick={link}
+                  >
+                    {t("Save association")}
+                  </Button>
+                  <Button disabled={busy} onClick={() => setLinking(false)}>
+                    {t("Cancel")}
+                  </Button>
+                </div>
+              </section>
+            )}
+            <h3>{t("Linked queries")}</h3>
+            {queries.length ? (
+              <ul className="workflow-items concept-query-list">
+                {queries.map((entry) => {
+                  const published = publishedQueries.find(
+                    (e) => e.id === entry.id,
+                  );
+                  const draft = state.draft.entries.find(
+                    (e) => e.id === entry.id,
+                  );
+                  const inDraft = draftQueries.some((e) => e.id === entry.id);
+                  const evidence = ready.data?.templates.find(
+                    (e) => e.id === entry.id,
+                  );
+                  const available =
+                    !!published && source.enabled && evidence?.executable;
+                  return (
+                    <li key={entry.id}>
+                      <div>
+                        <strong>{entry.name}</strong>
+                        <small>
+                          {t(
+                            published
+                              ? available
+                                ? "Executable"
+                                : source.enabled
+                                  ? evidence?.status.replaceAll("_", " ") ||
+                                    "Unavailable"
+                                  : "Source disabled"
+                              : "Draft association",
+                          )}
+                        </small>
+                        {published &&
+                          (!inDraft || !sameQueryEntry(published, draft)) && (
+                            <small>{t("Unpublished changes")}</small>
+                          )}
+                      </div>
+                      <div className="button-row">
+                        <Button
+                          disabled={!available || busy}
+                          onClick={() => setPreview(published!)}
+                        >
+                          {t("Preview")}
+                        </Button>
+                        {draft && (
+                          <Button
+                            disabled={busy}
+                            onClick={() =>
+                              navigate(
+                                queryToolURL(
+                                  source.id,
+                                  entry.id,
+                                  "",
+                                  context,
+                                  true,
+                                ),
+                              )
+                            }
+                          >
+                            {t("Edit query")}
+                          </Button>
+                        )}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="help">{t("No queries linked yet")}</p>
+            )}
+            {(entity || draftEntity) && (
+              <details className="concept-mapping-details">
+                <summary>{t("Source mapping")}</summary>
+                {(entity || draftEntity)!.objects.map((object, i) => (
+                  <p key={i}>
+                    <code>
+                      {[object.namespace, object.object]
+                        .filter(Boolean)
+                        .join(".")}
+                    </code>
+                  </p>
+                ))}
+                <Button
+                  disabled={busy}
+                  onClick={() =>
+                    navigate(semanticsURL(source.id, "Ontology mapping"))
+                  }
+                >
+                  {t("Manage mapping")}
+                </Button>
+              </details>
+            )}
+          </>
+        )
+      )}
+      {preview && (
+        <TemplatePreview
+          source={source}
+          entry={preview}
+          agents={agents}
+          initialAgentID={activeAgent?.id || ""}
+          backLabel={t("Back to concept")}
+          onClose={() => setPreview(null)}
+        />
       )}
     </>
   );

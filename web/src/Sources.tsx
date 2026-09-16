@@ -26,9 +26,11 @@ export function Sources({
   catalog,
   reload,
   notify,
+  onCreateQuery,
 }: {
   navigate: (path: string) => void;
   sources: Source[];
+  onCreateQuery: (source: Source, query: string) => void;
   agents: Agent[];
   catalog: Capability[];
   reload: () => Promise<void>;
@@ -122,7 +124,6 @@ export function Sources({
       <div className="page-header">
         <div>
           <h1>{t("Data sources")}</h1>
-          <p>{t("Manage database and API connections with controlled read access")}</p>
         </div>
         <Button primary onClick={() => setEditing(null)}>
           <Plus size={17} />
@@ -202,7 +203,7 @@ export function Sources({
       ) : (
         <>
           <div className="table-scroll">
-            <table className="source-table">
+            <table className="source-table responsive-table">
               <thead>
                 <tr>
                   <th>{t("Name")}</th>
@@ -220,7 +221,7 @@ export function Sources({
                       key={s.id}
                       className={editing?.id === s.id ? "selected" : ""}
                     >
-                      <td>
+                      <td data-label={t("Name")}>
                         <button
                           className="text-button name-link"
                           onClick={() => navigate(`/sources/${s.id}/setup`)}
@@ -241,7 +242,7 @@ export function Sources({
                           </small>
                         )}
                       </td>
-                      <td>
+                      <td data-label={t("Type")}>
                         {catalog.find((c) => c.kind === s.kind)?.name || s.kind}
                         {s.kind === "influxdb" ? (
                           <small className="inline-version">
@@ -251,10 +252,10 @@ export function Sources({
                           </small>
                         ) : null}
                       </td>
-                      <td>
+                      <td data-label={t("Read-only protection")}>
                         <Protection probe={s.probe} />
                       </td>
-                      <td>
+                      <td data-label={t("Status")}>
                         <span
                           className={`status ${s.enabled && s.probe?.connected ? "green" : "muted"}`}
                         >
@@ -265,7 +266,7 @@ export function Sources({
                               ? t("Connected at last check")
                               : s.probe
                                 ? t("Connection failed")
-                                : t("Not checked")}
+                                : t("Connection not checked")}
                         </span>
                         <small className="block">
                           {s.probe
@@ -280,7 +281,7 @@ export function Sources({
                           </small>
                         ) : null}
                       </td>
-                      <td>
+                      <td data-label={t("Actions")}>
                         <div className="row-actions">
                           <button
                             className="text-button"
@@ -423,6 +424,7 @@ export function Sources({
       ) : null}
       {detail ? (
         <SourceDetails
+          onCreateQuery={onCreateQuery}
           agents={agents}
           source={detail}
           catalog={catalog}

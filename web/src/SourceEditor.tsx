@@ -37,9 +37,11 @@ export function SourceEditor({
   catalog,
   onClose,
   onSaved,
+  initialQueryAccessMode,
 }: {
   source: Source | null;
   catalog: Capability[];
+  initialQueryAccessMode?: Source["query_access_mode"];
   onClose: () => void;
   onSaved: (
     notice: string,
@@ -48,7 +50,9 @@ export function SourceEditor({
   ) => Promise<void>;
 }) {
   const [form, setForm] = useState<Source>(() =>
-    source ? structuredClone(source) : initial(),
+    source
+      ? structuredClone(source)
+      : { ...initial(), query_access_mode: initialQueryAccessMode },
   );
   const [savedSource, setSavedSource] = useState(source);
   const [probe, setProbe] = useState(source?.probe);
@@ -139,7 +143,6 @@ export function SourceEditor({
     <Drawer
       wide={httpAPI}
       title={savedSource ? t("Configure data source") : t("Add data source")}
-      subtitle={t("Configure the connection, credentials and query limits")}
       onClose={onClose}
       footer={
         <>
@@ -542,11 +545,11 @@ export function SourceEditor({
                   )}
                 </p>
               </>
-            ) : (
+            ) : source?.has_secret || source?.username ? (
               <p className="help">
                 {t("Saving removes any stored username, password and token.")}
               </p>
-            )}
+            ) : null}
             {httpAPI && form.auth_mode === "token" && (
               <Field
                 label={t("API key header (optional)")}
@@ -629,7 +632,7 @@ export function SourceEditor({
               label={t("API contract version")}
               required
               hint={t(
-                "Update this version when the upstream contract changes. Changing it expires template trials; it is not an automatically detected server version.",
+                "Changing the contract version expires template verification.",
               )}
             >
               <input

@@ -23,12 +23,24 @@ These checks validate definition consistency. They do not establish that every d
 - Drag an entity card by its header to arrange the model. Drag empty canvas space to pan; use the zoom controls, **Fit**, or **Auto layout** to navigate. **Find entity on graph** brings a concept into view.
 - Drag a card's **+** connection point onto another entity, or click the origin and target connection points in sequence. The relationship form opens with both endpoints selected. A connection becomes a definition only after **Save to draft**; **Esc** cancels an unfinished connection.
 - Click a relationship line or label to edit it. Parallel and self relationships have separate curves. Dashed links represent inheritance; their labels open the child entity's parent selector.
-- Each card exposes **Edit entity**, **Property** and its first three owned properties for direct editing. Use **Details** to open a right-hand panel with all owned/inherited properties and the relationship map. The graph itself stays focused on the canvas.
-- Keyboard: focus a card header and use arrow keys to move it (**Shift** moves farther); **Enter** selects it. Connection points also work with **Enter**. Focus the canvas to pan with arrows, zoom with **+ / −**, or fit with **0**. The list mode provides the same definition editing without canvas gestures.
+- Click a card header or **Details** to open the right-hand inspector. Edit the entity, add or edit properties, and manage relationships there. Cards show a compact property summary and a **Queries** shortcut. Connection points appear on the selected card, or on all cards while connecting.
+- Keyboard: focus a card header and use arrow keys to move it (**Shift** moves farther); **Enter** opens its details. Connection points also work with **Enter**. Focus the canvas to pan with arrows, zoom with **+ / −**, or fit with **0**. The list mode provides the same definition editing without canvas gestures.
 
 Card positions are saved only in the current browser, separately for each ontology. They are not part of JSON export, shared definitions or published versions. Moving cards never changes the draft revision. Definition edits still use optimistic concurrency, validation and explicit publication; existing data source bindings remain pinned.
 
 The details panel lets you follow related entities and edit definitions; saving or canceling an edit returns to the panel. **Back to canvas**, the close button or **Esc** dismisses the panel without resetting the canvas. On narrow screens, the panel uses the full width. Selecting an already visible card preserves the canvas position. Unsaved settings and form edits block navigation until saved, reverted or explicitly discarded; saving temporarily locks inputs. **Enter** in an input saves and closes the entry, while **Save & add another** remains an explicit action. When another tab changes the draft, your edit stays in the form: use **Export unsaved entry** to keep a JSON copy, then **Reload latest draft** and confirm discarding the local edit before continuing with the current revision.
+
+## Connect concepts to queries
+
+Select **Queries →** on an entity card. Choose a data source, then **Link existing query**, **Create query**, or **Preview** an available published query. The panel distinguishes published coverage from pending draft associations. If the concept is not mapped in the source draft, use **Set up mapping** first.
+
+**Link existing query** changes only that query's concept references, preserves its native query and parameter values, and saves with the current source revision. A concurrent edit rejects the save; reload and review before retrying. **Create query** opens the query publishing flow with the source and concept selected. **Back to concept** returns to the original entity and source.
+
+In either query editor, **Business concepts → Choose concepts** shows mapped entities, effective properties and relationships by name. Click a selected concept to inspect its definition. Available choices come from the source draft's pinned ontology version; unresolved existing references remain visible for repair. A standalone query does not need an ontology.
+
+Coverage labels on the graph describe published state: **Definition only**, **Mapped · no queries**, **Queries available**, or **Queries unavailable**. Draft associations do not make a query available to Agents. Review and publish the full source draft to activate changes. Pure concept associations preserve trial evidence and execution versions. Queries still require valid execution evidence and current authorization.
+
+Published query details show linked concept definitions. MCP `get_semantic_entry` includes source-visible concept references and names in a query's `related_entries`, allowing discovery in both directions. This adds business context, not generated queries, parameter/property bindings, result conversion or new permissions.
 
 ## Map a data source
 
@@ -37,7 +49,7 @@ Open **Data sources → Semantics → Ontology mapping**. Choose an ontology and
 - **Entity mappings** select one or more physical objects in the current source. Each reference has an explicit namespace and object name.
 - **Property mappings** select an effective entity property and either a physical field path or an enabled read-only query template. Inherited properties can be mapped separately for different effective entities.
 - **Relation mappings** describe field pairs between the two mapped endpoint entities, an enabled association query template, or both. They never generate joins, query text or parameter bindings.
-- In **Query templates**, select the mapped concepts that a template explicitly represents. These references appear in its execution results. A relation or computed-property mapping also guides discovery to its associated template.
+- In **Query tools**, select the mapped concepts that a template explicitly represents. These references appear in its execution results. A relation or computed-property mapping also guides discovery to its associated template.
 
 Run the normal real **Trial** for each new or changed enabled template, then **Check structure**. The check reads existing metadata APIs, not business samples. Objects must be discoverable. Fields absent from metadata require explicit administrator declaration and remain **unverified**. For example, MongoDB index metadata exposes indexed document paths; other document paths need declarations. Neo4j labels can be discovered, but this feature does not run the existing node-content property scan.
 
@@ -138,3 +150,5 @@ MCPDBHUB_REUSE_FIXTURES=postgres,mongodb python3 scripts/matrix.py
 The script seeds explicitly isolated fixtures, uses read-only database accounts for ContextGate, and verifies complex native queries, exact decimals, empty results, parameter rejection, source projection, version lifecycle, cursor invalidation and request-start context. It writes a sanitized [verification record](verification/ontology.json). The [full matrix](verification/matrix.json) independently exercises all seven native query families with ontology-associated templates.
 
 For a guided four-entity model with composite identity, exact amounts, three query templates and seeded PostgreSQL data, see the [retail demo](../examples/ontologies/retail-demo/README.md).
+
+The entity query panel initially offers sources with a published mapping for that entity. A single mapped source is selected automatically; use **Connect another data source** to inspect or configure other sources. Draft mappings remain unpublished until reviewed.

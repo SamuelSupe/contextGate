@@ -21,12 +21,14 @@ export function SourceDetails({
   agents,
   onClose,
   initialAgentID = "",
+  onCreateQuery,
 }: {
   source: Source;
   catalog: Capability[];
   agents: Agent[];
   onClose: () => void;
   initialAgentID?: string;
+  onCreateQuery?: (source: Source, query: string) => void;
 }) {
   const cap = source.capability || catalog.find((c) => c.kind === source.kind);
   const [result, setResult] = useState<QueryResult | null>(null);
@@ -233,6 +235,17 @@ export function SourceDetails({
             <Play size={14} />
             {t("Run read-only query")}
           </Button>
+          {onCreateQuery && (
+            <Button
+              disabled={busy}
+              onClick={() => {
+                onClose();
+                onCreateQuery(source, query);
+              }}
+            >
+              {t("Create query tool from this query")}
+            </Button>
+          )}
           {busy ? (
             <Button onClick={() => controller.current?.abort()}>
               {t("Cancel query")}

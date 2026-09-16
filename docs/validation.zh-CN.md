@@ -1,5 +1,13 @@
 # 验收与复现 / Validation
 
+## ContextGate 0.8.0 — 2026-09-16
+
+连续查询发布、本体关联和后续目录/客户端优化见[功能验证记录](query-publishing-validation.zh-CN.md)。发行准备在 OrbStack 通过完整 Go 测试、race、vet、17 项前端流程测试、2 项无损请求测试和 TypeScript/Vite 构建；本机 Chrome 验证中英文流程及 390px 布局，新英文截图使用自有测试数据。现有包大小提示保留。
+
+[0.8.0 发行页](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)附有 [release-verification.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.8.0/release-verification.json)、`dist-arm64.json`、`dist-amd64.json`、`download-arm64.json` 和 `download-amd64.json`，标识具体提交、原生双架构 CI、实际构建包与独立 GitHub 下载包的运行结果。包检查覆盖 HTTP/stdio、PostgreSQL/HTTP API、草稿目录隔离、精确客户端证据、模板/本体、管理员恢复、撤销及 OTLP HTTP/gRPC。本机 amd64 包通过 OrbStack 仿真运行。
+
+最终发行提交没有重跑完整 18 产品 / 20 版本矩阵；功能阶段及下方 0.7.0 报告保留原始摘要。四个云仓库仍未经过真实厂商环境验证；测试实例成功不代表业务试点收益或云服务兼容性。
+
 ## ContextGate 0.7.0 — 2026-09-15
 
 针对 0.7.0 实现重新执行开源数据库 **18 产品／20 版本**矩阵，**135 个查询/错误用例、104 个拒绝操作用例**全部通过。[矩阵记录](verification/matrix.json)保留实现摘要 `4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0`，覆盖真实原生适配器、HTTP MCP、经过试跑的模板/原生等价、固定版本的本体映射、只读拒绝、限制/取消及数据未改变。历史 0.6.0 证据保留在对应发行标签与下方章节。

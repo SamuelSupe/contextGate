@@ -26,12 +26,14 @@ import { useNavigationGuard } from "./useNavigationGuard";
 
 export function Ontologies({
   id,
+  initialQuery = "",
   sources,
   agents,
   navigate,
   notify,
 }: {
   id?: string;
+  initialQuery?: string;
   sources: Source[];
   agents: Agent[];
   navigate: (path: string) => void;
@@ -45,7 +47,10 @@ export function Ontologies({
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [tab, setTab] = useState("Model");
-  const [selectedEntity, setSelectedEntity] = useState("");
+  const initial = new URLSearchParams(initialQuery);
+  const [selectedEntity, setSelectedEntity] = useState(
+    initial.get("entity") || "",
+  );
   const [search, setSearch] = useState("");
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<{
@@ -77,7 +82,7 @@ export function Ontologies({
     setPage(0);
     setSearch("");
     setTab("Model");
-    setSelectedEntity("");
+    setSelectedEntity(initial.get("entity") || "");
     const task = id
       ? api<OntologyState>(`/api/ontologies/${id}`, {
           signal: controller.signal,
@@ -165,11 +170,6 @@ export function Ontologies({
       <div className="page-header">
         <div>
           <h1>{id ? state?.draft.name || t("Ontology") : t("Ontologies")}</h1>
-          <p>
-            {t(
-              "Shared business definitions, independently mapped and authorized per data source.",
-            )}
-          </p>
         </div>
         <div className="button-row">
           <Button disabled={busy || dirty} onClick={() => action(reload)}>
@@ -381,11 +381,17 @@ export function Ontologies({
                   key={state.id}
                   ontologyID={state.id}
                   refreshKey={usageRefreshKey}
-                  sources={sources.filter((s) =>
-                    state.usage.some(
-                      (u) => u.source_id === s.id && u.phase === "published",
-                    ),
+                  sources={[...sources].sort(
+                    (a, b) =>
+                      Number(state.usage.some((u) => u.source_id === b.id)) -
+                      Number(state.usage.some((u) => u.source_id === a.id)),
                   )}
+                  initialInspect={
+                    initial.get("section") === "queries"
+                      ? initial.get("entity") || ""
+                      : ""
+                  }
+                  initialSourceID={initial.get("source_id") || ""}
                   agents={agents}
                   navigate={navigate}
                   overlayOpen={!!editing || !!dialog}

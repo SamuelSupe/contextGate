@@ -1,16 +1,23 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, Search, CheckCircle2 } from "lucide-react";
+import { ArrowRight, Search } from "lucide-react";
 import { api, date, message } from "./api";
 import { Button, Empty, ErrorNote, Field, Loading } from "./components";
 import { t } from "./i18n";
-import { SourceEditor } from "./SourceEditor";
+import { HelpTip } from "./HelpTip";
+import { healthStatusLabels } from "./Health";
+import { useNavigationGuard } from "./useNavigationGuard";
 import {
-  connectionReady,
-  readinessLabel,
-  semanticsURL,
-  useReadiness,
-} from "./readiness";
+  queryToolURL,
+  savedJourneys,
+  queryNextStep,
+  queryStepLabels,
+  type QueryJourney,
+} from "./query-publishing";
+import { SourceEditor } from "./SourceEditor";
+import { RecentQueries } from "./RecentQueries";
+import { useReadiness } from "./readiness";
 import type { Agent, Capability, Source } from "./types";
+import type { SemanticState } from "./semantic-types";
 import "./business-workflows.css";
 
 type HealthSummary = {
@@ -31,19 +38,28 @@ export function Home({
   navigate,
   reload,
   notify,
+  administratorID,
 }: {
+  administratorID: string;
   sources: Source[];
   catalog: Capability[];
   navigate: (url: string) => void;
   reload: () => Promise<void>;
   notify: (text: string) => void;
 }) {
-  const [sourceID, setSourceID] = useState("");
+  const journeys = savedJourneys(administratorID).filter((j) =>
+    sources.some((s) => s.id === j.source_id),
+  );
+  const lastJourney = journeys[0];
+  const [sourceID, setSourceID] = useState(lastJourney?.source_id || "");
   const [keyword, setKeyword] = useState("");
   const [adding, setAdding] = useState(false);
   const [health, setHealth] = useState<HealthSummary | null>(null);
   const [error, setError] = useState("");
   const [refresh, setRefresh] = useState(0);
+  const [resumePending, setResumePending] = useState(false);
+  const [checking, setChecking] = useState("");
+  useNavigationGuard(false, !!checking);
   const source = sources.find((s) => s.id === sourceID) || sources[0];
   useEffect(() => {
     const abort = new AbortController();
@@ -64,23 +80,49 @@ export function Home({
         !["checked", "disabled"].includes(s.status) ||
         s.invalid_templates.length,
     ) || [];
+  async function checkSource(id: string) {
+    setChecking(id);
+    setError("");
+    try {
+      await api(`/api/health/${id}/check`, { method: "POST", body: "{}" });
+      await reload();
+      setRefresh((n) => n + 1);
+    } catch (e) {
+      setError(message(e));
+    } finally {
+      setChecking("");
+    }
+  }
   return (
     <>
       <div className="page-header">
         <div>
           <h1>{t("Home")}</h1>
-          <p>{t("Turn business questions into trusted Agent queries.")}</p>
         </div>
-        <Button onClick={() => setAdding(true)}>{t("Add data source")}</Button>
+        {sources.length > 0 && (
+          <Button onClick={() => navigate(queryToolURL())}>
+            {t("New query")}
+          </Button>
+        )}
       </div>
+      {lastJourney && sources.some((s) => s.id === lastJourney.source_id) && (
+        <ResumeQuery
+          key={lastJourney.source_id + lastJourney.template_id}
+          journey={lastJourney}
+          source={sources.find((s) => s.id === lastJourney.source_id)!}
+          navigate={navigate}
+          onPending={setResumePending}
+        />
+      )}
+      <RecentQueries
+        journeys={journeys.slice(1)}
+        sources={sources}
+        navigate={navigate}
+      />
       {sources.length > 0 && (
         <section className="business-search-banner">
-          <h2>{t("What can your Agent answer?")}</h2>
-          <p>
-            {t(
-              "Find published terms, metrics, business concepts and verified queries across your data sources.",
-            )}
-          </p>
+          <h2>{t("Find a query")}</h2>
+
           <form
             className="business-search-form"
             onSubmit={(e) => {
@@ -100,8 +142,8 @@ export function Home({
                 onChange={(e) => setKeyword(e.target.value)}
               />
             </div>
-            <Button primary type="submit">
-              {t("Explore business catalog")}
+            <Button primary={!resumePending} type="submit">
+              {t("Find query tools")}
               <ArrowRight size={16} />
             </Button>
           </form>
@@ -110,11 +152,11 @@ export function Home({
       <div className="home-columns">
         <section className="business-panel">
           <div className="section-heading">
-            <h2>{t("From connection to first answer")}</h2>
+            <h2>{t("Source overview")}</h2>
           </div>
           {source ? (
             <>
-              <Field label={t("Continue with a data source")}>
+              <Field label={t("Data source")}>
                 <select
                   value={source.id}
                   onChange={(e) => setSourceID(e.target.value)}
@@ -135,12 +177,10 @@ export function Home({
           ) : (
             <Empty
               title={t("Start with one business question")}
-              description={t(
-                "Connect a database or read API, publish one useful query, then try it with your Agent. You can add a shared ontology later.",
-              )}
+              description={t("Connect a source and publish your first query.")}
               action={
-                <Button primary onClick={() => setAdding(true)}>
-                  {t("Connect your first data source")}
+                <Button primary onClick={() => navigate(queryToolURL())}>
+                  {t("Publish your first query")}
                 </Button>
               }
             />
@@ -165,20 +205,46 @@ export function Home({
                       <strong>{s.name}</strong>
                       <small>
                         {s.invalid_templates.length
-                          ? t("Templates need validation")
-                          : t("Review connection and structure evidence")}
+                          ? t("{count} queries need validation", {
+                              count: s.invalid_templates.length,
+                            })
+                          : t(
+                              healthStatusLabels[s.status] ||
+                                "Review connection and structure evidence",
+                            )}
                       </small>
                     </div>
                     <Button
-                      onClick={() =>
-                        navigate(
-                          s.invalid_templates.length
-                            ? semanticsURL(s.id, "Query templates")
-                            : `/sources/${s.id}/setup`,
+                      busy={checking === s.id}
+                      disabled={!!checking}
+                      onClick={() => {
+                        if (s.invalid_templates.length)
+                          navigate(
+                            `/business?view=attention&source_id=${encodeURIComponent(s.id)}`,
+                          );
+                        else if (
+                          ["not_checked", "overdue", "stale"].includes(s.status)
                         )
-                      }
+                          void checkSource(s.id);
+                        else
+                          navigate(
+                            s.status === "connection_failed"
+                              ? `/sources/${s.id}/setup`
+                              : "/health",
+                          );
+                      }}
                     >
-                      {t("Review")}
+                      {t(
+                        s.invalid_templates.length
+                          ? "Review queries"
+                          : ["not_checked", "overdue", "stale"].includes(
+                                s.status,
+                              )
+                            ? "Check now"
+                            : s.status === "connection_failed"
+                              ? "Review connection"
+                              : "Review structure",
+                      )}
                     </Button>
                   </li>
                 ))}
@@ -219,11 +285,7 @@ export function Home({
                 !health.expiring_agents.length &&
                 !health.pending_changes &&
                 !health.audit_export.last_error && (
-                  <p className="help">
-                    {t(
-                      "No items need attention in the current health page. Open Health to review all sources and evidence coverage.",
-                    )}
-                  </p>
+                  <p className="help">{t("No items need attention.")}</p>
                 )}
               <Button onClick={() => navigate("/health")}>
                 {t("View all health checks")}
@@ -233,19 +295,6 @@ export function Home({
           ) : null}
         </section>
       </div>
-      <section className="business-optional">
-        <div>
-          <h2>{t("Reuse business meaning when you need it")}</h2>
-          <p>
-            {t(
-              "Shared ontologies connect concepts such as Customer and Order to different data sources. They are optional for your first query.",
-            )}
-          </p>
-        </div>
-        <Button onClick={() => navigate("/ontologies")}>
-          {t("Explore ontologies")}
-        </Button>
-      </section>
       {adding && (
         <SourceEditor
           source={null}
@@ -279,94 +328,179 @@ function SourceJourney({
       </>
     );
   if (!data) return <Loading />;
-  const steps = [
-    {
-      name: "Connect data source",
-      done: connectionReady(source),
-      url: `/sources/${source.id}/setup`,
-      hint: "Review the connection and its protection evidence.",
-    },
-    {
-      name:
-        source.query_access_mode === "templates_only"
-          ? "Publish one useful query"
-          : "Choose a query",
-      done:
-        data.executable_templates > 0 ||
-        source.query_access_mode !== "templates_only",
-      url:
-        source.query_access_mode === "templates_only"
-          ? semanticsURL(source.id, "Query templates")
-          : `/sources/${source.id}/setup`,
-      hint:
-        source.query_access_mode === "templates_only"
-          ? "Write a native template, trial it and publish. Ontology mapping is optional."
-          : "Native queries are available. Verified templates are optional.",
-    },
-    {
-      name: "Grant Agent access",
-      done: data.active_agents.length > 0,
-      url: data.active_agents.length
-        ? `/sources/${source.id}/setup`
-        : `/agents?create=1&source_id=${encodeURIComponent(source.id)}`,
-      hint: "Choose data source access and follow your client's setup guide.",
-    },
-    {
-      name: "Confirm a real client query",
-      done: !!data.last_query,
-      url: `/sources/${source.id}/setup`,
-      hint: "Ask in your Agent client. Administrator previews do not complete this step.",
-    },
-  ];
-  const next = steps.findIndex((step) => !step.done);
   return (
     <>
-      <p className="help">{readinessLabel(source, data)}</p>
-      <ol className="journey-steps">
-        {steps.map((step, index) => (
-          <li key={step.name} className={index === next ? "current" : ""}>
-            <span
-              className="journey-marker"
-              aria-label={
-                step.done
-                  ? t("Complete")
-                  : t("Step {number}", { number: index + 1 })
-              }
-            >
-              {step.done ? <CheckCircle2 size={19} /> : index + 1}
-            </span>
-            <div>
-              <strong>{t(step.name)}</strong>
-              <p>{t(step.hint)}</p>
-              {index === 3 && data.last_query && (
-                <small>
-                  {t("Last successful client query: {time}", {
-                    time: date(data.last_query),
-                  })}
-                </small>
-              )}
-            </div>
-            <Button primary={index === next} onClick={() => navigate(step.url)}>
-              {index === next ? t("Continue") : t("Open")}
-            </Button>
-          </li>
-        ))}
-      </ol>
-      {next === -1 && (
-        <div className="button-row">
+      <div className="query-status-grid home-source-metrics">
+        <div>
+          <div className="label-with-help metric-label">
+            <small>{t("Publication")}</small>
+          </div>
+          <strong>
+            {t("{count} published queries", { count: data.templates.length })}
+          </strong>
+          <span>
+            {t("{count} currently executable", {
+              count: data.executable_templates,
+            })}
+          </span>
+        </div>
+        <div>
+          <div className="label-with-help metric-label">
+            <small>{t("Client activity")}</small>
+            <HelpTip title={t("Client activity")}>
+              <p>
+                {t(
+                  "Successful Agent calls on this source in the last 30 days, including native queries and query tools. Previews are excluded.",
+                )}
+              </p>
+              <p>
+                {t(
+                  "Client activity does not confirm business answer correctness.",
+                )}
+              </p>
+              <p>
+                {t("Evidence window: {from} to {until}", {
+                  from: date(data.activity_since),
+                  until: date(data.checked_at),
+                })}
+              </p>
+            </HelpTip>
+          </div>
+          <strong>
+            {t("{count} successful calls in 30 days", {
+              count: data.client_queries,
+            })}
+          </strong>
+          <span>
+            {data.last_query
+              ? t("Last call: {time}", { time: date(data.last_query) })
+              : t("No client query observed in this window")}
+          </span>
+        </div>
+      </div>
+
+      <div className="button-row">
+        <Button
+          onClick={() =>
+            navigate(
+              `/business?${new URLSearchParams({ view: "queries", source_id: source.id })}`,
+            )
+          }
+        >
+          {t("Open queries")}
+        </Button>
+        <Button onClick={() => navigate(`/sources/${source.id}/evaluation`)}>
+          {t("Review business questions")}
+        </Button>
+        <Button onClick={() => navigate(`/sources/${source.id}/setup`)}>
+          {t("Connection and access")}
+        </Button>
+      </div>
+    </>
+  );
+}
+
+function ResumeQuery({
+  journey,
+  source,
+  navigate,
+  onPending,
+}: {
+  journey: QueryJourney;
+  source: Source;
+  navigate: (url: string) => void;
+  onPending: (pending: boolean) => void;
+}) {
+  const [state, setState] = useState<SemanticState | null>(null);
+  const [error, setError] = useState("");
+  const [retry, setRetry] = useState(0);
+  const entry =
+    state?.draft.entries.find(
+      (e) => e.id === journey.template_id && e.template,
+    ) ||
+    state?.published.entries.find(
+      (e) => e.id === journey.template_id && e.template,
+    );
+  const ready = useReadiness(
+    entry ? source.id : "",
+    `${source.revision}:${state?.revision}:${retry}`,
+    journey.template_id,
+    journey.agent_id,
+  );
+  useEffect(() => {
+    const abort = new AbortController();
+    setError("");
+    api<SemanticState>(
+      `/api/sources/${encodeURIComponent(source.id)}/semantics`,
+      { signal: abort.signal },
+    )
+      .then(setState)
+      .catch((e) => {
+        if (!abort.signal.aborted) setError(message(e));
+      });
+    return () => abort.abort();
+  }, [source.id, retry]);
+  const next = state
+    ? queryNextStep(state, ready.data, journey.template_id, journey.agent_id)
+    : "loading";
+  const missing = !!state && !!journey.template_id && !entry;
+  const pending =
+    next !== "done" && next !== "loading" && !error && !ready.error;
+  useEffect(() => {
+    onPending(pending);
+    return () => onPending(false);
+  }, [pending, onPending]);
+  return (
+    <section className="home-resume">
+      <div className="section-heading">
+        <div>
+          <h2>{t(next === "done" ? "Recent query" : "Continue last setup")}</h2>
+          <strong>{entry?.name || source.name}</strong>
+          <span className="help">
+            {entry ? `${source.name} · ` : ""}
+            {missing
+              ? t("Query no longer available")
+              : error || ready.error
+                ? t("Status unavailable")
+                : !source.enabled
+                  ? t("Source disabled")
+                  : t(queryStepLabels[next])}
+          </span>
+        </div>
+        {(error || ready.error) && !missing ? (
           <Button
-            primary
+            primary={pending}
+            onClick={() => {
+              setRetry((v) => v + 1);
+              ready.refresh();
+            }}
+          >
+            {t("Retry")}
+          </Button>
+        ) : (
+          <Button
+            primary={pending}
+            disabled={next === "loading"}
             onClick={() =>
-              navigate(`/business?source_id=${encodeURIComponent(source.id)}`)
+              navigate(
+                queryToolURL(
+                  source.id,
+                  missing ? "" : journey.template_id,
+                  journey.agent_id,
+                ),
+              )
             }
           >
-            {t("Explore available queries")}
+            {t(
+              next === "done"
+                ? "Open query"
+                : missing
+                  ? "Choose another query"
+                  : "Continue",
+            )}
           </Button>
-          <Button onClick={() => navigate(`/sources/${source.id}/evaluation`)}>
-            {t("Evaluate a business question")}
-          </Button>
-        </div>
-      )}
-    </>
+        )}
+      </div>
+    </section>
   );
 }

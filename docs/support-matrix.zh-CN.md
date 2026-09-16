@@ -32,7 +32,7 @@
 | InfluxDB 3 Core | 3.11.2 | SQL 与 InfluxQL 固定 API；`$name` | 显式查询 | **查询 API 隔离**；管理员 Token 本身具有管理权限 |
 
 
-## 0.7.0 云数仓预览
+## 云数仓预览（自 0.7.0 起）
 
 | 连接器 | 接口 / 参数 | 真实云环境验证 |
 |---|---|---|
@@ -41,7 +41,7 @@
 | Google BigQuery | Jobs API、dry-run SELECT；`@name` 与 named_params | 未验证 |
 | Amazon Redshift | PostgreSQL 协议、只读事务；`$1` 与 params | 未验证 |
 
-四个预览适配器已包含在 0.7.0 下载包中，但不计入上述已验证数量。云 REST 模拟测试验证请求/响应处理，不能证明产品兼容。结构发现、认证方式、受限 SQL 子集、计费上限和手工维护的云连接版本见[云数仓指南](cloud-warehouses.zh-CN.md)。
+四个预览适配器继续包含在当前下载包中，但不计入上述已验证数量。云 REST 模拟测试验证请求/响应处理，不能证明产品兼容。结构发现、认证方式、受限 SQL 子集、计费上限和手工维护的云连接版本见[云数仓指南](cloud-warehouses.zh-CN.md)。
 
 ## 读取边界
 

@@ -1,4 +1,3 @@
-import { httpTemplate } from "./http-template";
 import { SemanticReview } from "./SemanticReview";
 import { SemanticHistory } from "./SemanticHistory";
 import { t } from "./i18n";
@@ -15,7 +14,6 @@ import { api, date, message, payload } from "./api";
 import { Button, Drawer, Empty, ErrorNote, Field, Loading } from "./components";
 import { SemanticVisibility } from "./SemanticVisibility";
 import { OntologyMapping } from "./OntologyMapping";
-import { conceptRefs } from "./ontology-types";
 import { SemanticEditor } from "./SemanticEditor";
 import { StructureImport, TemplatePreview } from "./SemanticTools";
 import {
@@ -41,6 +39,7 @@ export function Semantics({
   agents,
   onBack,
   onWorkspace,
+  onQuery,
   notify,
   initialQuery = "",
 }: {
@@ -48,6 +47,7 @@ export function Semantics({
   agents: Agent[];
   onBack: () => void;
   onWorkspace: () => void;
+  onQuery: (id?: string) => void;
   notify: (s: string) => void;
   initialQuery?: string;
 }) {
@@ -146,29 +146,18 @@ export function Semantics({
     (v) => !v.valid && v.status !== "disabled",
   ).length;
   const unsavedOverview = overview !== state.draft.overview || mappingDirty;
+  function editEntry(entry: SemanticEntry) {
+    if (entry.template) onQuery(entry.id);
+    else setEditing(entry);
+  }
   const create = () => {
-    const template = tab === "Query templates";
-    const example = { ...source.capability?.example };
-    delete example.source_id;
-    setEditing({
-      id: `${template ? "template" : "entry"}_${crypto.randomUUID()}`,
-      kind: template ? "template" : "term",
-      name: "",
-      ...(template
-        ? {
-            template: {
-              enabled: true,
-              tool: source.capability?.tool || "query_sql",
-              query_json: JSON.stringify(example, null, 2),
-              parameters: [],
-              example_json: "{}",
-              ...(source.http_api?.operations[0]
-                ? httpTemplate(source.http_api.operations[0])
-                : {}),
-            },
-          }
-        : {}),
-    });
+    if (tab === "Query templates") onQuery();
+    else
+      setEditing({
+        id: `entry_${crypto.randomUUID()}`,
+        kind: "term",
+        name: "",
+      });
   };
   return (
     <>
@@ -191,45 +180,55 @@ export function Semantics({
             {t("Semantics ")}
             <span className="semantic-source">/ {source.name}</span>
           </h1>
-          <p>
-            {t("Business context and verified native queries for your Agents")}
-          </p>
         </div>
         <div className="button-row">
+          <details className="page-secondary-actions">
+            <summary>{t("More actions")}</summary>
+            <div className="button-row">
+              <Button
+                disabled={!!busy || unsavedOverview}
+                onClick={() => setDialog("history")}
+              >
+                {t("Publication history")}
+              </Button>
+              <Button
+                disabled={!!busy || unsavedOverview}
+                onClick={() => action("reload", reload)}
+                aria-label={t("Refresh semantics")}
+              >
+                <RefreshCw size={16} />
+              </Button>
+              <Button
+                disabled={!!busy || unsavedOverview}
+                onClick={() =>
+                  action("validate", async () => {
+                    await api(endpoint + "/validate", {
+                      method: "POST",
+                      body: "{}",
+                    });
+                    await reload();
+                    notify(t("Structure and example parameters are valid."));
+                  })
+                }
+              >
+                {t("Validate draft")}
+              </Button>
+            </div>
+          </details>
           <Button
-            disabled={!!busy || unsavedOverview}
-            onClick={() => setDialog("history")}
-          >
-            {t("Publication history")}
-          </Button>
-          <Button
-            disabled={!!busy || unsavedOverview}
-            onClick={() => action("reload", reload)}
-            aria-label={t("Refresh semantics")}
-          >
-            <RefreshCw size={16} />
-          </Button>
-          <Button
-            disabled={!!busy || unsavedOverview}
-            onClick={() =>
-              action("validate", async () => {
-                await api(endpoint + "/validate", {
-                  method: "POST",
-                  body: "{}",
-                });
-                await reload();
-                notify(t("Structure and example parameters are valid."));
-              })
+            primary={state.changed}
+            disabled={
+              !!busy || unsavedOverview || (!state.changed && !trialRequired)
             }
-          >
-            {t("Validate draft")}
-          </Button>
-          <Button
-            primary
-            disabled={!!busy || unsavedOverview}
             onClick={() => setDialog("publish")}
           >
-            {t("Review and publish")}
+            {t(
+              state.changed || trialRequired
+                ? "Review and publish"
+                : state.published_version === "0"
+                  ? "No changes to publish"
+                  : "Published",
+            )}
           </Button>
         </div>
       </div>
@@ -242,8 +241,8 @@ export function Semantics({
           onRepair={(nextTab, id) => {
             setDialog("");
             setTab(nextTab);
-            if (id)
-              setEditing(state.draft.entries.find((e) => e.id === id) || null);
+            const entry = state.draft.entries.find((e) => e.id === id);
+            if (entry) editEntry(entry);
           }}
           onPublished={() => {
             setDialog("");
@@ -341,7 +340,7 @@ export function Semantics({
                 setPage(0);
               }}
             >
-              {t(section)}
+              {t(section === "Query templates" ? "Query tools" : section)}
               {(section === "Catalog" || section === "Query templates") && (
                 <small>
                   {
@@ -371,9 +370,7 @@ export function Semantics({
           <section>
             <h2>{t("Data source context")}</h2>
             <p className="help">
-              {t(
-                "Describe the business domain, source of truth, and conventions. Context is descriptive and does not change database permissions.",
-              )}
+              {t("Business domain, terminology and conventions.")}
             </p>
             <Field label={t("Overview")}>
               <textarea
@@ -422,7 +419,7 @@ export function Semantics({
             </p>
             <p className="help">
               {t(
-                "Enabled templates require a successful read-only trial against the current connection before publication. Connection, credential, or database version changes expire validation. Current source limits always apply.",
+                "Publish after trial checks pass. Connection changes require a new trial.",
               )}
             </p>
             <div className="button-row">
@@ -539,7 +536,7 @@ export function Semantics({
             )}
             <Button disabled={!!busy} onClick={create}>
               <Plus size={16} />
-              {tab === "Catalog" ? t("Add entry") : t("Add template")}
+              {tab === "Catalog" ? t("Add entry") : t("Create query")}
             </Button>
             {tab === "Catalog" && (
               <Button onClick={() => setDialog("structure")}>
@@ -567,13 +564,13 @@ export function Semantics({
               }
               action={
                 <Button onClick={create}>
-                  {tab === "Catalog" ? t("Add entry") : t("Add template")}
+                  {tab === "Catalog" ? t("Add entry") : t("Create query")}
                 </Button>
               }
             />
           ) : (
             <div className="table-scroll">
-              <table>
+              <table className="responsive-table">
                 <thead>
                   <tr>
                     <th>{t("Name")}</th>
@@ -599,16 +596,25 @@ export function Semantics({
                           en.id === initial.get("focus") ? "attention-row" : ""
                         }
                       >
-                        <td>
+                        <td data-label={t("Name")}>
                           <button
                             className="text-button name-link"
-                            onClick={() => setEditing(en)}
+                            onClick={() => editEntry(en)}
                           >
                             {en.name || t("Untitled entry")}
                           </button>
-                          <small className="block">{en.id}</small>
+                          <details className="entry-reference">
+                            <summary>{t("Reference ID")}</summary>
+                            <code>{en.id}</code>
+                          </details>
                         </td>
-                        <td>
+                        <td
+                          data-label={
+                            tab === "Catalog"
+                              ? t("Kind / reference")
+                              : t("Validation")
+                          }
+                        >
                           {v ? (
                             <>
                               <span
@@ -669,14 +675,17 @@ export function Semantics({
                             </>
                           )}
                         </td>
-                        <td className="semantic-description">
+                        <td
+                          data-label={t("Description")}
+                          className="semantic-description"
+                        >
                           {en.description || t("No description")}
                         </td>
-                        <td>
+                        <td data-label={t("Actions")}>
                           <div className="row-actions">
                             <Button
                               disabled={!!busy}
-                              onClick={() => setEditing(en)}
+                              onClick={() => editEntry(en)}
                             >
                               {t("Edit")}
                             </Button>
@@ -718,16 +727,25 @@ export function Semantics({
                                 {t("Preview published")}
                               </Button>
                             )}
-                            <button
-                              className="text-button danger"
-                              disabled={!!busy}
-                              onClick={() => {
-                                setSelected(en);
-                                setDialog("delete");
-                              }}
-                            >
-                              {t("Delete")}
-                            </button>
+                            <details className="row-secondary-actions">
+                              <summary
+                                aria-label={t("More actions for {name}", {
+                                  name: en.name,
+                                })}
+                              >
+                                {t("More")}
+                              </summary>
+                              <button
+                                className="text-button danger"
+                                disabled={!!busy}
+                                onClick={() => {
+                                  setSelected(en);
+                                  setDialog("delete");
+                                }}
+                              >
+                                {t("Delete")}
+                              </button>
+                            </details>
                           </div>
                         </td>
                       </tr>
@@ -762,10 +780,8 @@ export function Semantics({
       )}
       {editing && (
         <SemanticEditor
-          source={source}
           entry={editing}
           entries={entries}
-          concepts={conceptRefs(state.draft.ontology)}
           onClose={() => setEditing(null)}
           onSave={async (entry) => {
             accept(

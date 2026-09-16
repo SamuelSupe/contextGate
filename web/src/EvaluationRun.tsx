@@ -37,16 +37,14 @@ export function EvaluationRun({
             ? t("1. Baseline")
             : t("2. With semantic guidance")}
       </h2>
-      <p className="help">
-        {run
-          ? t("Started {value1} · {state}", {
-              value1: date(run.started),
-              state: t(run.state),
-            })
-          : t(
-              "Start immediately before asking the question in a fresh client conversation.",
-            )}
-      </p>
+      {run && (
+        <p className="help">
+          {t("Started {value1} · {state}", {
+            value1: date(run.started),
+            state: t(run.state),
+          })}
+        </p>
+      )}
       <div className="button-row">
         <span className="help">
           {kind === "baseline" ? t("Baseline prompt") : t("Guided prompt")}

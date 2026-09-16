@@ -1,4 +1,6 @@
+import type { ConceptCoverage } from "./query-concepts";
 import { t } from "./i18n";
+import { HelpTip } from "./HelpTip";
 import {
   useEffect,
   useId,
@@ -62,7 +64,7 @@ export function OntologyGraph({
   selected: string;
   onSelect: (id: string) => void;
   onInspect: (id: string, queries?: boolean) => void;
-  usage: Record<string, { sources: number; templates: number }> | null;
+  usage: Record<string, ConceptCoverage> | null;
   onAdd: (kind: OntologyKind, entity?: string) => void;
   onEdit: (kind: OntologyKind, item: OntologyItem) => void;
   onConnect: (from: string, to: string) => void;
@@ -336,7 +338,7 @@ export function OntologyGraph({
     if (current.kind === "node") {
       if (current.moved) persist(livePositions.current);
       else if (connecting) connectTo(current.id);
-      else onSelect(current.id);
+      else onInspect(current.id);
     }
     if (current.kind === "connect") {
       if (!current.moved) connectTo(current.id);
@@ -431,6 +433,33 @@ export function OntologyGraph({
             <RotateCcw size={15} />
             {t(" Auto layout")}
           </Button>
+          <HelpTip title={t("Canvas controls and keyboard shortcuts")}>
+            <ul id="ontology-graph-help">
+              <li>
+                {t("Drag card headers to arrange; drag the background to pan.")}
+              </li>
+              <li>
+                {t(
+                  "Connect entities using their + points. Open entity details to edit properties, or click a relationship to edit it.",
+                )}
+              </li>
+              <li>
+                {t(
+                  "Use arrow keys to move a focused card or pan the canvas; + / − to zoom, 0 to fit, Esc to cancel.",
+                )}
+              </li>
+              <li>
+                {t(
+                  "Use Details on a card to open its properties and relationships.",
+                )}
+              </li>
+            </ul>
+            <p>
+              {t(
+                "Layout is saved in this browser only. Definition edits save to the draft and require publication.",
+              )}
+            </p>
+          </HelpTip>
         </div>
       </div>
       {definition.entities.length ? (
@@ -564,8 +593,6 @@ export function OntologyGraph({
                   onInspect(id, queries);
                 }}
                 onConnect={connectTo}
-                onEdit={edit}
-                onAdd={add}
                 disabled={disabled}
                 onMove={(id, delta) =>
                   persist({
@@ -626,23 +653,13 @@ export function OntologyGraph({
               </Button>
             )}
           </div>
-          <details>
-            <summary>{t("Canvas controls and keyboard shortcuts")}</summary>
-            <p className="help" id="ontology-graph-help">
+          {storageError && (
+            <p className="notice warning">
               {t(
-                "Drag card headers to arrange; drag the background to pan. Connect entities using their + points. Click a property or line to edit. Use arrow keys on a focused card to move it, or on the canvas to pan; + / − to zoom, 0 to fit, Esc to cancel. Use Details on a card to open its properties and relationships in a side panel.",
+                "Layout could not be saved in this browser. Editing still works; positions may reset on reload.",
               )}
             </p>
-          </details>
-          <p className="help">
-            {storageError
-              ? t(
-                  "Layout could not be saved in this browser. Editing still works; positions may reset on reload.",
-                )
-              : t(
-                  "Layout is saved in this browser only. Definition edits save to the draft and require publication.",
-                )}
-          </p>
+          )}
         </>
       ) : (
         <Empty

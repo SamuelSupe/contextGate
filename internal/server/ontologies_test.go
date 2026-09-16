@@ -58,11 +58,47 @@ func TestOntologyPublicationScopeAndLifecycle(t *testing.T) {
 		t.Helper()
 		usage := h.json("GET", op+"/usage-summary", nil, 200)
 		event := usage["event"].(map[string]any)
-		if len(usage) != 1 || event["sources"] != float64(1) || event["templates"] != float64(templates) {
-			t.Fatal("usage must count published mappings and deduplicate executable templates", usage)
+		mappedSources := event["source_ids"].([]any)
+		if len(mappedSources) != 1 || mappedSources[0] != source {
+			t.Fatal("concept navigation must only offer sources with a published entity mapping", usage)
+		}
+		if len(usage) != 1 || event["sources"] != float64(1) || event["templates"] != float64(templates) || event["linked_templates"] != float64(1) {
+			t.Fatal("usage must preserve links when unavailable and deduplicate executable templates", usage)
 		}
 	}
 	checkUsage(1)
+	queryCatalog := h.json("GET", "/api/business-catalog?view=queries&source_id="+source+"&keyword=Event", nil, 200)
+	if queryCatalog["total"] != float64(1) || queryCatalog["entries"].([]any)[0].(map[string]any)["id"] != "amount" {
+		t.Fatal("ontology and native query matches must share one executable result", queryCatalog)
+	}
+	if hidden := h.json("GET", "/api/business-catalog?view=queries&source_id="+source+"&keyword=unmapped", nil, 200); hidden["total"] != float64(0) {
+		t.Fatal("unmapped concepts must not become query search aliases", hidden)
+	}
+	templateDetail := h.json("GET", "/api/business-catalog?source_id="+source+"&agent_id="+a["agent"].(map[string]any)["id"].(string)+"&entry_id=amount&published_version=1", nil, 200)
+	if len(templateDetail["context_entries"].([]any)) != 2 {
+		t.Fatal("query details must include explicitly linked mapped concepts", templateDetail)
+	}
+	templateContext, _ := json.Marshal(templateDetail["context_entries"])
+	if bytes.Contains(templateContext, []byte("unmapped-private-entity")) || bytes.Contains(templateContext, []byte("unmapped-identity-key")) {
+		t.Fatal("query concept context leaked unmapped definitions", string(templateContext))
+	}
+	relatedQuery := call(t, agent, "get_semantic_entry", map[string]any{"source_id": source, "entry_id": "amount"}, false)
+	relatedRaw, _ := json.Marshal(relatedQuery.StructuredContent)
+	var queryContext struct {
+		Related []struct {
+			ID string `json:"id"`
+		} `json:"related_entries"`
+	}
+	if err := json.Unmarshal(relatedRaw, &queryContext); err != nil {
+		t.Fatal(err)
+	}
+	foundConcept := false
+	for _, related := range queryContext.Related {
+		foundConcept = foundConcept || related.ID == ontology.Ref("entity_type", "event")
+	}
+	if !foundConcept {
+		t.Fatal("query Agent cannot discover the linked concept", string(relatedRaw))
+	}
 	catalog := h.json("GET", "/api/business-catalog?kind=entity_type", nil, 200)
 	catalogRaw, _ := json.Marshal(catalog)
 	if catalog["total"] != float64(1) || bytes.Contains(catalogRaw, []byte("unmapped-private-entity")) || bytes.Contains(catalogRaw, []byte("hidden-ancestor-description")) {

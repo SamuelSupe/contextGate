@@ -15,7 +15,9 @@ export function TemplateParameters({
   example,
   disabled,
   onChange,
+  compact = false,
 }: {
+  compact?: boolean;
   parameters: SemanticParameter[];
   value: string;
   example: string;
@@ -44,21 +46,23 @@ export function TemplateParameters({
   }
   return (
     <section className="template-parameters">
-      <div className="section-heading">
-        <h3>{t("Parameters")}</h3>
-        <div className="button-row">
-          <Button disabled={disabled} onClick={() => onChange(example)}>
-            {t("Use example values")}
-          </Button>
-          <Button
-            disabled={disabled || !!parseError}
-            aria-pressed={jsonMode}
-            onClick={() => setAdvanced(!advanced)}
-          >
-            {jsonMode ? t("Use form") : t("Edit JSON")}
-          </Button>
+      {!compact && (
+        <div className="section-heading">
+          <h3>{t("Parameters")}</h3>
+          <div className="button-row">
+            <Button disabled={disabled} onClick={() => onChange(example)}>
+              {t("Use example values")}
+            </Button>
+            <Button
+              disabled={disabled || !!parseError}
+              aria-pressed={jsonMode}
+              onClick={() => setAdvanced(!advanced)}
+            >
+              {jsonMode ? t("Use form") : t("Edit JSON")}
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
       {jsonMode ? (
         <Field
           label={t("Template parameters (JSON)")}
@@ -106,10 +110,10 @@ export function TemplateParameters({
             <div className="parameter-field" key={p.name}>
               <div className="parameter-label">
                 <label htmlFor={id}>
-                  {p.name}
+                  {compact ? t("Example value") : p.name}
                   {p.required && !p.default_json ? " *" : ""}
                 </label>
-                <span className="help">{t(p.type)}</span>
+                {!compact && <span className="help">{t(p.type)}</span>}
                 {!required && (
                   <label className="check-row">
                     <input
@@ -195,7 +199,7 @@ export function TemplateParameters({
                 />
               )}
               <div id={`${id}-help`} className="help">
-                {p.description && (
+                {!compact && p.description && (
                   <span className="block">{p.description}</span>
                 )}
                 {p.default_json && (

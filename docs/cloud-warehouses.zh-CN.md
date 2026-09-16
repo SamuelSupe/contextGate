@@ -2,7 +2,7 @@
 
 [English](cloud-warehouses.md) · [支持矩阵](support-matrix.zh-CN.md) · [配置和模板示例](../examples/cloud-warehouses/README.md)
 
-**ContextGate 0.7.0 已提供：** 已实现 Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 适配器。目前没有真实云环境验证，界面标记 **preview**，实测版本清单为空。已包含在 0.7.0 下载包中，但不计入 18 个产品／20 个版本组合的已验证矩阵。模拟 API 测试不能证明云产品兼容性。
+**自 ContextGate 0.7.0 起提供：** 已实现 Snowflake、Databricks SQL、Google BigQuery 和 Amazon Redshift 适配器。目前没有真实云环境验证，界面标记 **preview**，实测版本清单为空。继续包含在当前下载包中，但不计入 18 个产品／20 个版本组合的已验证矩阵。模拟 API 测试不能证明云产品兼容性。
 
 ## 配置与认证
 

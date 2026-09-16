@@ -32,7 +32,7 @@ Verification covers the versions and capabilities below. It does not establish c
 | InfluxDB 3 Core | 3.11.2 | Fixed SQL and InfluxQL APIs; `$name` | Explicit query | **Query API isolation**; the administrator token itself retains administration privileges |
 
 
-## Cloud previews in 0.7.0
+## Cloud previews (since 0.7.0)
 
 | Connector | Interface / binding | Real vendor verification |
 |---|---|---|
@@ -41,7 +41,7 @@ Verification covers the versions and capabilities below. It does not establish c
 | Google BigQuery | Jobs API, dry-run SELECT; `@name` and named_params | Not verified |
 | Amazon Redshift | PostgreSQL protocol, read-only transactions; `$1` and positional params | Not verified |
 
-These four previews are included in 0.7.0 downloads but excluded from the verified counts. Cloud REST fixtures validate request/response handling, not vendor compatibility. Discovery, auth methods, conservative SQL subsets, billing limits and manual cloud contract versions are documented in the [cloud warehouse guide](cloud-warehouses.md).
+These four previews are included in current downloads but excluded from the verified counts. Cloud REST fixtures validate request/response handling, not vendor compatibility. Discovery, auth methods, conservative SQL subsets, billing limits and manual cloud contract versions are documented in the [cloud warehouse guide](cloud-warehouses.md).
 
 ## Read boundaries
 

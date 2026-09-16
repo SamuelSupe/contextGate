@@ -2,12 +2,10 @@ import { t, useLocale, setLocale, validLocale } from "./i18n";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Database,
+  Network,
   Home as HomeIcon,
   BookOpen,
-  Network,
   Users,
-  ClipboardList,
-  ListChecks,
   Settings as SettingsIcon,
   LogOut,
   Menu,
@@ -19,6 +17,8 @@ import { Button, ErrorNote, Field, Loading } from "./components";
 import { Ontologies } from "./Ontologies";
 import { canNavigate } from "./useNavigationGuard";
 import { Semantics } from "./Semantics";
+import { QueryPublishing } from "./QueryPublishing";
+import { queryToolURL } from "./query-publishing";
 import { SourceSetup } from "./SourceSetup";
 import { QueryEvaluation } from "./QueryEvaluation";
 import { Home } from "./Home";
@@ -34,13 +34,11 @@ import type { Agent, Capability, Session, Settings, Source } from "./types";
 
 const nav = [
   ["/", "Home", HomeIcon],
-  ["/business", "Business catalog", BookOpen],
+  ["/business", "Query tools", BookOpen],
   ["/sources", "Data sources", Database],
   ["/ontologies", "Ontologies", Network],
   ["/agents", "Agents", Users],
-  ["/health", "Health", CheckCircle2],
-  ["/audit", "Audit log", ClipboardList],
-  ["/catalog", "Data source types", ListChecks],
+  ["/health", "Operations", CheckCircle2],
   ["/settings", "Settings", SettingsIcon],
 ] as const;
 export function App() {
@@ -51,6 +49,10 @@ export function App() {
   const [session, setSession] = useState<Session | null>(null);
   const [path, setPath] = useState(location.pathname);
   const [routeQuery, setRouteQuery] = useState(location.search);
+  const [querySeed, setQuerySeed] = useState<{
+    sourceID: string;
+    query: string;
+  }>();
   const [sources, setSources] = useState<Source[]>([]);
   const [agents, setAgents] = useState<Agent[]>([]);
   const [catalog, setCatalog] = useState<Capability[]>([]);
@@ -142,6 +144,10 @@ export function App() {
     setRouteQuery(location.search);
     setMobile(false);
   }, []);
+  function startQuery(source: Source, query: string) {
+    setQuerySeed({ sourceID: source.id, query });
+    navigate(queryToolURL(source.id));
+  }
   useEffect(() => {
     history.replaceState({ ...history.state, mcpdbhubIndex: 0 }, "");
     const change = (event: PopStateEvent) => {
@@ -176,6 +182,7 @@ export function App() {
       setMobile(false);
     };
     const expired = () => {
+      setQuerySeed(undefined);
       setCSRF("");
       setSession({ initialized: true, authenticated: false, csrf: "" });
       setSources([]);
@@ -270,11 +277,34 @@ export function App() {
   const semanticID = path.match(/^\/sources\/([^/]+)\/semantics$/)?.[1];
   const semanticSource = sources.find((s) => s.id === semanticID);
   const ontologyID = path.match(/^\/ontologies\/([^/]+)$/)?.[1];
-  const active = ontologyID
-    ? "/ontologies"
-    : workflowRoute || semanticID
-      ? "/sources"
-      : nav.find((n) => n[0] === path)?.[0];
+  const publishing = path === "/queries/publish";
+  const active = publishing
+    ? "/business"
+    : ontologyID
+      ? "/ontologies"
+      : workflowRoute || semanticID
+        ? "/sources"
+        : [...nav.map((n) => n[0]), "/audit", "/catalog"].find(
+            (url) => url === path,
+          );
+  const navActive =
+    active === "/audit"
+      ? "/health"
+      : active === "/catalog"
+        ? "/settings"
+        : active;
+  const secondary =
+    navActive === "/health"
+      ? [
+          ["/health", "Health"],
+          ["/audit", "Audit log"],
+        ]
+      : navActive === "/settings"
+        ? [
+            ["/settings", "Settings"],
+            ["/catalog", "Data source types"],
+          ]
+        : [];
   return (
     <div className="app">
       <button
@@ -320,8 +350,8 @@ export function App() {
             <a
               key={url}
               href={url}
-              className={active === url ? "active" : ""}
-              aria-current={active === url ? "page" : undefined}
+              className={navActive === url ? "active" : ""}
+              aria-current={navActive === url ? "page" : undefined}
               onClick={(e) => {
                 e.preventDefault();
                 navigate(url);
@@ -350,6 +380,7 @@ export function App() {
                 await api("/api/logout", { method: "POST" });
                 setCSRF("");
                 setSession({ ...session, authenticated: false });
+                setQuerySeed(undefined);
               } catch (e) {
                 setError(message(e));
               }
@@ -360,6 +391,26 @@ export function App() {
         </div>
       </aside>
       <main ref={mainRef} tabIndex={-1} inert={narrow && mobile}>
+        {!!secondary.length && (
+          <nav
+            className="workspace-subnav"
+            aria-label={t("Section navigation")}
+          >
+            {secondary.map(([url, label]) => (
+              <a
+                key={url}
+                href={url}
+                aria-current={active === url ? "page" : undefined}
+                onClick={(event) => {
+                  event.preventDefault();
+                  navigate(url);
+                }}
+              >
+                {t(label)}
+              </a>
+            ))}
+          </nav>
+        )}
         <ErrorNote error={error} />
         {error && (
           <Button
@@ -393,10 +444,26 @@ export function App() {
               {t("Data sources")}
             </Button>
           </div>
+        ) : publishing ? (
+          <QueryPublishing
+            key={`${new URLSearchParams(routeQuery).get("source_id")}:${new URLSearchParams(routeQuery).get("template_id")}`}
+            sources={sources}
+            agents={agents}
+            catalog={catalog}
+            settings={settings}
+            administratorID={session.administrator!.id}
+            initialQuery={routeQuery}
+            seed={querySeed}
+            clearSeed={() => setQuerySeed(undefined)}
+            navigate={navigate}
+            reload={reload}
+            notify={notify}
+          />
         ) : workflowRoute ? (
           workflowSource ? (
             workflowRoute[2] === "setup" ? (
               <SourceSetup
+                onCreateQuery={startQuery}
                 key={workflowSource.id}
                 source={workflowSource}
                 agents={agents}
@@ -432,6 +499,12 @@ export function App() {
               notify={notify}
               onBack={() => navigate("/sources")}
               onWorkspace={() => navigate(`/sources/${semanticID}/setup`)}
+              onQuery={(id = "") =>
+                navigate(
+                  queryToolURL(semanticID, id, "", undefined, true) +
+                    "&from=semantics",
+                )
+              }
             />
           ) : (
             <div>
@@ -443,6 +516,7 @@ export function App() {
           )
         ) : active === "/" ? (
           <Home
+            administratorID={session.administrator!.id}
             sources={sources}
             catalog={catalog}
             navigate={navigate}
@@ -459,6 +533,7 @@ export function App() {
           />
         ) : active === "/sources" ? (
           <Sources
+            onCreateQuery={startQuery}
             navigate={navigate}
             agents={agents}
             sources={sources}
@@ -468,8 +543,9 @@ export function App() {
           />
         ) : active === "/ontologies" ? (
           <Ontologies
-            key={ontologyID || "ontology-list"}
+            key={`${ontologyID || "ontology-list"}:${routeQuery}`}
             id={ontologyID}
+            initialQuery={routeQuery}
             sources={sources}
             agents={agents}
             navigate={navigate}

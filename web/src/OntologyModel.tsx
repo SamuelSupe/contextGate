@@ -1,3 +1,4 @@
+import { coverageLabel, type ConceptCoverage } from "./query-concepts";
 import { t } from "./i18n";
 import { useEffect, useRef, useState } from "react";
 import { api, message } from "./api";
@@ -12,6 +13,8 @@ import { OntologyGraph } from "./OntologyGraph";
 
 export function OntologyModel({
   ontologyID,
+  initialInspect = "",
+  initialSourceID = "",
   refreshKey,
   sources,
   agents,
@@ -27,6 +30,8 @@ export function OntologyModel({
   overlayOpen,
 }: {
   ontologyID: string;
+  initialInspect?: string;
+  initialSourceID?: string;
   refreshKey: number;
   sources: Source[];
   agents: Agent[];
@@ -43,14 +48,15 @@ export function OntologyModel({
 }) {
   const [search, setSearch] = useState("");
   const [view, setView] = useState<"graph" | "list">("graph");
-  const [inspected, setInspected] = useState<string | null>(null);
-  const [section, setSection] = useState<"definition" | "queries">(
-    "definition",
+  const [inspected, setInspected] = useState<string | null>(
+    initialInspect || null,
   );
-  const [usage, setUsage] = useState<Record<
-    string,
-    { sources: number; templates: number }
-  > | null>(null);
+  const [section, setSection] = useState<"definition" | "queries">(
+    initialInspect ? "queries" : "definition",
+  );
+  const [usage, setUsage] = useState<Record<string, ConceptCoverage> | null>(
+    null,
+  );
   const [usageError, setUsageError] = useState("");
   const [usageRefresh, setUsageRefresh] = useState(0);
   const sourceKey = sources.map((s) => s.id + s.revision).join(",");
@@ -58,7 +64,7 @@ export function OntologyModel({
     const abort = new AbortController();
     setUsage(null);
     setUsageError("");
-    api<Record<string, { sources: number; templates: number }>>(
+    api<Record<string, ConceptCoverage>>(
       `/api/ontologies/${ontologyID}/usage-summary`,
       { signal: abort.signal },
     )
@@ -189,13 +195,7 @@ export function OntologyModel({
                     </small>
                     <small>
                       {usage
-                        ? t(
-                            "{value1} sources · {value2} executable templates",
-                            {
-                              value1: usage[e.id]?.sources || 0,
-                              value2: usage[e.id]?.templates || 0,
-                            },
-                          )
+                        ? t(coverageLabel(usage[e.id]))
                         : usageError
                           ? t("Usage unavailable")
                           : t("Loading query usage…")}
@@ -255,6 +255,8 @@ export function OntologyModel({
                   ontologyID={ontologyID}
                   entityID={entity.id}
                   sources={sources}
+                  mappedSourceIDs={usage?.[entity.id]?.source_ids || []}
+                  initialSourceID={initialSourceID}
                   agents={agents}
                   navigate={navigate}
                 />
@@ -283,10 +285,7 @@ export function OntologyModel({
         <Drawer
           wide
           title={`${inspectedEntity.name} · ${t(section === "queries" ? "Queries and sources" : "Entity details")}`}
-          subtitle={t(
-            "{id} · Published usage stays scoped to each data source's adopted version.",
-            { id: inspectedEntity.id },
-          )}
+          subtitle={inspectedEntity.id}
           onClose={closeInspector}
           footer={
             <Button onClick={closeInspector}>{t("Back to canvas")}</Button>
@@ -330,6 +329,8 @@ export function OntologyModel({
               ontologyID={ontologyID}
               entityID={inspectedEntity.id}
               sources={sources}
+              mappedSourceIDs={usage?.[inspectedEntity.id]?.source_ids || []}
+              initialSourceID={initialSourceID}
               agents={agents}
               navigate={navigate}
             />

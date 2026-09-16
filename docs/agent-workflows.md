@@ -2,6 +2,8 @@
 
 [简体中文](agent-workflows.zh-CN.md)
 
+Start with **Home → New query**, or continue saved setup from Home. The query workspace scopes real client evidence to source, template execution version and Agent over 30 days; source-wide history does not confirm every template. See [query publishing and recovery](query-publishing.md).
+
 ## Agent setup
 
 In **Data sources**, click a source name to open its query workspace or **Agent setup**. The status below the name shows the next step, executable published templates and active authorized Agents. **More actions → Structure & native preview** opens the administrator exploration panel. Follow these steps:

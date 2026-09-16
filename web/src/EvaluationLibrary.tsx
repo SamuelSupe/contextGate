@@ -1,5 +1,6 @@
 import type { EvaluationKind } from "./evaluation-types";
 import { t } from "./i18n";
+import { HelpTip } from "./HelpTip";
 import { useEffect, useState } from "react";
 import { api, date, message, payload } from "./api";
 import { Button, Empty, ErrorNote, Field, Loading } from "./components";
@@ -277,10 +278,25 @@ export function EvaluationLibrary({
             </p>
           )}
           {!questions && summary.total > summary.single_checks && (
-            <details className="evaluation-context">
-              <summary>
-                {t("Review summary across all matching history")}
-              </summary>
+            <div className="evaluation-context">
+              <div className="label-with-help">
+                <h3>{t("Review summary across all matching history")}</h3>
+                <HelpTip
+                  title={t("Review summary across all matching history")}
+                >
+                  <p>
+                    {t(
+                      "Only completed pairs with queries in both runs, two reviews and unchanged source / Agent configuration are included.",
+                    )}
+                  </p>
+                  <p>
+                    {summary.changed_pairs}
+                    {t(
+                      " completed pairs had configuration changes and are excluded. Counts cover every matching page. Different questions, models and data may still affect the comparison; these counts do not measure model improvement automatically.",
+                    )}
+                  </p>
+                </HelpTip>
+              </div>
               <p>
                 {t("Correct, based on manual reviews: baseline")}{" "}
                 <strong>
@@ -292,16 +308,7 @@ export function EvaluationLibrary({
                 </strong>
                 .
               </p>
-              <p className="help">
-                {t(
-                  "Only completed pairs with queries in both runs, two reviews and unchanged source / Agent configuration are included.",
-                )}{" "}
-                {summary.changed_pairs}
-                {t(
-                  " completed pairs had configuration changes and are excluded. Counts cover every matching page. Different questions, models and data may still affect the comparison; these counts do not measure model improvement automatically.",
-                )}
-              </p>
-            </details>
+            </div>
           )}
         </>
       )}

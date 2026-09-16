@@ -39,9 +39,7 @@ export function Diagnostics() {
     <section>
       <h2>{t("Deployment diagnostics")}</h2>
       <p className="help">
-        {t(
-          "Read-only checks for PostgreSQL, the loaded encryption key and connection pool. Reports exclude addresses, credentials, source names and query data.",
-        )}
+        {t("Check metadata storage, encryption and connections.")}
       </p>
       <ErrorNote error={error} />
       <div className="button-row">

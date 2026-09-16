@@ -1,4 +1,5 @@
 import { t } from "./i18n";
+import { HelpTip } from "./HelpTip";
 import { useEffect, useRef, useState } from "react";
 import { api, message, payload } from "./api";
 import { Button, ErrorNote, Field } from "./components";
@@ -259,15 +260,24 @@ export function QueryEvaluation({
       </Button>
       <div className="page-header">
         <div>
-          <h1 ref={heading} tabIndex={-1}>
-            {t("Evaluate a business question")}
-          </h1>
-          <p>
-            {source.name}
-            {t(
-              " · Reuse questions, capture real client calls and keep a review history.",
-            )}
-          </p>
+          <div className="label-with-help">
+            <h1 ref={heading} tabIndex={-1}>
+              {t("Evaluate a business question")}
+            </h1>{" "}
+            <HelpTip title={t("How measurements and history work")}>
+              <p className="help">
+                {t(
+                  "Avoid concurrent Agent calls. Keep model settings and data stable when comparing answers. ContextGate measures completed calls on this source; review answer correctness manually.",
+                )}
+              </p>
+              <p className="help">
+                {t(
+                  "Questions and review notes are encrypted on the server. Captures save automatically and survive restarts; save manual reviews explicitly. Metrics exclude previews, query text, parameters and results. Completed measurements remain available after audit retention expires. Finish calls before collecting; capture windows expire after 24 hours. No model correctness, token usage or end-to-end latency is measured automatically.",
+                )}
+              </p>
+            </HelpTip>
+          </div>
+          <p>{source.name}</p>
         </div>
         <Button
           disabled={busy || !!active}
@@ -392,19 +402,8 @@ export function QueryEvaluation({
                 </select>
               </Field>
               <p className="help">
-                {single
-                  ? t(
-                      "Capture one real client answer, compare it with your expected answer, and save your assessment.",
-                    )
-                  : t(
-                      "Use two fresh client conversations under the same conditions to compare workflows.",
-                    )}
+                {t("Use a dedicated Agent and a fresh client conversation.")}
               </p>
-              <div className="notice">
-                {t(
-                  "Use a dedicated Agent with no concurrent calls. Keep model settings and data stable; use fresh client conversations. The ContextGate measures completed calls on this source. Answers are reviewed manually.",
-                )}
-              </div>
               <div className="field-grid">
                 <Field label={t("Question name")}>
                   <input
@@ -602,14 +601,6 @@ export function QueryEvaluation({
               </Button>
             )}
           </div>
-          <details className="evaluation-context">
-            <summary>{t("How measurements and history work")}</summary>
-            <p className="help">
-              {t(
-                "Questions and review notes are encrypted on the server. Captures save automatically and survive restarts; save manual reviews explicitly. Metrics exclude previews, query text, parameters and results. Completed measurements remain available after audit retention expires. Finish calls before collecting; capture windows expire after 24 hours. No model correctness, token usage or end-to-end latency is measured automatically.",
-              )}
-            </p>
-          </details>
         </>
       )}
     </>

@@ -192,11 +192,26 @@ def check_http_workflow():
     snapshot = json.loads((examples/'semantics.json').read_text())
     snapshot['entries'][1]['template']['example_json'] = '{"region":"west"}'
     draft = request('PUT', path, {'revision': '0', 'snapshot': snapshot})
+    draft_catalog = '/api/business-catalog?view=drafts&source_id='+api_source['id']
+    drafts = request('GET', draft_catalog)
+    assert drafts['total'] == 1 and drafts['entries'][0]['draft_change'] == 'added'
+    assert 'query_json' not in json.dumps(drafts) and 'example_json' not in json.dumps(drafts)
+    request('GET', draft_catalog+'&agent_id='+reader['agent']['id'], expected=403)
+    token_client = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    try:
+        token_client.open(urllib.request.Request(base+draft_catalog, headers={
+            'Host': '127.0.0.1:8080', 'Authorization': 'Bearer '+reader['token']}), timeout=15)
+    except urllib.error.HTTPError as error:
+        assert error.code == 401, 'Query token accessed the administrator catalog'
+    else:
+        raise AssertionError('Query token accessed the administrator catalog')
     request('POST', path+'/publish', {'revision': draft['revision']}, expected=400)
     slots = request('POST', path+'/bindings', {'query_json': snapshot['entries'][1]['template']['query_json']})
     assert slots['slots'] == ['/named_params/region']
     request('POST', path+'/trial', {'revision': draft['revision'], 'template_id': 'customers-by-region'})
     request('POST', path+'/publish', {'revision': draft['revision']})
+    assert request('GET', draft_catalog)['total'] == 0
+    assert request('GET', '/api/business-catalog?view=attention&source_id='+api_source['id'])['total'] == 0
     api_source = next(s for s in request('GET', '/api/sources') if s['id'] == api_source['id'])
     api_source['query_access_mode'] = 'templates_only'
     request('PUT', '/api/sources/'+api_source['id'], api_source)
@@ -208,6 +223,10 @@ def check_http_workflow():
                          'question': 'List east-region customers.', 'criteria': 'First page contains Acme with its exact integer ID.', 'agent_id': reader['agent']['id']})
     actual = call('execute_query_template', {'source_id': api_source['id'], 'template_id': 'customers-by-region', 'execution_version': '1', 'parameters': {'region': 'east'}})
     assert actual['data'] == native['data']
+    readiness = request('GET', '/api/sources/'+api_source['id']+'/readiness?template_id=customers-by-region&agent_id='+reader['agent']['id'])
+    activity = readiness['template_activity']
+    assert activity['successful_calls'] == 1 and activity['execution_version'] == '1'
+    assert activity['agent_id'] == reader['agent']['id'] and activity['recent_calls'][0]['request_id']
     evaluation_path += '/'+evaluation['id']
     evaluation = request('POST', evaluation_path+'/capture', {'revision': evaluation['revision'], 'kind': 'guided', 'action': 'collect'})
     assert evaluation['runs']['guided']['stats']['successful_queries'] == 1
@@ -518,6 +537,8 @@ try:
                              'HTTP_API_unverified_permission_evidence', 'HTTP_API_trial_publication_and_native_template_equivalence',
                              'HTTP_API_templates_only_denial', 'business_catalog_executable_query_view',
                              'parameter_binding_position_suggestions', 'single_answer_capture_review_and_history_summary'])
+    result['checks'].extend(['administrator_draft_catalog_and_Agent_isolation',
+                             'published_query_maintenance_view', 'exact_template_version_Agent_client_evidence'])
     if args.otlp:
         result['checks'].append('OTLP_configuration_MCP_correlation_and_redaction')
         result['checks'].append('OTLP_HTTP_and_gRPC_two_administrators_UI_and_configuration_MCP_attribution')
@@ -533,6 +554,10 @@ try:
         result['checks'].extend(['bilingual_semantics_guides_and_examples', 'bilingual_ontology_guides_and_examples'])
         assert all((package/p).exists() for p in ('docs/README.md', 'docs/README.zh-CN.md', 'docs/getting-started.md', 'docs/configuration-mcp.md', 'docs/configuration-mcp.zh-CN.md', 'docs/operations.md', 'docs/releases/'+manifest['version']+'.md', 'docs/http-api.md', 'docs/http-api.zh-CN.md'))
         result['checks'].append('bundled_configuration_and_operations_help')
+        assert all((package/p).exists() for p in ('docs/query-publishing.md', 'docs/query-publishing.zh-CN.md',
+                   'docs/query-pilot.md', 'docs/query-pilot.zh-CN.md', 'docs/releases/'+manifest['version']+'.zh-CN.md',
+                   'examples/query-publishing/README.md', 'examples/query-publishing/README.zh-CN.md'))
+        result['checks'].append('bilingual_query_publishing_pilot_and_release_help')
         assert manifest['license'] == 'Apache-2.0'
         for filename in ('LICENSE', 'NOTICE'):
             assert (package/filename).read_bytes() == (ROOT/filename).read_bytes(), 'Archive project license differs from release source'

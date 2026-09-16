@@ -4,7 +4,7 @@
 
 Install ContextGate using the [installation guide](install.md). Open `http://127.0.0.1:8080`, use the one-time setup code from the server log, and choose the first super administrator username and password. There is no default administrator password.
 
-**Home** shows the next step for your selected data source: check the connection, prepare query access, connect an Agent, then confirm a real client call. Publishing a verified template is required for **Templates only**; sources that allow native queries can proceed without one. Shared ontologies are optional. Readiness and health summaries show saved evidence and its coverage; they do not replace a current connection test. Permission evidence remains a separate status from connectivity.
+**Home → New query** opens a continuous five-step workflow: choose a source, provide an existing query, explain its contract, trial/review/publish, and confirm the exact version's real Agent call. **Continue last setup** restores saved references from the server. Read the [publishing guide](query-publishing.md) and try the [support demo without an ontology](../examples/query-publishing/README.md). New sources in this flow recommend Templates only; existing modes stay unchanged. Native exploration and the advanced paths below remain available.
 
 ## 1. Connect a source
 
@@ -22,11 +22,11 @@ For shared concepts, create an ontology in **Ontologies**, using the graphical o
 
 Open **Review and publish** to see required trials or mapping checks, changed entries, explicitly linked templates and authorized Agents that may be affected. Run missing checks directly from the review, or open the relevant editor to repair them. Publication stays blocked until validation is current. Saving a draft alone never changes what query Agents see. Connection or credential changes can expire template verification; trial and publish again to restore execution. The [retail demo](../examples/ontologies/retail-demo/README.md) provides concrete definitions and mappings.
 
-**Business catalog** opens with **Available queries**, showing executable templates and the metrics or entities linked to them. Switch to **All definitions** to search other published terms, properties and relationships. Search by name, alias or description; expand filters for source and type, or choose an Agent to inspect its visible subset. Concept details explain units, grain, time definitions and visible field mappings. Open a linked preview and use **Back to concept** to keep that context. Templates with expired evidence link back to their editor. A successful trial proves the configured checks passed, not that every business answer is correct.
+**Query tools → Available queries** lists executable published templates with related concepts as context. **Drafts** lists new, changed and pending-removal queries; **Needs attention** lists enabled published queries blocked by invalid evidence or a disabled source. These two management views are administrator-only. Selecting an Agent immediately switches to its published visible subset. **All definitions** includes published terms, metrics and mapped ontology definitions. Search by name, alias or description and filter by source. A query name opens its workspace; **Preview query** reads the published version. Returning restores the search, page, position and focus. Concept details and query previews remain linked. A successful trial proves the configured checks passed, not that every business answer is correct.
 
 The template editor provides a native query text view for text-based query families and an advanced JSON view for the full contract. **Find parameter positions** lists existing allowed value positions; it does not create placeholders or interpolate text. Add native parameter slots in the query options first, then choose their bindings. For HTTP APIs, select a configured operation to copy its parameter contract and examples. In **Ontology mapping**, select an entity to focus its fields and relationships; **Discover fields** offers available physical fields without reading business samples. Declared HTTP API fields remain unverified.
 
-The catalog returns 20 entries per page across up to 100 accessible sources. For larger installations, select a source explicitly. Publication or access changes require restarting pagination. Drafts and unmapped ontology definitions are excluded; queries still execute against one authorized source.
+The catalog returns 20 entries per page across up to 100 accessible sources. For larger installations, select a source explicitly. Publication or access changes require restarting pagination. Agent views exclude drafts and unmapped ontology definitions. Administrator draft pages also bind the draft revision; a draft save does not invalidate published-only pages. Queries still execute against one authorized source.
 
 ## 3. Connect a query Agent
 
@@ -36,7 +36,7 @@ Ask the Agent:
 
 > List the data sources I can access. Find the published business definitions and templates relevant to customer orders. Read the parameter contract, then execute the matching verified template and explain its result using the published definitions.
 
-The tool sequence is `list_data_sources` → `search_semantics` → `get_semantic_entry` → `execute_query_template`. Use the current template execution version returned by discovery. Raw query tools remain available only where permitted. Check **Audit log** and recorded client activity to confirm the real client called the service; an administrator preview is a different kind of evidence.
+The tool sequence is `list_data_sources` → `search_semantics` → `get_semantic_entry` → `execute_query_template`. Use the current template execution version returned by discovery. Raw query tools remain available only where permitted. Check **Audit log** and recorded client activity to confirm the real client called the service; an administrator preview is a different kind of evidence. The query workspace offers a cancellable **Wait for client call** action, bounded to two minutes and scoped to the selected Agent and execution version.
 
 ## 4. Check a business answer
 

@@ -2,6 +2,8 @@
 
 [English](agent-workflows.md)
 
+从 **首页 → 新建查询** 开始连续流程，或从首页继续已保存配置。具体模板的调用证据按来源、模板执行版本和 Agent 区分，时间窗口为 30 天；源级历史调用不代表所有模板已接入。详见[查询发布与恢复](query-publishing.zh-CN.md)。
+
 ## Agent setup
 
 **Data sources** 中点击数据源名称进入查询工作台或 **Agent setup**。名称下方显示下一步、可执行模板与有效 Agent 数量。管理员结构探索位于 **More actions → Structure & native preview**。配置流程如下：

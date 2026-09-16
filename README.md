@@ -12,21 +12,21 @@
 
 Understand your business. Query data safely.
 
-ContextGate helps Agents understand business concepts and access real data through controlled, verified queries. Define business terms, metrics and shared ontologies, map them to each data source, then publish tested native query templates. Authorization, read-only enforcement, query limits and audit logs govern execution. Written in Go with an embedded administration UI; no Node.js runtime is required. Agents connect through MCP over HTTP or stdio.
+ContextGate turns existing business queries into verified, authorized and traceable tools for AI Agents. Start with working SQL or a fixed read API, explain its purpose and inputs, run its checks, then publish it for reuse in your existing Agent clients. Business definitions and shared ontologies are optional context. Written in Go with an embedded bilingual UI; no Node.js runtime is required. Agents connect through MCP over HTTP or stdio.
 
 **Context** is the business meaning: terms, metrics, ontologies, mappings and templates. **Gate** is the access boundary: grants, query protection, validation and auditing. Results keep their native structure; ContextGate does not store knowledge-graph instances or provide a reasoning engine.
 
 Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contextGate`; previous commits and releases remain available. The primary executable is `contextgate`, with `mcpdbhub` retained as an alias. Existing `MCPDBHUB_*` settings and telemetry attribute names remain supported. [Brand and compatibility](docs/brand/README.md).
 
-[简体中文](README.zh-CN.md) · [Download v0.7.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
+[简体中文](README.zh-CN.md) · [Download v0.8.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) · [Documentation](docs/README.md) · [Installation](docs/install.md) · [Support matrix](docs/support-matrix.md) · [Read-only accounts](docs/read-only-accounts.md) · [Architecture](docs/architecture.md)
 
-![Data sources — actual English administration UI](docs/screenshots/data-sources.png)
+![Query catalog — actual ContextGate 0.8.0 English UI](docs/screenshots/0.8.0/query-tools.png)
 
 *Captured from the running administration UI with isolated databases and sample data.*
 
 ## What you get
 
-**New in [0.7.0](docs/releases/0.7.0.md):** connect Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift through preview adapters. Use native SQL parameters, semantic templates and ontology mappings with the existing authorization and audit controls. Cloud compatibility remains unverified; see the [setup guide and limits](docs/cloud-warehouses.md).
+**New in [0.8.0](docs/releases/0.8.0.md):** publish an existing query through one continuous workflow, connect it to business concepts, and confirm real Agent use. Manage available queries, drafts and queries needing attention from one catalog; resume recent work without losing context.
 
 | Capability | Behavior |
 |---|---|
@@ -44,22 +44,24 @@ Formerly **MCP DB Hub**. The repository and Go module are now `SamuelSupe/contex
 
 ## From a business question to a verified query
 
-1. **Connect** a database with its own read-only account and inspect connection evidence.
-2. **Describe** its business vocabulary, metrics and fields; optionally map a shared ontology to the source.
-3. **Verify and publish** native query templates with real example parameters.
-4. **Grant and connect** an Agent, then discover published concepts and execute templates through MCP.
-5. **Observe** query and configuration activity in the audit log, with optional OTLP Logs export.
+1. **Choose a source** with a dedicated read-only account and review protection evidence.
+2. **Provide an existing query** or fixed HTTP operation; confirm its parameter contract.
+3. **Explain its purpose and results**, including important business boundaries.
+4. **Trial and review the full source draft**, then publish explicitly.
+5. **Connect an Agent and confirm the exact template version's real client call.** Review business correctness separately.
+
+Open **Home → New query**, or resume a saved draft with **Continue last setup**. See the [continuous publishing guide](docs/query-publishing.md), [three-query support demo](examples/query-publishing/README.md) and [pilot worksheet](docs/query-pilot.md). Existing native-query access modes and old URLs remain supported.
 
 A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a trusted Agent prepare the first three steps. Create its dedicated, short-lived token in **Settings → My configuration MCP**. Source edits take effect immediately; semantic/ontology publication and query grants remain administrator actions.
 
 <details>
-<summary><strong>Explore the UI: ontologies, semantics and Agent grants</strong></summary>
+<summary><strong>Explore the UI: recent work, ontologies and Agent grants</strong></summary>
 
-![Graphical ontology editor](docs/screenshots/ontology.png)
+![Graphical ontology editor](docs/screenshots/0.8.0/ontology.png)
 
-![Semantic catalog and verified templates](docs/screenshots/semantics.png)
+![Home with recent queries and actionable status](docs/screenshots/0.8.0/home.png)
 
-![Per-Agent data source grants](docs/screenshots/agents.png)
+![Per-Agent data source grants](docs/screenshots/0.8.0/agents.png)
 
 </details>
 
@@ -67,11 +69,11 @@ A separate **[Configuration MCP](docs/configuration-mcp.md)** endpoint lets a tr
 
 ## Operate and recover
 
-Operational tools include management change records, encrypted semantic publication history with restore-to-draft, optional scheduled health checks, template regression cases, and PostgreSQL diagnostics and backup recovery verification. Start with **Health**, **Semantics → Publication history**, and **Settings → Deployment diagnostics**. Global health-check policy and deployment diagnostics require a super administrator. See the [operations guide](docs/operations.md) for scope and recovery steps.
+Operational tools include management change records, encrypted semantic publication history with restore-to-draft, optional scheduled health checks, template regression cases, and PostgreSQL diagnostics and backup recovery verification. Start with **Operations → Health**, **Semantics → Publication history**, and **Settings → Diagnostics**. Global health-check policy and deployment diagnostics require a super administrator. See the [operations guide](docs/operations.md) for scope and recovery steps.
 
 ## Download
 
-[**ContextGate 0.7.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.7.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
+[**ContextGate 0.8.0**](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) provides Linux **arm64 / amd64** archives with the embedded UI, private C++ libraries, bilingual documentation, examples, dependency notices and checksums. The packages require glibc ≥ 2.36 and a PostgreSQL metadata database. Follow the [installation guide](docs/install.md) to download, verify and start the correct archive.
 
 ## Run
 
@@ -91,7 +93,7 @@ Open `http://127.0.0.1:8080`. Use the one-time setup code printed in the logs to
 
 Compose starts PostgreSQL on its private container network and waits for it to become healthy. Only ContextGate HTTP port is published to loopback. ContextGate runs as UID 10001 and mounts query database files read-only. Metadata persists in `hub-postgres`; the independent encryption key persists in `hub-data`. Preserve both volumes and the existing `.env` when restarting or upgrading; generate `.env` only for a new installation.
 
-**From 0.6.x:** back up and preserve the PostgreSQL metadata database, matching master key and deployment settings, then replace the stopped service with 0.7.0. This release adds no metadata migration or forced credential rotation. See the [upgrade notes](docs/releases/0.7.0.md#upgrade).
+**From 0.6.x or 0.7.x:** back up and preserve the PostgreSQL metadata database, matching master key and deployment settings, then replace the stopped service with 0.8.0. This release adds no metadata migration or forced credential rotation. See the [upgrade notes](docs/releases/0.8.0.md#compatibility-and-upgrade).
 
 **From 0.4.x or 0.5.x:** back up and retain the PostgreSQL metadata store and matching master key. Sign in again with username `admin` and the existing password. All legacy Configuration MCP tokens are revoked; each administrator must issue a personal token and update their clients. Business configuration and query Agent/OAuth grants remain intact. Follow the [account upgrade checklist](docs/administrators.md#upgrade-from-050-or-an-earlier-postgresql-release).
 
@@ -110,7 +112,7 @@ For a corporate build proxy, pass its CA with `docker build --secret id=build_ca
 
 ## Connect an agent
 
-![Verified template query with real sample data](docs/screenshots/query-preview.png)
+![Published query workspace with business concepts and client confirmation](docs/screenshots/0.8.0/query-workspace.png)
 
 Streamable HTTP and the stdio bridge share authorization, execution limits, and auditing. The `/mcp` endpoint exposes 15 tools: four discovery operations, eight native query tools (seven database families plus HTTP API), and three semantic catalog/template operations. Personal Configuration MCP uses a separate endpoint and [22 configuration tools](docs/configuration-mcp.md#tools-and-boundaries).
 
@@ -136,7 +138,7 @@ Start with `list_data_sources`; it returns only authorized sources, with capabil
 
 Adapters cover PostgreSQL, MySQL, MariaDB, TiDB, CockroachDB, TimescaleDB, SQLite, DuckDB, ClickHouse, MongoDB, Redis, Valkey, Elasticsearch, OpenSearch, Neo4j, Cassandra, ScyllaDB, and InfluxDB. InfluxDB 1.x, 2.x and 3 Core are tested separately. **The support matrix identifies actual verified versions; protocol compatibility alone is not a support claim.**
 
-**Cloud previews in 0.7.0:** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift now use the same `query_sql`, semantics/templates and ontology workflow. No real cloud environment is verified; they are included in 0.7.0 downloads but remain separate from the verified product list. [Cloud warehouse setup and limits](docs/cloud-warehouses.md) · [Examples](examples/cloud-warehouses/README.md).
+**Cloud previews (since 0.7.0):** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift now use the same `query_sql`, semantics/templates and ontology workflow. No real cloud environment is verified; they remain included in current downloads but remain separate from the verified product list. [Cloud warehouse setup and limits](docs/cloud-warehouses.md) · [Examples](examples/cloud-warehouses/README.md).
 
 SQL preserves joins, subqueries, read-only CTEs, aggregation and window functions. MongoDB exposes find, aggregation, count and distinct. Redis exposes bounded reads for common structures. Search retains native DSL and aggregations. Graph results retain nodes, relationships and paths. CQL provides native page-state pagination.
 
@@ -165,15 +167,11 @@ Use **Settings → My configuration MCP** to connect a trusted configuration Age
 
 ## Semantic catalogs and query templates
 
-![Published semantic query templates — actual administration UI](docs/screenshots/semantics.png)
-
 Every data source has an independent business catalog and verified native query templates. Use **Data sources → Semantics** to import schema skeletons, define terms/fields/relationships/metrics, trial templates against the real database, and publish an Agent-visible snapshot. **Templates only** mode enforces curated query access across HTTP, stdio, OAuth and Agent previews.
 
 `search_semantics`, `get_semantic_entry` and `execute_query_template` expose published content with bounded pagination, typed JSON Pointer bindings and execution versions. Connection, credential or observed database version changes require a new trial and publication. Template audit metadata also flows to OTLP Logs. See the [complete guide](docs/semantics.md) and [examples for all query families](examples/semantics/).
 
 ## Shared business ontologies
-
-![Shared business ontology with source and template mappings](docs/screenshots/ontology.png)
 
 Use **Ontologies** and **Semantics → Ontology mapping** to share business definitions across sources. Define Customer, Order, their properties and relationships once; map PostgreSQL tables and MongoDB documents independently to an explicitly selected, immutable ontology version. Agents discover only concepts mapped to their authorized source and receive native template results with `ontology_context`.
 
@@ -211,8 +209,6 @@ See [validation](docs/validation.md) for reproducible OrbStack integration tests
 ## Administrator workflows
 
 Use **Agent setup** from a data source to review connection evidence, executable templates, grants and real client query activity. Completed setup becomes a **Query workspace** with the selected Agent visible before previewing. Ontology cards link directly to **Queries and sources**, with published mapping and executable template counts. Save reusable business questions and review paired-run metrics in persistent, encrypted evaluation history. See the [workflow and evaluation guide](docs/agent-workflows.md).
-
-![Per-Agent data source grants](docs/screenshots/agents.png)
 
 The administrator UI defaults to English. In **Settings → Language**, choose **English** or **简体中文**; the change takes effect immediately and is remembered in this browser. Business definitions, query text, parameters and results retain their original content.
 

@@ -164,9 +164,6 @@ export function OntologyEditor({
               : "relationship",
         ),
       })}
-      subtitle={t(
-        "Save to the draft. Publish when the complete model is ready.",
-      )}
       onClose={close}
       footer={
         <>
@@ -360,10 +357,7 @@ export function OntologyEditor({
               onChange={(e) => rename(e.target.value)}
             />
           </Field>
-          <Field
-            label={t("Description")}
-            hint={t("Explain the business meaning in your own words.")}
-          >
+          <Field label={t("Description")}>
             <textarea
               rows={2}
               value={form.description || ""}

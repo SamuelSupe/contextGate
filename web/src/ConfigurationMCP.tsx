@@ -134,16 +134,7 @@ export function ConfigurationMCP({
           {issueLabel}
         </Button>
       </div>
-      <p>
-        {t(
-          "Configuration Agents can change all data source connections immediately, edit semantic and ontology drafts, and run read-only template trials. Administrators publish drafts and manage query Agent access.",
-        )}
-      </p>
-      <p className="help">
-        {t(
-          "Your fixed configuration identity is linked to your administrator account. One token is active at a time; rotation invalidates the previous token immediately.",
-        )}
-      </p>
+
       <div className="configuration-endpoint">
         <code>{endpoint || "…"}</code>
         {endpoint && <CopyButton text={endpoint} />}
@@ -182,9 +173,7 @@ export function ConfigurationMCP({
                       <>
                         {t("Expires")} {date(a.expires_at)}
                       </>
-                    ) : (
-                      t("Token not issued")
-                    )}
+                    ) : null}
                   </small>
                 </div>
                 <span className={`status ${active ? "green" : "muted"}`}>

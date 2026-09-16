@@ -6,6 +6,8 @@ Each data source owns an independent catalog of business terms, objects, fields,
 
 Current JSON exports use **format version 2**, with an optional [shared ontology mapping](ontologies.md). Version 1 imports remain supported; adopting format v2 alone does not invalidate existing trial evidence.
 
+For an existing query, start with **Home → New query** and use the [continuous publishing workflow](query-publishing.md). Existing entries open the same editor from Query tools, source Semantics and ontology views. **Query**, **Parameters** and **Business context** share one draft; examples stay beside parameter definitions. The source workflow below remains available for full-catalog editing.
+
 ## Administrator workflow
 
 1. Open **Data sources → Semantics**. Write the source's business context in **Overview**.

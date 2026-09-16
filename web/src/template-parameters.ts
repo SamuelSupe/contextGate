@@ -50,6 +50,21 @@ export function parameterJSON(values: Record<string, string>): string {
     .join(",\n")}\n}`;
 }
 
+export function parameterAt(text: string, pointer: string): string {
+  if (!pointer.startsWith("/")) throw new Error("Invalid parameter position.");
+  let value = text;
+  for (const part of pointer.slice(1).split("/")) {
+    const key = part.replaceAll("~1", "/").replaceAll("~0", "~");
+    const next = value.trim().startsWith("[")
+      ? parts(value)[Number(key)]
+      : parameterValues(value)[key];
+    if (next === undefined)
+      throw new Error("Parameter position no longer exists.");
+    value = next;
+  }
+  return value;
+}
+
 export function parameterChoices(parameter: SemanticParameter): string[] {
   return parameter.enum_json ? parts(parameter.enum_json) : [];
 }

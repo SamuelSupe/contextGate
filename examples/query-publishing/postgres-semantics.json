@@ -1,0 +1,133 @@
+{
+  "format_version": 2,
+  "overview": "Fictional support queries. No ontology required. Query parameters never establish customer access rights.",
+  "entries": [
+    {
+      "id": "customer-orders",
+      "kind": "template",
+      "name": "Customer orders",
+      "description": "List all orders for a customer during an internal support task. Includes cancelled orders. Customer ID is not an authorization claim.",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"SELECT id AS order_id, status, amount::text AS amount, currency, placed_at FROM support_demo.orders WHERE customer_id = $1 ORDER BY id\", \"params\": [1]}",
+        "parameters": [
+          {
+            "name": "customer_id",
+            "type": "integer",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ],
+            "description": "Internal customer identifier; database account permissions set the actual access scope."
+          }
+        ],
+        "example_json": "{\"customer_id\": 1}",
+        "result_description": "One row per order; exact decimal amount as text with currency. No rows means no orders for this customer. Does not subtract refunds.",
+        "tests": [
+          {
+            "name": "Customer 1 has two orders",
+            "parameters_json": "{\"customer_id\": 1}",
+            "min_rows": 2,
+            "max_rows": 2
+          },
+          {
+            "name": "Unknown customer has no orders",
+            "parameters_json": "{\"customer_id\": 999}",
+            "min_rows": 0,
+            "max_rows": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "order-refunds",
+      "kind": "template",
+      "name": "Order refund status",
+      "description": "Inspect refund requests for a known order. Settled is complete; this query does not initiate or change refunds.",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"SELECT id AS refund_id, order_id, status, amount::text AS amount, currency FROM support_demo.refunds WHERE order_id = $1 ORDER BY id\", \"params\": [101]}",
+        "parameters": [
+          {
+            "name": "order_id",
+            "type": "integer",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ],
+            "description": "Order identifier from the order lookup."
+          }
+        ],
+        "example_json": "{\"order_id\": 101}",
+        "result_description": "One row per refund request with exact decimal amount as text. An empty result means no recorded refund, not a zero-valued settled refund.",
+        "tests": [
+          {
+            "name": "Order 101 has one refund",
+            "parameters_json": "{\"order_id\": 101}",
+            "min_rows": 1,
+            "max_rows": 1
+          },
+          {
+            "name": "Order 102 has no refund",
+            "parameters_json": "{\"order_id\": 102}",
+            "min_rows": 0,
+            "max_rows": 0
+          }
+        ]
+      }
+    },
+    {
+      "id": "paid-order-total",
+      "kind": "template",
+      "name": "Paid order total in USD",
+      "description": "Sum gross USD order amounts for paid orders placed in a UTC interval. Excludes cancelled orders; settled refunds are not deducted. This is not net revenue.",
+      "unit": "USD",
+      "grain": "one UTC placement interval",
+      "time_definition": "placed_at >= from and placed_at < until; UTC.",
+      "caveats": "Gross amount, not net revenue. Refunds are not deducted. Live data may change between separate calls.",
+      "template": {
+        "enabled": true,
+        "tool": "query_sql",
+        "query_json": "{\"query\": \"SELECT COUNT(*) AS paid_orders, COALESCE(SUM(amount), 0)::text AS amount, 'USD' AS currency FROM support_demo.orders WHERE status = 'paid' AND currency = 'USD' AND placed_at >= $1::timestamptz AND placed_at < $2::timestamptz\", \"params\": [\"2026-09-01T00:00:00Z\", \"2026-09-04T00:00:00Z\"]}",
+        "parameters": [
+          {
+            "name": "from",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/params/0"
+            ],
+            "description": "Inclusive RFC 3339 UTC placement time."
+          },
+          {
+            "name": "until",
+            "type": "string",
+            "required": true,
+            "pointers": [
+              "/params/1"
+            ],
+            "description": "Exclusive RFC 3339 UTC placement time, later than from."
+          }
+        ],
+        "example_json": "{\"from\": \"2026-09-01T00:00:00Z\", \"until\": \"2026-09-04T00:00:00Z\"}",
+        "result_description": "One aggregate row: paid_orders, exact amount string, USD currency. No matches returns a zero count and amount. Interval is based on placement, not settlement time.",
+        "tests": [
+          {
+            "name": "September sample",
+            "parameters_json": "{\"from\": \"2026-09-01T00:00:00Z\", \"until\": \"2026-09-04T00:00:00Z\"}",
+            "min_rows": 1,
+            "max_rows": 1,
+            "values": [
+              {
+                "pointer": "/0/1",
+                "expected_json": "\"170.00\""
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

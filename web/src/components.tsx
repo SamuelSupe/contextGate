@@ -238,6 +238,9 @@ export function Drawer({
     );
     first?.focus();
     const handle = (e: KeyboardEvent) => {
+      // A query preview can open over a concept drawer; only the top panel owns keyboard focus.
+      if ([...document.querySelectorAll('[role="dialog"]')].at(-1) !== pane)
+        return;
       if (e.key === "Escape") closeRef.current();
       if (e.key === "Tab" && pane) {
         const items = [
@@ -295,9 +298,11 @@ export function Drawer({
 export function CopyButton({
   text,
   onCopied,
+  label,
 }: {
   text: string;
   onCopied?: () => void;
+  label?: string;
 }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -322,7 +327,9 @@ export function CopyButton({
       }}
     >
       {copied ? <CheckCircle2 size={14} /> : <Copy size={14} />}
-      <span aria-live="polite">{copied ? t("Copied") : t("Copy")}</span>
+      <span aria-live="polite">
+        {copied ? t("Copied") : label || t("Copy")}
+      </span>
     </Button>
   );
 }

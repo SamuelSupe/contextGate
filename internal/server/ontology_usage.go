@@ -26,8 +26,10 @@ func (s *Server) ontologyUsageSummary(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	type counts struct {
-		Sources   int `json:"sources"`
-		Templates int `json:"templates"`
+		Sources         int      `json:"sources"`
+		SourceIDs       []string `json:"source_ids"`
+		Templates       int      `json:"templates"`
+		LinkedTemplates int      `json:"linked_templates"`
 	}
 	out := map[string]counts{}
 	for _, u := range usage {
@@ -66,32 +68,38 @@ func (s *Server) ontologyUsageSummary(w http.ResponseWriter, r *http.Request) {
 			}
 			templates := map[string]bool{}
 			for _, p := range b.Properties {
-				if p.Entity == entity.Entity && valid[p.TemplateID] {
-					templates[p.TemplateID] = true
+				if _, exists := valid[p.TemplateID]; p.Entity == entity.Entity && exists {
+					templates[p.TemplateID] = valid[p.TemplateID]
 				}
 			}
 			mappedRels := []string{}
 			for _, rel := range b.Relations {
 				if rels[rel.Relation] {
 					mappedRels = append(mappedRels, "ontology:relation_type:"+rel.Relation)
-					if valid[rel.TemplateID] {
-						templates[rel.TemplateID] = true
+					if available, exists := valid[rel.TemplateID]; exists {
+						templates[rel.TemplateID] = available
 					}
 				}
 			}
 			for _, entry := range st.Published.Entries {
-				if !valid[entry.ID] {
+				if entry.Template == nil {
 					continue
 				}
 				for _, ref := range entry.Template.ConceptRefs {
 					if ref == "ontology:entity_type:"+entity.Entity || strings.HasPrefix(ref, "ontology:property:"+entity.Entity+":") || slices.Contains(mappedRels, ref) {
-						templates[entry.ID] = true
+						templates[entry.ID] = valid[entry.ID]
 					}
 				}
 			}
 			count := out[entity.Entity]
 			count.Sources++
-			count.Templates += len(templates)
+			count.SourceIDs = append(count.SourceIDs, src.ID)
+			count.LinkedTemplates += len(templates)
+			for _, available := range templates {
+				if available {
+					count.Templates++
+				}
+			}
 			out[entity.Entity] = count
 		}
 	}

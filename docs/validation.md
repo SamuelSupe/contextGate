@@ -1,5 +1,13 @@
 # Validation and reproduction
 
+## ContextGate 0.8.0 — 2026-09-16
+
+The guided query workflow, concept/query links and subsequent catalog/client UX checks are recorded in the [feature validation](query-publishing-validation.md). Release preparation passed full Go tests, race, vet, 17 frontend workflow tests, two lossless request tests and the TypeScript/Vite production build in OrbStack. Local Chrome checked the English/Chinese workflows and 390px layout; current English screenshots use owned fixtures. The existing bundle-size advisory remains.
+
+The [0.8.0 release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) attaches [release-verification.json](https://github.com/SamuelSupe/contextGate/releases/download/v0.8.0/release-verification.json), `dist-arm64.json`, `dist-amd64.json`, `download-arm64.json` and `download-amd64.json`. These identify the exact commit, native dual-architecture CI and real workflows on built and independently downloaded archives. Package checks include HTTP/stdio, PostgreSQL/HTTP API queries, draft-catalog isolation, exact client evidence, templates/ontology, administrator recovery, revocation and OTLP HTTP/gRPC. Local amd64 execution uses OrbStack emulation.
+
+No new full 18-product / 20-version matrix was run on the final release commit. The feature-stage matrix and the 0.7.0 report below retain their original digests. Cloud warehouses remain previews without real vendor verification; fixtures do not establish business-pilot results or cloud compatibility.
+
 ## ContextGate 0.7.0 — 2026-09-15
 
 The open-source **18-product / 20-version** matrix passed again on the 0.7.0 implementation: **135 query/error cases and 104 denied operations**. The [matrix report](verification/matrix.json) records digest `4d239968e66517a46a6184a3a6d6f5f0e886e70ade8bc0caca77470306bb69e0`. It covers actual native adapters, HTTP MCP, trialled template/native equivalence, pinned ontology mappings, read-only rejection, limits/cancellation and unchanged fixture data. Historical 0.6.0 evidence remains available at its release tag and in the sections below.

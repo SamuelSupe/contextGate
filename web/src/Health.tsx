@@ -37,15 +37,15 @@ type Overview = {
   pending_changes: number;
   audit_export: { state: string; pending: number; last_error?: string };
 };
-const statusLabels: Record<string, string> = {
-  overdue: "Check overdue",
+export const healthStatusLabels: Record<string, string> = {
+  overdue: "Health check overdue",
   structure_incomplete: "Structure needs attention",
   object_missing: "Object not found",
-  not_checked: "Not checked",
-  checked: "Connection checked",
-  connection_failed: "Connection failed",
+  not_checked: "Health check not run",
+  checked: "Health check completed",
+  connection_failed: "Health check connection failed",
   structure_changed: "Structure changed",
-  stale: "Check again after changes",
+  stale: "Health check needs refreshing",
   disabled: "Disabled",
   unchanged: "Unchanged",
   baseline: "Baseline recorded",
@@ -116,11 +116,6 @@ export function HealthPage({
       <div className="page-header">
         <div>
           <h1>{t("Health")}</h1>
-          <p>
-            {t(
-              "Connection evidence, structure changes and items that need attention",
-            )}
-          </p>
         </div>
         <Button
           disabled={!!busy || dirty}
@@ -281,7 +276,7 @@ export function HealthPage({
                       <span
                         className={`status ${["connection_failed", "structure_changed", "structure_incomplete", "stale"].includes(source.status) || source.invalid_templates.length ? "amber" : ""}`}
                       >
-                        {t(statusLabels[source.status] || source.status)}
+                        {t(healthStatusLabels[source.status] || source.status)}
                       </span>
                       <p className="help">
                         {source.health.checked_at &&
@@ -352,7 +347,8 @@ export function HealthPage({
                                 .filter(Boolean)
                                 .join(".")}
                             </code>{" "}
-                            · {t(statusLabels[item.status] || item.status)}
+                            ·{" "}
+                            {t(healthStatusLabels[item.status] || item.status)}
                             <ul>
                               {item.changes?.map((change) => (
                                 <li key={change.column}>

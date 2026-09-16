@@ -78,7 +78,7 @@ MCPDBHUB_VERIFY_IMAGE=contextgate:local bash scripts/verify-backup.sh /secure/ba
 
 ## 验证记录
 
-最终 CI、发行包与下载回验见 [0.7.0 发行验证](validation.zh-CN.md#contextgate-070--2026-09-15)。下方功能阶段记录保留其原始范围。
+最终 CI、发行包与下载回验见 [0.8.0 发行验证](validation.zh-CN.md#contextgate-080--2026-09-16)。下方功能阶段记录保留其原始范围。
 
 [体验修复验证](verification/product-ux-fixes.json)记录后续目录、配置编辑、单次答案验收与窄屏检查，以及独立实例恢复和浏览器复验限制。
 

@@ -132,239 +132,245 @@ export function SettingsPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const superAdmin = administrator.role === "super_admin";
+  const [section, setSection] = useState("language");
   if (!settings) return <Loading />;
   return (
     <>
       <div className="page-header">
         <div>
           <h1>{t("Settings")}</h1>
-          <p>{t("Service connection and administrator security settings")}</p>
         </div>
       </div>
-      <nav className="settings-navigation" aria-label={t("Settings sections")}>
-        {[
-          ["language", "Language"],
-          ["service", "Service information"],
-          ["configuration", "My configuration MCP"],
-          ...(superAdmin ? [["administrators", "Administrators"]] : []),
-          ["diagnostics", "Diagnostics"],
-          ["audit", "Audit export"],
-          ["security", "Administrator security"],
-        ]
-          .filter(
-            ([id]) => superAdmin || !["diagnostics", "audit"].includes(id),
-          )
-          .map(([id, label]) => (
-            <Button
-              key={id}
-              onClick={() => {
-                const section = document.getElementById("settings-" + id);
-                section?.scrollIntoView({ block: "start" });
-                section?.focus({ preventScroll: true });
+      <div className="settings-layout">
+        <nav
+          className="settings-navigation"
+          aria-label={t("Settings sections")}
+        >
+          {[
+            ["language", "Language"],
+            ["service", "Service information"],
+            ["configuration", "My configuration MCP"],
+            ...(superAdmin ? [["administrators", "Administrators"]] : []),
+            ["diagnostics", "Diagnostics"],
+            ["audit", "Audit export"],
+            ["security", "Administrator security"],
+          ]
+            .filter(
+              ([id]) => superAdmin || !["diagnostics", "audit"].includes(id),
+            )
+            .map(([id, label]) => (
+              <Button
+                key={id}
+                aria-pressed={section === id}
+                aria-controls={"settings-" + id}
+                onClick={() => setSection(id)}
+              >
+                {t(label)}
+              </Button>
+            ))}
+        </nav>
+        <div className="settings-body">
+          <section id="settings-language" hidden={section !== "language"}>
+            <h2>{t("Language")}</h2>
+            <Field
+              label={t("Display language")}
+              hint={t("Saved in this browser.")}
+            >
+              <select
+                value={locale}
+                onChange={(event) => setLocale(validLocale(event.target.value))}
+              >
+                <option value="en" lang="en">
+                  {t("English")}
+                </option>
+                <option value="zh-CN" lang="zh-CN">
+                  简体中文
+                </option>
+              </select>
+            </Field>
+          </section>
+          <section id="settings-service" hidden={section !== "service"}>
+            <h2>{t("Service information")}</h2>
+            <div className="service-brand">
+              <Brand tagline />
+            </div>
+            <dl className="settings-list">
+              <div>
+                <dt>{t("Service version")}</dt>
+                <dd>
+                  {settings.version}
+                  <small className="block mono break-all">
+                    {settings.commit}
+                  </small>
+                </dd>
+              </div>
+              <div>
+                <dt>{t("MCP endpoint")}</dt>
+                <dd>
+                  <code>{settings.mcp_url}</code>
+                  <CopyButton
+                    text={settings.mcp_url}
+                    onCopied={() => notify(t("MCP endpoint copied"))}
+                  />
+                </dd>
+              </div>
+              <div>
+                <dt>{t("Database file directory")}</dt>
+                <dd>
+                  <code>{settings.database_directory}</code>
+                </dd>
+              </div>
+              <div>
+                <dt>{t("Audit retention")}</dt>
+                <dd>
+                  {settings.audit_retention_days}
+                  {t(" days")}
+                </dd>
+              </div>
+              <div>
+                <dt>{t("Concurrency limits")}</dt>
+                <dd>
+                  {t("Global ")}
+                  {settings.global_concurrency}
+                  {t(" · Per Agent")} {settings.agent_concurrency}
+                </dd>
+              </div>
+              <div>
+                <dt>{t("OAuth lifetime")}</dt>
+                <dd>
+                  {t("Access token ")}
+                  {settings.oauth_access_token_minutes}
+                  {t(" minutes · Refresh grant ")}
+                  {settings.oauth_refresh_token_days}
+                  {t(" days")}
+                </dd>
+              </div>
+            </dl>
+            <p className="help">
+              {t(
+                "Set the public URL and file directory using startup options, then restart the service.",
+              )}
+            </p>
+            <p className="help">
+              <a
+                href="https://github.com/SamuelSupe/contextGate/blob/main/docs/operations.md"
+                target="_blank"
+                rel="noreferrer"
+              >
+                {t("Deployment and recovery guide")}
+              </a>
+            </p>
+          </section>
+          <div id="settings-configuration" hidden={section !== "configuration"}>
+            <ConfigurationMCP notify={notify} />
+          </div>
+          {superAdmin && (
+            <div
+              id="settings-administrators"
+              hidden={section !== "administrators"}
+            >
+              <Administrators current={administrator} notify={notify} />
+            </div>
+          )}
+          {superAdmin && (
+            <div id="settings-diagnostics" hidden={section !== "diagnostics"}>
+              <Diagnostics />
+            </div>
+          )}
+          {superAdmin && (
+            <div id="settings-audit" hidden={section !== "audit"}>
+              <AuditExport notify={notify} />
+            </div>
+          )}
+          <section id="settings-security" hidden={section !== "security"}>
+            <h2>{t("Change administrator password")}</h2>
+            <p className="help">
+              {t(
+                "Changing your password signs out your other sessions. Your configuration token and query Agent grants remain valid.",
+              )}
+            </p>
+            <ErrorNote error={error} />
+            <form
+              className="password-form"
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setBusy(true);
+                setError("");
+                try {
+                  const s = await api<{ csrf: string }>("/api/password", {
+                    method: "POST",
+                    body: payload({ current_password: current, password }),
+                  });
+                  setCSRF(s.csrf);
+                  setPassword("");
+                  setCurrent("");
+                  notify(t("Administrator password updated"));
+                } catch (e) {
+                  setError(message(e));
+                } finally {
+                  setBusy(false);
+                }
               }}
             >
-              {t(label)}
-            </Button>
-          ))}
-      </nav>
-      <div className="settings-body">
-        <section id="settings-language" tabIndex={-1}>
-          <h2>{t("Language")}</h2>
-          <Field
-            label={t("Display language")}
-            hint={t(
-              "Applies immediately and is remembered in this browser. Business content and query results keep their original language.",
-            )}
-          >
-            <select
-              value={locale}
-              onChange={(event) => setLocale(validLocale(event.target.value))}
-            >
-              <option value="en" lang="en">
-                {t("English")}
-              </option>
-              <option value="zh-CN" lang="zh-CN">
-                简体中文
-              </option>
-            </select>
-          </Field>
-        </section>
-        <section id="settings-service" tabIndex={-1}>
-          <h2>{t("Service information")}</h2>
-          <div className="service-brand">
-            <Brand tagline />
-          </div>
-          <dl className="settings-list">
-            <div>
-              <dt>{t("Service version")}</dt>
-              <dd>
-                {settings.version}
-                <small className="block mono break-all">
-                  {settings.commit}
-                </small>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("MCP endpoint")}</dt>
-              <dd>
-                <code>{settings.mcp_url}</code>
-                <CopyButton
-                  text={settings.mcp_url}
-                  onCopied={() => notify(t("MCP endpoint copied"))}
+              <input
+                type="text"
+                name="username"
+                autoComplete="username"
+                value={administrator.username}
+                readOnly
+                className="sr-only"
+                tabIndex={-1}
+                aria-hidden="true"
+              />
+              <Field label={t("Current password")} required>
+                <input
+                  type="password"
+                  disabled={busy}
+                  autoComplete="current-password"
+                  required
+                  value={current}
+                  onChange={(e) => setCurrent(e.target.value)}
                 />
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Database file directory")}</dt>
-              <dd>
-                <code>{settings.database_directory}</code>
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Audit retention")}</dt>
-              <dd>
-                {settings.audit_retention_days}
-                {t(" days")}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("Concurrency limits")}</dt>
-              <dd>
-                {t("Global ")}
-                {settings.global_concurrency}
-                {t(" · Per Agent")} {settings.agent_concurrency}
-              </dd>
-            </div>
-            <div>
-              <dt>{t("OAuth lifetime")}</dt>
-              <dd>
-                {t("Access token ")}
-                {settings.oauth_access_token_minutes}
-                {t(" minutes · Refresh grant ")}
-                {settings.oauth_refresh_token_days}
-                {t(" days")}
-              </dd>
-            </div>
-          </dl>
-          <p className="help">
-            {t(
-              "Set the public URL and file directory using startup options, then restart the service.",
-            )}
-          </p>
-        </section>
-        <p className="help">
-          <a
-            href="https://github.com/SamuelSupe/contextGate/blob/main/docs/operations.md"
-            target="_blank"
-            rel="noreferrer"
-          >
-            {t("Deployment and recovery guide")}
-          </a>
-        </p>
-        <div id="settings-configuration" tabIndex={-1}>
-          <ConfigurationMCP notify={notify} />
+              </Field>
+              <Field
+                label={t("New password")}
+                required
+                hint={t("At least 12 characters")}
+              >
+                <input
+                  type="password"
+                  autoComplete="new-password"
+                  disabled={busy}
+                  required
+                  minLength={12}
+                  maxLength={256}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </Field>
+              <Button primary busy={busy} type="submit">
+                {t("Update password")}
+              </Button>
+            </form>
+            <details className="advanced">
+              <summary>{t("Administrator recovery")}</summary>
+              <p>
+                {t(
+                  "Use the same MCPDBHUB_DATABASE_URL and master key as the service. Stop the service, provide a new password through standard input, then restart:",
+                )}
+              </p>
+              <pre>
+                contextgate reset-password --username USERNAME --data-dir DIR
+                --password-stdin
+              </pre>
+              <p className="help">
+                {t(
+                  "Keep the existing master key. Recovery signs out the selected account and revokes its configuration token. Other accounts and query Agent grants remain valid.",
+                )}
+              </p>
+            </details>
+          </section>
         </div>
-        {superAdmin && (
-          <Administrators current={administrator} notify={notify} />
-        )}
-        {superAdmin && (
-          <div id="settings-diagnostics" tabIndex={-1}>
-            <Diagnostics />
-          </div>
-        )}
-        {superAdmin && (
-          <div id="settings-audit" tabIndex={-1}>
-            <AuditExport notify={notify} />
-          </div>
-        )}
-        <section id="settings-security" tabIndex={-1}>
-          <h2>{t("Change administrator password")}</h2>
-          <p className="help">
-            {t(
-              "Changing your password signs out your other sessions. Your configuration token and query Agent grants remain valid.",
-            )}
-          </p>
-          <ErrorNote error={error} />
-          <form
-            className="password-form"
-            onSubmit={async (e) => {
-              e.preventDefault();
-              setBusy(true);
-              setError("");
-              try {
-                const s = await api<{ csrf: string }>("/api/password", {
-                  method: "POST",
-                  body: payload({ current_password: current, password }),
-                });
-                setCSRF(s.csrf);
-                setPassword("");
-                setCurrent("");
-                notify(t("Administrator password updated"));
-              } catch (e) {
-                setError(message(e));
-              } finally {
-                setBusy(false);
-              }
-            }}
-          >
-            <input
-              type="text"
-              name="username"
-              autoComplete="username"
-              value={administrator.username}
-              readOnly
-              className="sr-only"
-              tabIndex={-1}
-              aria-hidden="true"
-            />
-            <Field label={t("Current password")} required>
-              <input
-                type="password"
-                disabled={busy}
-                autoComplete="current-password"
-                required
-                value={current}
-                onChange={(e) => setCurrent(e.target.value)}
-              />
-            </Field>
-            <Field
-              label={t("New password")}
-              required
-              hint={t("At least 12 characters")}
-            >
-              <input
-                type="password"
-                autoComplete="new-password"
-                disabled={busy}
-                required
-                minLength={12}
-                maxLength={256}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-              />
-            </Field>
-            <Button primary busy={busy} type="submit">
-              {t("Update password")}
-            </Button>
-          </form>
-        </section>
-        <details className="advanced">
-          <summary>{t("Administrator recovery")}</summary>
-          <p>
-            {t(
-              "Use the same MCPDBHUB_DATABASE_URL and master key as the service. Stop the service, provide a new password through standard input, then restart:",
-            )}
-          </p>
-          <pre>
-            contextgate reset-password --username USERNAME --data-dir DIR
-            --password-stdin
-          </pre>
-          <p className="help">
-            {t(
-              "Keep the existing master key. Recovery signs out the selected account and revokes its configuration token. Other accounts and query Agent grants remain valid.",
-            )}
-          </p>
-        </details>
       </div>
     </>
   );

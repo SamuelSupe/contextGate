@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.8.0 — 2026-09-16
+
+- Publish existing native queries and fixed HTTP read operations through a guided source, query, contract, trial and full-source review workflow. Preserve saved drafts, concurrent edits and explicit publication boundaries.
+- Link or create queries from mapped ontology concepts, show linked versus executable coverage, and expose authorized published concept/query relationships through existing MCP discovery.
+- Manage available queries, drafts, queries needing attention and business definitions in one catalog. Agent visibility stays published-only; draft access is rejected server-side. Query names open the workspace directly, retaining search filters, pagination, position and focus on return.
+- Guide client connection and tool invocation in three steps, with a cancellable two-minute wait for exact source/template/version/Agent call evidence. Previews and unrelated calls never confirm setup.
+- Keep up to five recent query references per administrator, highlight one next action, and distinguish connection checks, health checks, query validation and business acceptance.
+- Simplify English/Chinese page copy, settings, audit filters, responsive actions, parameter forms and ontology inspectors. Use contextual help, concise empty states and pagination only when needed.
+- Add bilingual publishing and upgrade guides, a three-query support demo and a business pilot worksheet. No metadata migration, semantic format change, new MCP tool or query authorization model. Cloud warehouses remain unverified previews.
+
 ## 0.7.0 — 2026-09-15
 
 - Add preview Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift sources through `query_sql`, with connection forms, Configuration MCP guidance and native semantic-template examples.

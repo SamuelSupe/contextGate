@@ -85,6 +85,12 @@ Cypher 参数递归保留整数、小数、列表及 map 的原生类型，超�
 - HTTP API 使用管理员声明的固定操作与标量参数槽，不接受 Agent 提交 URL、方法、Header 或任意请求体片段；禁止重定向并检查出站地址。只读行为由管理员声明，HTTP 方法本身不证明上游无副作用。详见 [HTTP API 限制](http-api.zh-CN.md)。
 - Flux 禁止 import/package/option、网络参数、插值和非白名单调用。参数用 extern 的字面量 AST 绑定，兼容 OSS 2.x；不拼接字符串。InfluxDB 3 Core 仅调用固定查询 API，不声称管理员 Token 是数据库只读凭证。
 
+## 管理员查询工作区
+
+查询引导复用来源语义、真实试跑与原子发布，不增加执行层或授权体系。`/api/business-catalog` 要求管理员会话，支持 `view=queries|all|drafts|attention`；`agent_id` 选择 Agent 的已发布投影，不能与管理视图组合。摘要不包含查询正文、参数或结果。分页绑定身份、筛选、来源修订及发布版本，管理视图还绑定草稿修订。
+
+`/api/sources/{id}/readiness` 返回当前验证、授权与 30 天活动窗口；可选 `template_id` 和 `agent_id` 查询精确执行版本的调用证据，排除预览、管理员/系统事件、失败和无关身份。浏览器最长 2 分钟顺序轮询此接口，离开页面或可见性/授权改变时取消，不创建后台调度。每位管理员的最近查询最多保存五组来源/模板/Agent ID，定义重新从服务端加载。
+
 ## 管理与 OAuth
 
 管理 API 覆盖数据源、语义目录、本体、查询 Agent、评估、审计、健康与设置。`/api/administrators` 管理账号，`/api/configuration-agents` 提供当前管理员的固定配置身份；账号管理、全局设置和安全审计由后端强制要求 `super_admin`。`/api/setup` 消费一次性设置码；`/api/login` 建立 12 小时会话；写接口检查 `X-CSRF-Token`、Host 与 Origin。Token 只可放在 Authorization Header。远程公开地址必须使用 HTTPS。

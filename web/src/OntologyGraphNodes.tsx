@@ -1,8 +1,8 @@
+import { coverageLabel, type ConceptCoverage } from "./query-concepts";
 import { t } from "./i18n";
 import { useMemo, type PointerEvent } from "react";
 import { Boxes, GripVertical, Plus } from "lucide-react";
 import { effectiveEntities, type OntologyDefinition } from "./ontology-types";
-import type { OntologyItem, OntologyKind } from "./OntologyEditor";
 import {
   arrowDelta,
   NODE_HEIGHT,
@@ -22,8 +22,6 @@ export function OntologyGraphNodes({
   usage,
   onConnect,
   onMove,
-  onEdit,
-  onAdd,
   disabled,
 }: {
   definition: OntologyDefinition;
@@ -33,11 +31,9 @@ export function OntologyGraphNodes({
   onBegin: (event: PointerEvent, kind: "node" | "connect", id: string) => void;
   onSelect: (id: string) => void;
   onInspect: (id: string, queries?: boolean) => void;
-  usage: Record<string, { sources: number; templates: number }> | null;
+  usage: Record<string, ConceptCoverage> | null;
   onConnect: (id: string) => void;
   onMove: (id: string, delta: Point) => void;
-  onEdit: (kind: OntologyKind, item: OntologyItem) => void;
-  onAdd: (kind: OntologyKind, entity?: string) => void;
   disabled: boolean;
 }) {
   const entries = useMemo(
@@ -70,16 +66,19 @@ export function OntologyGraphNodes({
           >
             <button
               className="ontology-graph-node-header"
-              aria-label={t("Select or move {name}", { name: entity.name })}
+              aria-label={t("Open {name} details or drag to move", {
+                name: entity.name,
+              })}
               aria-pressed={selected === entity.id}
               title={t(
-                "Drag to move. Arrow keys move this card; Enter selects it.",
+                "Click or press Enter for details. Drag or use arrow keys to move.",
               )}
               onPointerDown={(e) => onBegin(e, "node", entity.id)}
+              onFocus={() => onSelect(entity.id)}
               onClick={(e) => {
                 if (e.detail === 0) {
                   if (connecting) onConnect(entity.id);
-                  else onSelect(entity.id);
+                  else onInspect(entity.id);
                 }
               }}
               onKeyDown={(e) => {
@@ -118,16 +117,7 @@ export function OntologyGraphNodes({
             </button>
             <div className="ontology-graph-node-properties">
               {own.slice(0, 3).map((p) => (
-                <button
-                  key={p.id}
-                  disabled={disabled}
-                  title={p.name}
-                  aria-label={t("Edit {name} property {name2}", {
-                    name: entity.name,
-                    name2: p.name,
-                  })}
-                  onClick={() => onEdit("properties", p)}
-                >
+                <div key={p.id} title={p.name}>
                   <span>
                     {p.name}
                     {p.required ? " *" : ""}
@@ -136,7 +126,7 @@ export function OntologyGraphNodes({
                     {p.type}
                     {p.multiple ? "[]" : ""}
                   </small>
-                </button>
+                </div>
               ))}
               {!own.length && <p>{t("No properties yet")}</p>}
               <small className="ontology-graph-property-count">
@@ -158,28 +148,11 @@ export function OntologyGraphNodes({
               onClick={() => onInspect(entity.id, true)}
             >
               {usage
-                ? t("{value1} sources · {value2} templates", {
-                    value1: usage[entity.id]?.sources || 0,
-                    value2: usage[entity.id]?.templates || 0,
-                  })
+                ? t(coverageLabel(usage[entity.id]))
                 : t("View query usage")}{" "}
               <strong>{t("Queries →")}</strong>
             </button>
             <div className="ontology-graph-node-actions">
-              <button
-                disabled={disabled}
-                onClick={() => onEdit("entities", entity)}
-              >
-                {t("Edit entity")}
-              </button>
-              <button
-                disabled={disabled}
-                aria-label={t("Add property to {name}", { name: entity.name })}
-                onClick={() => onAdd("properties", entity.id)}
-              >
-                <Plus size={12} />
-                {t(" Property")}
-              </button>
               <button
                 aria-label={t("View all details for {name}", {
                   name: entity.name,

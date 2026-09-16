@@ -2,9 +2,11 @@
 
 [简体中文](README.zh-CN.md) · [Project](../README.md) · [Download](https://github.com/SamuelSupe/contextGate/releases/latest)
 
+- [Query publishing and recovery](query-publishing.md) · [Business pilot worksheet](query-pilot.md)
+
 **Semantic Data Gateway for AI Agents.** Connect databases and HTTP APIs, describe business concepts, publish verified queries, and grant Agents controlled access.
 
-These guides describe **0.7.0**. For an older installation, use the documentation at its release tag; [validation](validation.md) separates final release checks from historical feature evidence.
+These guides describe **ContextGate 0.8.0**, including query publishing, concept links and the unified query workspace. For an older installation, use the documentation at its release tag; [validation](validation.md) separates final release checks from historical feature evidence.
 
 ## Start here
 
@@ -14,7 +16,7 @@ These guides describe **0.7.0**. For an older installation, use the documentatio
 | Install on Linux or Docker / OrbStack | [Installation](install.md) |
 | Complete the first source-to-Agent workflow | [Getting started](getting-started.md) |
 | Let an Agent configure ContextGate | [Configuration MCP](configuration-mcp.md) |
-| Upgrade from ContextGate 0.4.x / 0.5.x / 0.6.x | [0.7.0 release and upgrade notes](releases/0.7.0.md) |
+| Upgrade from ContextGate 0.4.x / 0.5.x / 0.6.x / 0.7.x | [0.8.0 release and upgrade notes](releases/0.8.0.md) |
 | Move from SQLite metadata (0.3.x or earlier) | [0.4.0 release and upgrade notes](releases/0.4.0.md) |
 
 ## Model and query your data
@@ -26,7 +28,7 @@ These guides describe **0.7.0**. For an older installation, use the documentatio
 | Supported databases, versions and limitations | [Support matrix](support-matrix.md) |
 | Database permissions | [Read-only account examples](read-only-accounts.md) |
 | Business terms, metrics and native query templates | [Semantic catalogs](semantics.md) · [Database examples](../examples/semantics/) · [HTTP API example](../examples/http-api/semantics.json) |
-| Search published business concepts and preview linked queries | [Business catalog workflow](getting-started.md#2-describe-and-verify) |
+| Find queries, manage drafts and inspect linked concepts | [Business catalog workflow](getting-started.md#2-describe-and-verify) |
 | Shared entity, property and relationship definitions | [Ontologies and mappings](ontologies.md) |
 | Reuse one retail ontology across different databases | [Retail demo](../examples/ontologies/retail-demo/README.md) |
 | Client setup, Agent previews and saved evaluations | [Agent workflows](agent-workflows.md) |
@@ -46,3 +48,5 @@ These guides describe **0.7.0**. For an older installation, use the documentatio
 The default documentation and UI language is English. Choose **Settings → Language → 简体中文** for the Chinese UI. Business definitions and query results retain their original language.
 
 Configuration credentials, query Agent tokens and administrator sessions have different roles. Follow the guide for your endpoint; a configuration credential is not a data-source-scoped query token.
+
+[Product plan and delivery status](product-optimization-plan.md) · [Workflow validation](query-publishing-validation.md)

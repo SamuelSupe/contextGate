@@ -12,6 +12,15 @@ export interface Readiness {
   executable_templates: number;
   active_agents: string[];
   last_query?: string;
+  activity_since: string;
+  client_queries: number;
+  template_activity?: {
+    template_id: string;
+    execution_version: string;
+    agent_id: string;
+    successful_calls: number;
+    recent_calls: { agent_id: string; request_id: string; at: string }[];
+  };
   ontology?: OntologyBinding;
   draft_ontology?: OntologyBinding;
   templates: {
@@ -40,24 +49,49 @@ export function readinessLabel(source: Source, ready: Readiness) {
 export function connectionReady(source: Source) {
   return !!(source.enabled && source.probe?.connected);
 }
-export function useReadiness(sourceID: string, revision = "") {
-  const [data, setData] = useState<Readiness | null>(null);
+export function useReadiness(
+  sourceID: string,
+  revision = "",
+  templateID = "",
+  agentID = "",
+) {
+  const key = JSON.stringify([sourceID, revision, templateID, agentID]);
+  const [snapshot, setSnapshot] = useState<{
+    key: string;
+    data: Readiness;
+  } | null>(null);
   const [error, setError] = useState("");
   const [refreshKey, setRefreshKey] = useState(0);
   useEffect(() => {
     const abort = new AbortController();
-    setData(null);
     setError("");
-    api<Readiness>(`/api/sources/${encodeURIComponent(sourceID)}/readiness`, {
-      signal: abort.signal,
-    })
-      .then(setData)
+    if (!sourceID) return () => abort.abort();
+    const query = new URLSearchParams({
+      template_id: templateID,
+      agent_id: agentID,
+    });
+    api<Readiness>(
+      `/api/sources/${encodeURIComponent(sourceID)}/readiness?${query}`,
+      {
+        signal: abort.signal,
+      },
+    )
+      .then((data) => {
+        if (!abort.signal.aborted) setSnapshot({ key, data });
+      })
       .catch((e) => {
-        if (!abort.signal.aborted) setError(message(e));
+        if (!abort.signal.aborted) {
+          setSnapshot(null);
+          setError(message(e));
+        }
       });
     return () => abort.abort();
-  }, [sourceID, revision, refreshKey]);
-  return { data, error, refresh: () => setRefreshKey((v) => v + 1) };
+  }, [sourceID, key, templateID, agentID, refreshKey]);
+  return {
+    data: snapshot?.key === key ? snapshot.data : null,
+    error,
+    refresh: () => setRefreshKey((v) => v + 1),
+  };
 }
 export const semanticsURL = (
   id: string,

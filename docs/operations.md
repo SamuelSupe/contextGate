@@ -55,7 +55,7 @@ Adding or editing a regression contract requires a new successful trial. The con
 
 ## Diagnose PostgreSQL
 
-For super administrators, **Settings → Deployment diagnostics → Run diagnostics** checks the metadata connection, observed PostgreSQL version and TLS transport, key match, schema and pool usage. The copyable report contains no database address, credentials, source names or query data. The key check verifies the loaded key against metadata; it does not prove the key has been backed up. TLS transport evidence alone does not establish certificate verification policy. An unavailable metadata database can prevent administrator login; `/healthz`, container state and service startup logs remain the first checks in that case.
+For super administrators, **Settings → Diagnostics → Run diagnostics** checks the metadata connection, observed PostgreSQL version and TLS transport, key match, schema and pool usage. The copyable report contains no database address, credentials, source names or query data. The key check verifies the loaded key against metadata; it does not prove the key has been backed up. TLS transport evidence alone does not establish certificate verification policy. An unavailable metadata database can prevent administrator login; `/healthz`, container state and service startup logs remain the first checks in that case.
 
 ## Back up and verify recovery
 
@@ -78,7 +78,7 @@ Backup freshness is not monitored by the service. Retain the verification output
 
 ## Verification record
 
-See [0.7.0 release validation](validation.md#contextgate-070--2026-09-15) for final CI and archive/download gates. The feature-stage records below retain their original scopes.
+See [0.8.0 release validation](validation.md#contextgate-080--2026-09-16) for final CI and archive/download gates. The feature-stage records below retain their original scopes.
 
 [UX fix validation](verification/product-ux-fixes.json) records the follow-up catalog, authoring, single-answer evaluation and responsive checks, including the isolated runtime recovery and remaining browser limitations.
 

@@ -203,11 +203,7 @@ export function AuditPage({
       <div className="page-header">
         <div>
           <h1>{t("Audit log")}</h1>
-          <p>
-            {t(
-              "30 days of query calls and management changes. Query text, parameter values, credentials and results are never stored.",
-            )}
-          </p>
+          <p>{t("Query and configuration activity · Last 30 days")}</p>
         </div>
         <Button busy={loading} onClick={() => setRefresh((n) => n + 1)}>
           {t("Refresh")}
@@ -233,11 +229,6 @@ export function AuditPage({
           </Button>
         ))}
       </div>
-      <p className="help">
-        {t(
-          "System checks are recorded separately from new manual previews. Historical records keep their original classification.",
-        )}
-      </p>
 
       <form
         className="audit-filters"
@@ -246,67 +237,6 @@ export function AuditPage({
           applyFilters(filters);
         }}
       >
-        <Field label={t("Event type")}>
-          <select
-            value={filters.event_kind}
-            onChange={(e) =>
-              setFilters({ ...filters, view: "", event_kind: e.target.value })
-            }
-          >
-            <option value="">{t("All events")}</option>
-            <option value="query">{t("Query calls")}</option>
-            <option value="management">{t("Management changes")}</option>
-            <option value="system">{t("System checks")}</option>
-            {superAdmin && (
-              <option value="security">{t("Account security")}</option>
-            )}
-          </select>
-        </Field>
-        <Field label={t("Administrator")}>
-          <select
-            value={filters.administrator_id}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                administrator_id: e.target.value,
-                view: "",
-              })
-            }
-          >
-            <option value="">{t("All administrators")}</option>
-            {administrators.map((a) => (
-              <option key={a.id} value={a.id}>
-                {a.display_name} · {a.username}
-              </option>
-            ))}
-          </select>
-        </Field>
-        <Field label={t("Entry point")}>
-          <select
-            value={filters.channel}
-            onChange={(e) =>
-              setFilters({ ...filters, channel: e.target.value, view: "" })
-            }
-          >
-            <option value="">{t("All entry points")}</option>
-            <option value="ui">{t("Management UI")}</option>
-            <option value="configuration_mcp">{t("Configuration MCP")}</option>
-            <option value="cli">CLI</option>
-          </select>
-        </Field>
-        <Field label={t("Configuration identity ID")}>
-          <input
-            value={filters.configuration_agent_id}
-            onChange={(e) =>
-              setFilters({
-                ...filters,
-                configuration_agent_id: e.target.value,
-                view: "",
-              })
-            }
-            placeholder="cfg_…"
-          />
-        </Field>
         <Field label={t("Agent")}>
           <select
             value={filters.agent_id}
@@ -355,12 +285,86 @@ export function AuditPage({
         </Field>
         <details className="advanced audit-advanced-filters">
           <summary>
-            {t("Time range and request ID")}
-            {(filters.from || filters.until || filters.request_id) && (
+            {t("More filters")}
+            {(filters.from ||
+              filters.until ||
+              filters.request_id ||
+              filters.event_kind ||
+              filters.administrator_id ||
+              filters.channel ||
+              filters.configuration_agent_id) && (
               <small>{t("Filters set")}</small>
             )}
           </summary>
           <div className="audit-time-filters">
+            <Field label={t("Event type")}>
+              <select
+                value={filters.event_kind}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    view: "",
+                    event_kind: e.target.value,
+                  })
+                }
+              >
+                <option value="">{t("All events")}</option>
+                <option value="query">{t("Query calls")}</option>
+                <option value="management">{t("Management changes")}</option>
+                <option value="system">{t("System checks")}</option>
+                {superAdmin && (
+                  <option value="security">{t("Account security")}</option>
+                )}
+              </select>
+            </Field>
+            <Field label={t("Administrator")}>
+              <select
+                value={filters.administrator_id}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    administrator_id: e.target.value,
+                    view: "",
+                  })
+                }
+              >
+                <option value="">{t("All administrators")}</option>
+                {administrators.map((a) => (
+                  <option key={a.id} value={a.id}>
+                    {a.display_name} · {a.username}
+                  </option>
+                ))}
+              </select>
+            </Field>
+            <Field label={t("Entry point")}>
+              <select
+                value={filters.channel}
+                onChange={(e) =>
+                  setFilters({ ...filters, channel: e.target.value, view: "" })
+                }
+              >
+                <option value="">{t("All entry points")}</option>
+                <option value="ui">{t("Management UI")}</option>
+                <option value="configuration_mcp">
+                  {t("Configuration MCP")}
+                </option>
+                <option value="cli">CLI</option>
+              </select>
+            </Field>
+            <Field label={t("Configuration identity ID")}>
+              <input
+                value={filters.configuration_agent_id}
+                onChange={(e) =>
+                  setFilters({
+                    ...filters,
+                    configuration_agent_id: e.target.value,
+                    view: "",
+                  })
+                }
+                placeholder="cfg_…"
+              />
+            </Field>
+
             <Field label={t("From")}>
               <input
                 type="datetime-local"

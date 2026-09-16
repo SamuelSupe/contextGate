@@ -215,15 +215,10 @@ export function Administrators({
       .includes(search.toLowerCase()),
   );
   return (
-    <section id="settings-administrators" tabIndex={-1}>
+    <section className="administrators-settings">
       <div className="configuration-heading">
         <div>
           <h2>{t("Administrators")}</h2>
-          <p className="help">
-            {t(
-              "Individual accounts, shared business configuration and attributable changes.",
-            )}
-          </p>
         </div>
         <Button primary onClick={() => open("new")}>
           {t("Add administrator")}

@@ -4,6 +4,8 @@ Approved scope: 18 products; Go MCP HTTP + stdio bridge; encrypted PostgreSQL co
 named administrators with super/admin roles; per-Agent datasource grants; Fosite OAuth; compact bilingual React UI (English default).
 InfluxDB 3 Core explicitly permits query-API isolation instead of a read-only account.
 
+Current release: **0.8.0**. [Release notes](releases/0.8.0.md) distinguish this release from historical connector verification.
+
 ## Work
 
 - [x] Configuration, authentication, query execution, MCP and stdio
@@ -11,6 +13,8 @@ InfluxDB 3 Core explicitly permits query-API isolation instead of a read-only ac
 - [x] Open-source database adapters and discovery
 - [x] Cloud warehouse preview adapters, UI, templates and bilingual guides (0.7.0); real vendor validation pending
 - [x] Fosite OAuth, consent, refresh, revocation, client metadata
+- [x] Guided query publishing, saved-draft recovery and exact real-client call confirmation (0.8.0)
+- [x] Ontology-to-query linking, administrator draft/repair catalog views and recent queries (0.8.0)
 - [x] Embedded React management UI
 - [x] OrbStack real database matrix and security behavior checks
 - [x] Chrome functional and visual verification

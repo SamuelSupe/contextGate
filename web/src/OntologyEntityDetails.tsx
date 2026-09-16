@@ -136,8 +136,10 @@ export function OntologyEntityDetails({
                       </small>
                     </td>
                     <td>
-                      {t(p.type)}
-                      {p.multiple ? "[]" : ""}
+                      <span className="ontology-value-type">
+                        {t(p.type)}
+                        {p.multiple ? "[]" : ""}
+                      </span>
                       {p.unit && <small className="block">{p.unit}</small>}
                     </td>
                     <td>

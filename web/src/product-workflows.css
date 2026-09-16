@@ -74,6 +74,7 @@
 }
 .concept-usage h3 {
   font-size: 16px;
+  margin-top: 20px;
 }
 .concept-source {
   border: 1px solid var(--line);
@@ -119,6 +120,10 @@
   }
 }
 .workflow-identity {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: 14px;
   border: 1px solid var(--line);
   border-left: 4px solid #438c91;
   border-radius: 8px;
@@ -126,7 +131,9 @@
   margin: 18px 0;
 }
 .workflow-identity .field {
+  flex: 1 1 240px;
   max-width: 580px;
+  margin: 0;
 }
 .workspace-queries {
   border: 1px solid var(--line);
@@ -351,14 +358,158 @@
     table-layout: fixed;
     font-size: 12px;
   }
-  .evaluation-comparison th, .evaluation-comparison td {
+  .evaluation-comparison th,
+  .evaluation-comparison td {
     padding: 10px 8px;
     white-space: normal;
     overflow-wrap: anywhere;
   }
-  .evaluation-comparison th:first-child { width: 40%; }
-  .workflow-summary, .workflow-identity, .workspace-queries {
+  .evaluation-comparison th:first-child {
+    width: 40%;
+  }
+  .workflow-summary,
+  .workflow-identity,
+  .workspace-queries {
     margin: 12px 0;
     padding: 14px;
+  }
+}
+
+.query-concepts {
+  margin: 16px 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  min-width: 0;
+}
+.query-concepts-heading,
+.concept-coverage {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 14px;
+}
+.query-concepts-heading h3 {
+  margin: 0;
+}
+.query-concepts .help {
+  margin: 10px 0;
+}
+.concept-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 12px 0;
+}
+.concept-chip {
+  display: inline-flex;
+  align-items: center;
+  max-width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #fff;
+}
+.concept-chip button {
+  border: 0;
+  background: transparent;
+  color: var(--teal);
+  min-width: 0;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  padding: 7px 10px;
+}
+.concept-chip button[aria-pressed="true"] {
+  background: #eaf6f6;
+}
+.concept-chip small {
+  padding-right: 10px;
+  color: var(--muted);
+}
+.concept-definition {
+  border-left: 3px solid var(--teal);
+  padding: 10px 14px;
+  margin: 12px 0;
+  overflow-wrap: anywhere;
+}
+.concept-definition > .status {
+  margin-left: 10px;
+}
+.concept-definition > small {
+  display: block;
+  color: var(--muted);
+  margin-top: 8px;
+}
+.concept-picker > summary {
+  color: var(--teal);
+  cursor: pointer;
+  padding: 8px 0;
+}
+.concept-options {
+  max-height: 240px;
+  overflow-y: auto;
+  display: grid;
+  gap: 6px;
+}
+.concept-options .checkbox-row {
+  margin: 0;
+  padding: 9px;
+  border-radius: 5px;
+  border: 1px solid var(--line);
+}
+.concept-options .checkbox-row span {
+  overflow-wrap: anywhere;
+  min-width: 0;
+}
+.concept-options small {
+  display: block;
+  color: var(--muted);
+  margin-top: 3px;
+}
+.concept-coverage {
+  margin: 16px 0 8px;
+}
+.concept-coverage small {
+  color: var(--muted);
+}
+.concept-coverage button {
+  margin-left: auto;
+}
+.concept-link-form {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 14px;
+  margin-top: 12px;
+}
+.concept-query-list > li {
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.concept-query-list > li > div:first-child {
+  flex: 1 1 160px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.concept-query-list .button-row {
+  flex: 0 1 auto;
+  margin: 0;
+}
+.concept-mapping-details {
+  margin-top: 16px;
+}
+.concept-mapping-details summary {
+  cursor: pointer;
+  color: var(--muted);
+  padding: 8px 0;
+}
+.concept-mapping-details code {
+  overflow-wrap: anywhere;
+}
+@media (max-width: 600px) {
+  .query-concepts {
+    padding: 12px;
+  }
+  .concept-query-list .button-row {
+    width: 100%;
   }
 }
