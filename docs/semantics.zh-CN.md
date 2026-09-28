@@ -1,6 +1,6 @@
 # 数据源语义目录与查询模板
 
-[English](semantics.md) · [示例目录](../examples/semantics/) · [架构](architecture.zh-CN.md)
+[English](semantics.md) · [管理员指南](admin-guide.zh-CN.md) · [示例目录](../examples/semantics/) · [架构](architecture.zh-CN.md)
 
 每个数据源拥有独立的业务术语、对象、字段、关系、指标和原生查询模板。继续采用 **Agent → Data Source** 授权。语义只描述业务，不承担权限控制，也不能覆盖 Agent 的系统指令。界面默认英文，可在设置中切换简体中文；名称、别名和说明支持中文及其他语言。
 
@@ -54,25 +54,9 @@ HTTP API 使用**管理员维护的 API 契约版本**，不是自动检测的�
 
 ## MCP 调用
 
-`list_data_sources` 包含 `query_access_mode`、`semantics_available`、`semantic_version`、`available_tools`，不一次返回目录。
+将[已发布查询使用流程](user-guide.zh-CN.md#执行已发布查询)交给查询用户，其中包含参数填写、执行版本和原生结果限制。发现操作只返回 Agent 已授权来源中的已发布目录。
 
-```json
-{"name":"search_semantics","arguments":{"source_id":"src_example","keyword":"金额","kind":"metric","limit":25}}
-```
-
-按名称、别名、说明关键词匹配。类型包括 `overview`、`term`、`object`、`field`、`relationship`、`metric`、`template`、`entity_type`、`property`、`relation_type`。本体条目使用结构发现返回的独立概念 ID，只展示当前源映射的可见子集。每页最多 100 条摘要、64 KiB 摘要数据。游标有效期 5 分钟，绑定身份、数据源、关键词、类型、分页大小、源发布版本和采用的本体版本；发布版本改变后重新开始检索。
-
-```json
-{"name":"get_semantic_entry","arguments":{"source_id":"src_example","entry_id":"lookup-orders"}}
-```
-
-保留条目 ID **`overview`** 用于读取已发布数据源背景。模板详情包含参数契约、调用示例、执行版本、是否可执行及关联指标摘要。关联摘要最多返回 25 条，超出时标记截断。
-
-```json
-{"name":"execute_query_template","arguments":{"source_id":"src_example","template_id":"lookup-orders","execution_version":"3","parameters":{"id":42},"max_rows":100}}
-```
-
-Agent 只能提交模板标识、精确执行版本、参数，以及可选游标和更严格的上限。结果保留原生结构，并追加 `semantic_version`、`template_id`、`template_version`。采用本体时，`ontology_context` 记录请求开始时的本体版本及模板显式关联概念，不转换值或推断关系。执行前和返回前检查授权及模板有效性。原生分页游标额外绑定模板 ID、执行版本、查询、参数、身份；原生工具不能消费模板游标。SQL 继续由显式查询分页。
+交付前，以获授权 Agent 检查模板的参数契约与当前可执行状态，并确认真实客户端调用了该执行版本。如何区分管理员预览和客户端证据，见[接入验证与评估](agent-workflows.zh-CN.md)。模板结果保留原生数据，并附带发布及版本信息；采用本体后，还会附带[映射概念上下文](ontologies.zh-CN.md#mcpjson-与持久化)。
 
 ## 管理 API
 

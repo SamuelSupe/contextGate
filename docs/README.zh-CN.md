@@ -1,33 +1,36 @@
-# ContextGate 帮助文档
+# ContextGate 文档
 
 [English](README.md) · [项目说明](../README.zh-CN.md) · [下载发行版](https://github.com/SamuelSupe/contextGate/releases/latest)
 
-- [查询发布与恢复](query-publishing.zh-CN.md) · [业务试点工作表](query-pilot.zh-CN.md)
+本文档面向 **ContextGate 0.8.0**。使用其他版本时，请查看对应发行标签中的文档。
 
-**Agent 语义数据网关：** 连接数据库与 HTTP API，描述业务概念，发布经过验证的查询，为 Agent 授予受控访问权限。
+## 查询用户
 
-本文档面向 **ContextGate 0.8.0**，包含查询发布、本体概念关联和统一查询工作区；旧版本请查看对应发行标签中的文档。[验收记录](validation.zh-CN.md)区分最终发行验证与历史功能证据。
+管理员已提供现有服务的访问权限时，从 **[用户指南](user-guide.zh-CN.md)** 开始，按顺序完成接入和查询：
 
-| 使用目标 | 文档 |
+1. [接入 MCP 客户端](user-guide.zh-CN.md#接入客户端)。
+2. [查找并执行已发布查询](user-guide.zh-CN.md#执行已发布查询)。
+3. [填写参数](user-guide.zh-CN.md#填写参数)，[理解结果与翻页](user-guide.zh-CN.md#理解结果与翻页)。
+4. 按需使用[原生查询](user-guide.zh-CN.md#原生查询)，或处理[查询问题](user-guide.zh-CN.md#查询遇到问题)。
+
+查询用户通过自己的 Agent 客户端工作，无需数据库密码或 ContextGate 管理员账号。
+
+## 管理员
+
+负责安装服务、向他人提供查询能力或维护权限与运行状态时，从 **[管理员指南](admin-guide.zh-CN.md)** 开始。
+
+| 任务 | 文档 |
 | --- | --- |
-| 管理员账号、个人 MCP 身份及升级 | [账号管理指南](administrators.zh-CN.md) |
-| Linux / Docker / OrbStack 安装 | [安装指南](install.zh-CN.md) |
-| 从数据源配置到 Agent 查询 | [首次使用](getting-started.zh-CN.md) |
-| 让 Agent 配置 ContextGate | [配置 MCP](configuration-mcp.zh-CN.md) |
-| 从 ContextGate 0.4.x / 0.5.x / 0.6.x / 0.7.x 升级 | [0.8.0 发行与升级说明](releases/0.8.0.zh-CN.md) |
-| 从 0.3.x 或更早的 SQLite 元数据升级 | [0.4.0 发行与升级说明（英文）](releases/0.4.0.md) |
-| JSON REST API、只读操作与查询模板 | [HTTP API 数据源](http-api.zh-CN.md) |
-| 云数仓预览配置 | [Snowflake、Databricks、BigQuery、Redshift](cloud-warehouses.zh-CN.md) · [示例](../examples/cloud-warehouses/README.md) |
-| 数据库版本与读取能力 | [支持矩阵](support-matrix.zh-CN.md) · [只读账号](read-only-accounts.zh-CN.md) |
-| 术语、指标与原生模板 | [语义目录](semantics.zh-CN.md) · [数据库示例](../examples/semantics/) · [HTTP API 示例](../examples/http-api/semantics.json) |
-| 查找查询、管理草稿与关联业务概念 | [业务目录与首次使用](getting-started.zh-CN.md) |
-| 实体、属性、关系与独立源映射 | [本体与映射](ontologies.zh-CN.md) · [零售示例](../examples/ontologies/retail-demo/README.zh-CN.md) |
-| 客户端、查询预览与评估 | [Agent 工作流](agent-workflows.zh-CN.md) |
-| 备份恢复、健康、历史与回归 | [运维指南](operations.zh-CN.md) |
-| 发布影响与审计活动分类 | [发布前审阅](operations.zh-CN.md#发布前审核) |
-| 审计上报 | [OTLP Logs](audit-export.zh-CN.md) |
-| 系统设计与测试证据 | [架构](architecture.zh-CN.md) · [验收](validation.zh-CN.md) |
+| 部署服务、准备第一个来源 | [安装](install.zh-CN.md) → [管理员首次配置](getting-started.zh-CN.md) |
+| 发布查询、维护业务定义 | [查询发布](query-publishing.zh-CN.md) · [语义目录](semantics.zh-CN.md) · [本体](ontologies.zh-CN.md) |
+| 管理身份与访问权限 | [管理员账号](administrators.zh-CN.md) · [查询 Agent 授权与 OAuth](agent-access.zh-CN.md) |
+| 确认真实接入与业务答案 | [接入验证与评估](agent-workflows.zh-CN.md) |
+| 维护、恢复与审计 | [运维](operations.zh-CN.md) · [审计上报](audit-export.zh-CN.md) |
 
-默认 UI 为英文，在 **Settings → Language → 简体中文** 切换并记住当前浏览器的语言偏好。业务文本和数据不会被自动翻译。
+管理员指南还提供各类来源配置、配置 MCP、示例和用户交付说明。Web 控制台属于管理流程，在预览中选择 Agent 仍是管理员操作。
 
-[产品方案与交付状态](product-optimization-plan.zh-CN.md) · [流程验证记录](query-publishing-validation.zh-CN.md)
+## 参考与项目开发
+
+[支持矩阵](support-matrix.zh-CN.md) · [架构](architecture.zh-CN.md) · [安全说明](../SECURITY.md) · [0.8.0 发行说明](releases/0.8.0.zh-CN.md)
+
+构建步骤、可复现验收、发行流程和产品交付记录集中在 **[贡献指南](../CONTRIBUTING.md)**，与日常用户和管理员操作分开查阅。

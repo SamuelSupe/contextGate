@@ -1,6 +1,6 @@
 # 共享业务本体
 
-[English](ontologies.md) · [Customer/Order 示例](../examples/ontologies/) · [语义目录与模板](semantics.zh-CN.md)
+[English](ontologies.md) · [管理员指南](admin-guide.zh-CN.md) · [Customer/Order 示例](../examples/ontologies/) · [语义目录与模板](semantics.zh-CN.md)
 
 业务本体采用“共享定义、独立映射、按数据源授权”。统一定义 Customer、Order 和 Customer places Order，再分别映射 PostgreSQL 的表与字段、MongoDB 的集合与文档路径。Agent 根据业务概念找到当前源的原生查询模板，返回值仍保留原生结构。
 

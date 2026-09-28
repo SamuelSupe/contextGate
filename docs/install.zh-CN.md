@@ -1,6 +1,6 @@
 # 安装 ContextGate
 
-[English](install.md) · [发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)
+[English](install.md) · [管理员指南](admin-guide.zh-CN.md) · [发行版](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)
 
 **ContextGate 0.8.0** 使用 `contextgate` 主命令，并保留 `mcpdbhub` 别名。
 
@@ -41,13 +41,9 @@ export PGPASSWORD
 
 保留解压后的完整目录：根目录 `contextgate` 启动器设置私有运行库路径，再运行 `libexec/contextgate`。不要只复制其中一个文件。启动器保留当前工作目录、参数和信号传递。
 
-打开 `http://127.0.0.1:8080`，使用服务日志中的一次性设置码创建首个超级管理员的用户名和密码。按以下流程配置：
+打开 `http://127.0.0.1:8080`，使用服务日志中的一次性设置码创建首个超级管理员的用户名和密码。
 
-1. **Data sources → Add data source**：选择产品、填写连接与数据库读取账号，配置 TLS 和执行上限。
-2. 保存并检查连接与只读保护证据。`Not verified` 不等同于已验证账号权限；InfluxDB 3 Core 明确采用查询 API 隔离。
-3. **Agents → Create Agent**：选择可访问的数据源和到期时间。保存唯一一次显示的 Token。
-4. **Connect** 中复制 HTTP 或 stdio 配置。包内 `examples/` 提供占位示例；先调用 `list_data_sources`，再执行相应查询工具。
-5. 在 **Audit log** 查看调用结果，用请求 ID 关联脱敏错误。撤销 Token 后更新客户端，不会恢复旧凭证。
+继续按[管理员首次配置](getting-started.zh-CN.md)接入来源、发布查询并授权。将[用户指南](user-guide.zh-CN.md)交给查询使用者。
 
 ## 从源码运行 Docker
 
@@ -65,15 +61,30 @@ docker compose logs hub
 
 默认只监听宿主机回环端口；数据库文件需允许容器 UID 10001 读取，数据库目录只读挂载。PostgreSQL 元数据保存在 `hub-postgres`，独立密钥保存在 `hub-data`。只在首次安装生成 `.env`，重启保留已有密码。不要执行 `docker compose down -v` 来升级。
 
+企业构建代理使用自定义 CA 时，可执行 `docker build --secret id=build_ca,src=/path/to/ca.pem -t contextgate:local .`。证书只用于构建时下载依赖，不进入运行镜像；数据源 TLS 证书在 UI 中另行配置。
+
+## 运行配置
+
+| 环境变量 | 默认值 | 含义 |
+|---|---|---|
+| `MCPDBHUB_LISTEN` | `127.0.0.1:8080` | 监听地址（镜像内为 `0.0.0.0:8080`） |
+| `MCPDBHUB_PUBLIC_URL` | `http://127.0.0.1:8080` | 固定公开 origin，远程地址必须为 HTTPS |
+| `MCPDBHUB_DATABASE_URL` | 必填 | PostgreSQL 元数据连接，启动和密码恢复均使用 |
+| `MCPDBHUB_DATA_DIR` | `./data` | 本地主密钥目录 |
+| `MCPDBHUB_DATABASE_DIR` | 数据目录下 `databases` | SQLite/DuckDB 文件许可目录 |
+| `MCPDBHUB_MASTER_KEY` | 独立密钥文件 | 可选的外部主密钥 |
+
+外部主密钥使用 32 字节密钥的标准 Base64 编码，重启和恢复时必须保持一致。连接凭证中的特殊字符需进行 URL 编码；优先使用 `MCPDBHUB_DATABASE_URL`，避免 `--database-url` 将密钥暴露在命令参数中。远程 PostgreSQL 连接应校验服务端证书，`sslmode=disable` 仅用于隔离的本地数据库。
+
 ## 远程部署、持久化与升级
 
-远程部署应在 HTTPS 反向代理后运行，设置 `MCPDBHUB_PUBLIC_URL=https://db.example.com`，并保留原 Host 与 Authorization 请求头；OAuth 的资源地址为 `https://db.example.com/mcp`。二进制服务可通过 `--listen 0.0.0.0:8080` 监听容器或内网接口。完整配置变量见 [README](../README.zh-CN.md)。
+远程部署应在 HTTPS 反向代理后运行，设置 `MCPDBHUB_PUBLIC_URL=https://db.example.com`，并保留原 Host 与 Authorization 请求头；OAuth 的资源地址为 `https://db.example.com/mcp`。二进制服务可通过 `--listen 0.0.0.0:8080` 监听容器或内网接口。持久化配置使用上方运行变量。健康检查为 `GET /healthz`。
 
 当前 PG 存储请停止 ContextGate 后用 `pg_dump` / `pg_restore` 备份和恢复元数据库。将匹配的 `master.key` 放在程序目录外，单独备份并保护；如使用 `MCPDBHUB_MASTER_KEY`，另行备份该外部密钥。恢复时密钥必须与配置匹配。
 
 升级前保留旧程序和停止状态下的配置备份，新版本使用同一 `MCPDBHUB_DATABASE_URL` 和密钥目录启动。只有从 0.3.x 或更早版本升级才需要新建 PostgreSQL 存储并重新配置；现有 PostgreSQL 部署保留元数据。不要删除主密钥、配置库或数据卷。数据库迁移后如需回退，应恢复与旧程序配套的配置备份。
 
-忘记管理员密码时，保留同一 `MCPDBHUB_DATABASE_URL` 和主密钥，停止服务，通过 stdin 执行 `./contextgate reset-password --data-dir /原配置路径 --username admin --password-stdin`；具体无回显命令见 [恢复说明](../README.zh-CN.md#管理员忘记密码后的恢复)。原数据源与查询 Agent Token 保留，指定管理员的会话及配置 Token 失效。
+忘记管理员密码时，保留同一 `MCPDBHUB_DATABASE_URL` 和主密钥，停止服务，通过 stdin 执行 `./contextgate reset-password --data-dir /原配置路径 --username admin --password-stdin`；具体无回显命令见 [恢复说明](administrators.zh-CN.md#忘记密码后的本地恢复)。原数据源与查询 Agent Token 保留，指定管理员的会话及配置 Token 失效。
 
 ## 运行故障
 

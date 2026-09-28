@@ -1,6 +1,6 @@
 # Operations and safe changes
 
-[简体中文](operations.zh-CN.md)
+[简体中文](operations.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 This guide describes the current source tree; use the documentation at your release tag when running an older build. The service uses PostgreSQL metadata and an independent encryption key. Settings and `contextgate version` show the build commit; local Go builds also mark a modified checkout when VCS metadata is available.
 

@@ -22,6 +22,28 @@ Keep queries read-only, apply authorization to metadata as well as data, preserv
 
 Before opening a pull request, remove credentials and local fixtures, explain the observable change, and report what you actually tested. English is the default for the README, documentation, UI strings, issue and pull request templates, and release notes. Keep translations in files ending in `.zh-CN.md`, with explicit language links. Update both README and installation-guide languages when user-facing instructions change.
 
+## Documentation
+
+Keep documentation organized by its reader:
+
+- The project README introduces ContextGate and links to the two role guides.
+- The [user guide](docs/user-guide.md) covers connecting to an existing service, querying published content, understanding results and reporting errors. It must not require a console account or deployment knowledge.
+- The [administrator guide](docs/admin-guide.md) indexes installation, source configuration, publication, access management and operations. Detailed administrator topics link back to that guide.
+- Development instructions, design plans and verification records are linked below. Historical evidence must retain its version and scope.
+
+Keep the English and Chinese entry points aligned. Maintain existing topic paths when reorganizing navigation, and update incoming section links when moving content. Document the actual account model: query users are MCP clients, while the web console has Administrator and Super administrator roles.
+
+## Development and release references
+
+| Task | Reference |
+| --- | --- |
+| Understand architecture and security boundaries | [Architecture](docs/architecture.md) · [中文](docs/architecture.zh-CN.md) · [Security policy](SECURITY.md) |
+| Prepare OrbStack and reproduce validation | [Validation](docs/validation.md) · [中文](docs/validation.zh-CN.md) |
+| Inspect query-publishing evidence and its limits | [Workflow validation](docs/query-publishing-validation.md) · [中文](docs/query-publishing-validation.zh-CN.md) |
+| Build and publish Linux distributions | [Release process](docs/releasing.md) |
+| Review product plans and implementation status | [Product plan](docs/product-optimization-plan.md) · [中文](docs/product-optimization-plan.zh-CN.md) · [Implementation tracking](docs/implementation-progress.md) |
+| Review shipped changes | [Changelog](CHANGELOG.md) · [0.8.0 release notes](docs/releases/0.8.0.md) · [中文](docs/releases/0.8.0.zh-CN.md) |
+
 ## License
 
 Contributions intentionally submitted for inclusion in ContextGate are licensed under the [Apache License, Version 2.0](LICENSE). Preserve applicable third-party copyright, license and attribution notices.

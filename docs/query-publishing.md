@@ -1,6 +1,6 @@
 # Publish an existing query as an Agent tool
 
-[简体中文](query-publishing.zh-CN.md) · [Getting started](getting-started.md)
+[简体中文](query-publishing.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 Use **Home → New query** when you already have a working read query or a fixed HTTP read operation. ContextGate reuses its existing semantic templates, source authorization and query engine. You do not need an ontology or a new access-control model.
 

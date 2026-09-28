@@ -1,6 +1,6 @@
 # Read-only database accounts
 
-[简体中文](read-only-accounts.zh-CN.md)
+[简体中文](read-only-accounts.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 A database administrator runs these commands in the database. ContextGate does not create accounts, modify grants or probe privileges by attempting writes. Replace the example database, username and password with your own values. Use dedicated accounts without inherited extra roles. Database permissions, views and RLS control table, column and row visibility.
 

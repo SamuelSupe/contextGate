@@ -1,6 +1,6 @@
 # 运维与安全变更
 
-[English](operations.md)
+[English](operations.md) · [管理员指南](admin-guide.zh-CN.md)
 
 本文对应当前源码；运行旧版本时请查看对应发布标签中的文档。内建元数据使用 PostgreSQL，加密密钥独立保存。设置页与 `contextgate version` 显示构建提交；包含 Go VCS 信息的本地构建还会标记未提交修改。
 

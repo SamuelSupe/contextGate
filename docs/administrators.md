@@ -1,6 +1,6 @@
 # Administrator accounts and personal Configuration MCP
 
-[简体中文](administrators.zh-CN.md) · [Documentation](README.md)
+[简体中文](administrators.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 ContextGate supports multiple named administrator accounts on one instance. All administrators share data sources, semantic catalogs, ontologies, query Agents and OAuth query clients. The two roles control account and system administration; they do not partition business resources.
 
@@ -73,16 +73,21 @@ The migration is idempotent and rolls back on failure. Do not run old and new se
 
 ## Recover a forgotten password
 
-Stop ContextGate. Keep the same `MCPDBHUB_DATABASE_URL` and matching master key, and pass the new password through stdin:
+Recovery requires local server access, the same `MCPDBHUB_DATABASE_URL`, the existing key directory and its matching master key. Stop the service first. The command reads the new password from standard input (12–256 bytes), never from a command argument. It preserves data sources, Agent credentials and audit history, and revokes only the selected account’s sessions and configuration MCP token. Use `--username`; omission is allowed only with one account. The role and other administrators remain unchanged.
+
+For Docker Compose, run these commands in Bash or Zsh, replacing `admin` with the actual account username. The password prompt does not echo input or place the password in shell history:
 
 ```sh
-read -r -s contextgate_new_password
-printf '%s' "$contextgate_new_password" | contextgate reset-password \
-  --data-dir /path/to/data --username alice --password-stdin
-unset contextgate_new_password
+docker compose stop hub
+read -r -s hub_new_password
+printf '%s' "$hub_new_password" | docker compose run --rm -T hub reset-password --username admin --password-stdin
+unset hub_new_password
+docker compose up -d hub
 ```
 
-Restart the service afterward. `--username` may be omitted only when exactly one account exists. Recovery preserves the account's role and enabled status, revokes only that account's sessions/configuration token, and records a security event. It does not enable a disabled account.
+Recovery must use the same `MCPDBHUB_DATABASE_URL` as the running service, in addition to the existing master key. For a standalone binary, pipe the password to `contextgate reset-password --data-dir /path/to/existing-data --username admin --password-stdin`, then restart the service. If you configured `MCPDBHUB_MASTER_KEY`, supply the same environment configuration to the recovery command. Do not delete the configuration database or master key to recover a password.
+
+Recovery preserves the enabled state, does not enable a disabled account, and records a security event.
 
 ## Management API
 

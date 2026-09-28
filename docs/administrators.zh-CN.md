@@ -1,6 +1,6 @@
 # 管理员账号与个人配置 MCP
 
-[English](administrators.md) · [文档入口](README.zh-CN.md)
+[English](administrators.md) · [管理员指南](admin-guide.zh-CN.md)
 
 ContextGate 支持单实例中的多个独立管理员账号。所有管理员共享数据源、语义目录、本体、查询 Agent 和 OAuth 查询客户端；两级角色控制账号和系统管理能力，不进行业务资源隔离。
 
@@ -66,15 +66,22 @@ ContextGate 支持单实例中的多个独立管理员账号。所有管理员�
 
 ## 忘记密码后的本地恢复
 
-停止服务，使用同一 `MCPDBHUB_DATABASE_URL`、密钥目录及主密钥，通过 stdin 提交新密码：
+恢复需要服务器本地访问权限、与服务相同的 `MCPDBHUB_DATABASE_URL`、原密钥目录及匹配的主密钥。先停止服务，再通过标准输入向命令提供 12–256 字节的新密码。命令不接受命令行密码参数；保留数据源、Agent 凭证和审计，只注销指定账号的会话及配置 MCP Token；其他管理员和目标账号角色不变。多账号时必须指定 `--username`。
+
+Docker Compose 部署可在 Bash 或 Zsh 中执行以下命令，将 `admin` 替换为需要恢复的实际用户名。`read -s` 不回显密码，也不会把密码写入命令历史：
 
 ```sh
-read -r -s contextgate_new_password
-printf '%s' "$contextgate_new_password" | contextgate reset-password \
-  --data-dir /原配置目录 --username alice --password-stdin
-unset contextgate_new_password
+docker compose stop hub
+read -r -s hub_new_password
+printf '%s' "$hub_new_password" | docker compose run --rm -T hub reset-password --username admin --password-stdin
+unset hub_new_password
+docker compose up -d hub
 ```
 
-之后重启服务。只有恰好一个管理员账号时才能省略 `--username`。恢复保持目标账号角色及启停状态，只撤销该账号的会话和配置 Token，记录安全事件，不影响其他管理员及查询授权，也不会自动启用停用账号。
+独立二进制部署将密码通过管道传给 `contextgate reset-password --data-dir /原配置目录 --username admin --password-stdin`，然后重启服务。若配置了 `MCPDBHUB_MASTER_KEY`，恢复命令必须使用相同环境配置。不要通过删除配置数据库或主密钥来恢复密码。
+
+恢复保留账号原有启停状态，不会启用已停用账号，并记录安全事件。
+
+## 管理 API
 
 完整管理 API 及请求契约见[英文接口表](administrators.md#management-api)。管理接口使用 Cookie，写请求还需 `/api/session` 提供的 CSRF Token；修订号采用 JSON 字符串。

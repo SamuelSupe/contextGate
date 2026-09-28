@@ -1,6 +1,6 @@
 # 支持与验收矩阵 / Support matrix
 
-[English](support-matrix.md)
+[English](support-matrix.md) · [文档首页](README.zh-CN.md)
 
 支持的数据库版本覆盖 **18 个产品、20 个产品/版本组合**，InfluxDB 1.x、2.x、3 Core 分开计算。完整矩阵于 **2026-09-15** 在 OrbStack Linux arm64 隔离实例中针对 0.7.0 实现重新执行：**135 个查询/错误用例、104 个拒绝操作用例**。覆盖连接、结构发现、参数与类型、空结果和错误、危险操作拒绝、测试数据未改变、限制、取消及带本体映射的原生/模板等价。[矩阵记录](verification/matrix.json)保留实际实现摘要。结果仅覆盖下方开源产品，四个云数仓预览仍未真实验证。最终发行检查及复现步骤见[验收记录](validation.zh-CN.md)。
 

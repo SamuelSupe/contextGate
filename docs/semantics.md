@@ -1,6 +1,6 @@
 # Semantic catalogs and query templates
 
-[简体中文](semantics.zh-CN.md) · [Examples](../examples/semantics/) · [Architecture](architecture.md)
+[简体中文](semantics.zh-CN.md) · [Administrator guide](admin-guide.md) · [Examples](../examples/semantics/) · [Architecture](architecture.md)
 
 Each data source owns an independent catalog of business terms, objects, fields, relationships, metrics and executable native query templates. An Agent's existing data source grant controls access to the published catalog and its templates. Business descriptions are context, never instructions or permission rules. The UI defaults to English and supports Simplified Chinese; business content can use any language.
 
@@ -52,25 +52,9 @@ Limits: 500 entries and 768 KiB per snapshot; 128 KiB per entry; 32 KiB for the 
 
 ## MCP usage
 
-`list_data_sources` includes `query_access_mode`, `semantics_available`, `semantic_version` and `available_tools`. It does not return the catalog.
+Give query users the [published-query workflow](user-guide.md#run-a-published-query), including parameter handling, execution versions and native result limits. Discovery returns only the published catalog within the Agent's source grants.
 
-```json
-{"name":"search_semantics","arguments":{"source_id":"src_example","keyword":"revenue","kind":"metric","limit":25}}
-```
-
-Search matches names, aliases and descriptions. Kinds are `overview`, `term`, `object`, `field`, `relationship`, `metric`, `template`, `entity_type`, `property` and `relation_type`. Ontology entries use separate concept IDs returned by discovery and expose only the current source’s mapped subset. `next_cursor` binds identity, source, keyword, kind, page size, source publication and adopted ontology version for five minutes. Restart after a publication change. Pages have at most 100 summaries and 64 KiB of summary data.
-
-```json
-{"name":"get_semantic_entry","arguments":{"source_id":"src_example","entry_id":"lookup-orders"}}
-```
-
-Use reserved entry ID **`overview`** to read the published source context. Template details include parameter contracts, a call example, execution version, current executability and linked metric summaries. Each entry is limited to 128 KiB; linked summaries are capped at 25. Nothing from the draft is returned.
-
-```json
-{"name":"execute_query_template","arguments":{"source_id":"src_example","template_id":"lookup-orders","execution_version":"3","parameters":{"id":42},"max_rows":100}}
-```
-
-Execution accepts only these identifiers, parameter values, an optional continuation cursor and tighter row/byte/time limits. Results retain native tabular, document, graph, time-series or HTTP JSON structure and append `semantic_version`, `template_id` and `template_version`. With an adopted ontology, `ontology_context` identifies the ontology version and explicit template concept references captured at request start; it does not convert values or infer relationships. Authentication and template validity are checked before execution and before returning results. Native pagination cursors additionally bind template ID and execution version; a raw query cannot consume a template cursor. SQL paging remains explicit native SQL.
+Before handoff, use an authorized Agent to inspect the template's parameter contract and current executability, then confirm a real client call against that execution version. The [setup and evaluation guide](agent-workflows.md) explains how to distinguish administrator previews from client evidence. Template results retain native data and carry publication/version metadata; an adopted ontology adds the [mapped concept context](ontologies.md#mcp-contract).
 
 ## Management API
 

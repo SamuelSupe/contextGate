@@ -252,7 +252,7 @@ Six fixes covered stale Agent edits overwriting grants, dangling grants after so
 - A real InfluxDB 2 source generated Flux using its configured bucket and returned six records. InfluxQL produced `InfluxDB 2.x requires language flux` rather than a misleading permission diagnostic. Settings included English recovery instructions and browser logs showed no application errors.
 - TypeScript/Vite and existing numeric-parameter checks passed. The Linux arm64 image additionally passed stopped-service stdin password recovery, rejection of old passwords/sessions, new-password login and continued queries with original database/Agent credentials.
 
-The tested binary replaced the local service at that time. Temporary OAuth clients, sources and containers were cleaned up; existing configuration, revocations and auditing were preserved. Password recovery used an isolated volume and did not change the original local administrator password. Both [English recovery instructions](../README.md#recover-a-forgotten-administrator-password) and [Chinese instructions](../README.zh-CN.md) are available.
+The tested binary replaced the local service at that time. Temporary OAuth clients, sources and containers were cleaned up; existing configuration, revocations and auditing were preserved. Password recovery used an isolated volume and did not change the original local administrator password. Both [English recovery instructions](administrators.md#recover-a-forgotten-password) and [Chinese instructions](administrators.zh-CN.md#忘记密码后的本地恢复) are available.
 
 ## Third query and authorization regression round — 2026-09-11
 

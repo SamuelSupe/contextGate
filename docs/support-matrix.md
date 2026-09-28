@@ -1,6 +1,6 @@
 # Support matrix
 
-[简体中文](support-matrix.zh-CN.md)
+[简体中文](support-matrix.zh-CN.md) · [Documentation](README.md)
 
 The supported database versions cover **18 products and 20 product/version combinations**, counting InfluxDB 1.x, 2.x and 3 Core separately. The full matrix ran again in isolated OrbStack Linux arm64 instances on **2026-09-15** against the 0.7.0 implementation: **135 query/error cases and 104 denied operations**. It covers connectivity, discovery, parameters/types, empty/error results, rejected operations, unchanged fixture data, limits, cancellation, and native/template equivalence with ontology mappings. The [matrix report](verification/matrix.json) retains the exact implementation digest. These results cover the open-source products below; the four cloud previews remain unverified. Final release checks and reproduction instructions are in [validation](validation.md).
 

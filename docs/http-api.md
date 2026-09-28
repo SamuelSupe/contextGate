@@ -1,6 +1,6 @@
 # HTTP API data sources
 
-[简体中文](http-api.zh-CN.md) · [Documentation](README.md)
+[简体中文](http-api.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 HTTP API sources connect JSON REST APIs to the same Agent grants, query limits, audit trail, semantic catalog, query templates and ontology mappings as database sources. Available in ContextGate 0.5.0 and later.
 

@@ -1,6 +1,6 @@
 # 配置 MCP
 
-[English](configuration-mcp.md)
+[English](configuration-mcp.md) · [管理员指南](admin-guide.zh-CN.md)
 
 通过独立配置 MCP，让受信任的 Agent 配置 ContextGate 的数据源、语义目录、查询模板和共享本体。进入 **设置 → 我的配置 MCP**，为本人的固定配置身份签发 Token，选择有效期并复制 HTTP 或 stdio 接入配置。Token 只展示一次，默认有效 24 小时，最长 30 天，可随时撤销。
 

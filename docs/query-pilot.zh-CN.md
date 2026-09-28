@@ -1,6 +1,6 @@
 # 查询复用试点工作表
 
-[English](query-pilot.md) · [查询发布](query-publishing.zh-CN.md)
+[English](query-pilot.md) · [管理员指南](admin-guide.zh-CN.md) · [查询发布](query-publishing.zh-CN.md)
 
 这是采集模板，不是效果报告。先确认配置维护人、业务评审人、现有 Agent 工作流和固定样本/数据版本。缺失项标记缺失，不把人工估计当服务端测量。
 

@@ -1,6 +1,6 @@
 # Cloud warehouses (preview)
 
-[简体中文](cloud-warehouses.zh-CN.md) · [Support matrix](support-matrix.md) · [Configuration examples](../examples/cloud-warehouses/README.md)
+[简体中文](cloud-warehouses.zh-CN.md) · [Administrator guide](admin-guide.md) · [Support matrix](support-matrix.md)
 
 **Available since ContextGate 0.7.0:** Snowflake, Databricks SQL, Google BigQuery and Amazon Redshift adapters are implemented, with no real vendor environment verified. They are displayed as **preview**, with no tested versions in the support catalog. They are included in current downloads, but not in the 18-product / 20-version verified matrix. Mock contract tests do not establish cloud compatibility.
 

@@ -1,6 +1,8 @@
-# Your first ContextGate workflow
+# First-time administrator setup
 
-[简体中文](getting-started.zh-CN.md) · [Documentation](README.md)
+[简体中文](getting-started.zh-CN.md) · [Administrator guide](admin-guide.md)
+
+This workflow is for the administrator preparing queries for a team. To use an existing service from an Agent client, follow the [user guide](user-guide.md).
 
 Install ContextGate using the [installation guide](install.md). Open `http://127.0.0.1:8080`, use the one-time setup code from the server log, and choose the first super administrator username and password. There is no default administrator password.
 
@@ -13,6 +15,8 @@ In **Data sources**, add a database connection with a dedicated database read-on
 For a JSON REST API, choose **HTTP API**, declare fixed read-only operations and scalar parameters, then test the configured check operation. HTTP read-only behavior remains administrator-declared; follow the [HTTP API guide](http-api.md).
 
 Keep **Native queries and templates** while preparing the source, or choose **Templates only** when Agents should use exclusively published templates. The latter rejects native Agent queries even when the same Agent has source access.
+
+In **Data sources**, select an explicit authentication method. A blank credential keeps the value stored for that method; **Clear the stored credential** removes it. Switching methods removes credentials for the previous method. Connection status shows the last completed check and its timestamp; it is not a live health monitor. A saved configuration whose connection check fails stays open with the failure reason.
 
 ## 2. Describe and verify
 

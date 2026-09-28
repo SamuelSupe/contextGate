@@ -1,6 +1,8 @@
-# 从数据库连接到有效的 Agent 查询
+# 管理员接入验证与业务评估
 
-[English](agent-workflows.md)
+[English](agent-workflows.md) · [管理员指南](admin-guide.zh-CN.md)
+
+以下操作需要管理员会话，用于预览、确认客户端调用和评审业务答案。查询使用者请阅读[用户指南](user-guide.zh-CN.md)。
 
 从 **首页 → 新建查询** 开始连续流程，或从首页继续已保存配置。具体模板的调用证据按来源、模板执行版本和 Agent 区分，时间窗口为 30 天；源级历史调用不代表所有模板已接入。详见[查询发布与恢复](query-publishing.zh-CN.md)。
 
@@ -44,11 +46,13 @@
 
 建议用退款口径、客户身份及时间窗口等真实问题，多次测试后再判断语义带来的改善。SQL 执行成功并不证明业务答案正确。
 
-## 客户端接入与参数表单
+## 向用户提供客户端配置
 
-**Agents → Connect** 可选择 Codex、Cursor 或 VS Code，展示对应配置文件／命令、可复制配置及检查步骤。HTTP 配置引用客户端启动环境中的 `MCPDBHUB_TOKEN`，不把凭证嵌入配置示例；修改环境后需重启客户端，其他终端的 export 不会更新已启动的桌面应用。OAuth 配置使用浏览器同意流程；stdio 桥接保留在 Advanced 中。远程客户端应使用 ContextGate 已配置的公开 HTTPS 地址，localhost 指向客户端所在机器。
+在 **Agents → Connect** 选择 Codex、Cursor 或 VS Code，复制对应配置及连接检查步骤。HTTP 预设引用 `MCPDBHUB_TOKEN`，OAuth 预设使用浏览器同意，stdio 桥接保留在 Advanced 中。提供可访问的公开地址、[用户接入步骤](user-guide.zh-CN.md#接入客户端)，并按 [Agent 授权说明](agent-access.zh-CN.md)交付凭证。
 
-配置格式依据 [Codex](https://developers.openai.com/codex/mcp)、[Cursor](https://cursor.com/docs/context/mcp)、[VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) 官方文档核对，不代表已认证每个客户端版本。真实连接仍需由客户端查询与审计记录验证。
+让用户执行已发布查询后，再检查记录的客户端活动。复制配置或完成管理员预览，不能证明客户端可以查询数据。
+
+## 模板参数表单
 
 模板预览默认按参数契约生成表单，支持必填、默认值、枚举、布尔、空值及精确数值范围检查；原生对象／数组参数仍使用 JSON 输入。可选参数可以省略，**Override default** 显式覆盖服务端默认值，**Use example values** 恢复示例。**Edit JSON** 保留完整参数对象，不会静默丢弃未知参数或重复键。大整数、Decimal 保留原始 JSON 数字文本，不通过 JavaScript Number 重写。
 

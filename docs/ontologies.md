@@ -1,6 +1,6 @@
 # Shared business ontologies
 
-[简体中文](ontologies.zh-CN.md) · [Commerce examples](../examples/ontologies/) · [Semantic catalogs and templates](semantics.md)
+[简体中文](ontologies.zh-CN.md) · [Administrator guide](admin-guide.md) · [Commerce examples](../examples/ontologies/) · [Semantic catalogs and templates](semantics.md)
 
 Define business entities, properties and relations once, then map each data source to one immutable ontology version. PostgreSQL can map `Customer` to `public.crm_customers`; MongoDB can map the same concept to `hubtest.buyers`. Agents use these definitions to find a source's native query templates. Results keep their native rows, documents, graph or time-series structure.
 

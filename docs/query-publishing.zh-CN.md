@@ -1,6 +1,6 @@
 # 将已有查询发布为 Agent 工具
 
-[English](query-publishing.md) · [首次使用](getting-started.zh-CN.md)
+[English](query-publishing.md) · [管理员指南](admin-guide.zh-CN.md)
 
 从 **首页 → 新建查询** 开始，提供已有读取查询或固定 HTTP 读取操作。流程复用现有语义模板、数据源授权和查询引擎，无需先创建本体。
 

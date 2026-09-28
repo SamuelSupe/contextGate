@@ -1,6 +1,6 @@
 # 只读账号配置 / Read-only database accounts
 
-[English](read-only-accounts.md)
+[English](read-only-accounts.md) · [管理员指南](admin-guide.zh-CN.md)
 
 以下命令由数据库管理员在数据库中执行，ContextGate 不创建账号、不修改数据库授权，也不使用写入探测权限。将示例中的数据库、用户名、密码替换为实际值；使用专用账号，避免继承额外角色。表/列/行范围由数据库权限、视图和 RLS 控制。
 

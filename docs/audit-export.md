@@ -1,6 +1,6 @@
 # OTLP audit log export
 
-[简体中文](audit-export.zh-CN.md) · [README](../README.md)
+[简体中文](audit-export.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 As a **Super administrator**, enable **Settings → Audit log export** to send persisted query, configuration and account-security audit events to an OpenTelemetry Collector or another OTLP Logs receiver. Export is disabled by default and does not change the local audit log. It uses standard OTLP protobuf messages over HTTP or gRPC.
 

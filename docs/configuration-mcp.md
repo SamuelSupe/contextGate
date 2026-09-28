@@ -1,6 +1,6 @@
 # Configuration MCP
 
-[简体中文](configuration-mcp.zh-CN.md)
+[简体中文](configuration-mcp.zh-CN.md) · [Administrator guide](admin-guide.md)
 
 Give a trusted automation Agent the tools to prepare ContextGate data sources, semantic catalogs, native query templates and shared ontologies. Open **Settings → My configuration MCP**, issue your personal identity’s token, choose its lifetime, and copy the HTTP or stdio configuration. The token is shown once, expires after 24 hours by default (maximum 30 days), and can be revoked from the same page.
 

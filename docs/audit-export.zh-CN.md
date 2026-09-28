@@ -1,6 +1,6 @@
 # OTLP 审计日志上报
 
-[English](audit-export.md) · [README](../README.zh-CN.md)
+[English](audit-export.md) · [管理员指南](admin-guide.zh-CN.md)
 
 以**超级管理员**身份进入 **Settings → Audit log export**，把已持久化的查询、配置变更和账号安全审计事件以标准 OTLP Logs protobuf 上报到 OpenTelemetry Collector 或其他兼容接收端，支持 HTTP 和 gRPC。默认关闭，本地审计继续保留。
 

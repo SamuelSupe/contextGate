@@ -1,6 +1,8 @@
-# From a connection to a useful Agent query
+# Administrator setup and business evaluation
 
-[简体中文](agent-workflows.zh-CN.md)
+[简体中文](agent-workflows.zh-CN.md) · [Administrator guide](admin-guide.md)
+
+These workflows require an administrator session. They cover previews, client-call evidence and business reviews; give query users the [user guide](user-guide.md).
 
 Start with **Home → New query**, or continue saved setup from Home. The query workspace scopes real client evidence to source, template execution version and Agent over 30 days; source-wide history does not confirm every template. See [query publishing and recovery](query-publishing.md).
 
@@ -53,9 +55,9 @@ Start with representative questions such as revenue excluding refunds, customer 
 
 ## Client-specific connection guides
 
-**Agents → Connect** offers Codex, Cursor and VS Code configurations with the exact file or command to open, a copy button, and a connection check. Copy feedback confirms the action. HTTP presets reference `MCPDBHUB_TOKEN`, so they can be copied without embedding the credential. Set the variable in the environment that launches the client and restart it; exporting in an unrelated terminal does not update a running desktop app. OAuth presets omit bearer headers and use browser consent. The stdio bridge remains under Advanced.
+In **Agents → Connect**, select Codex, Cursor or VS Code and copy its configuration and connection check. HTTP presets reference `MCPDBHUB_TOKEN`; OAuth presets use browser consent. The stdio bridge remains under Advanced. Provide the reachable public URL and the [user connection steps](user-guide.md#connect-your-client), along with the credential arrangement from [Agent access](agent-access.md).
 
-Configuration formats were checked against the official [Codex](https://developers.openai.com/codex/mcp), [Cursor](https://cursor.com/docs/context/mcp) and [VS Code](https://code.visualstudio.com/docs/agents/reference/mcp-configuration) references. This documents the configuration contract, not certification of every installed client version. Verify an actual query and recorded client activity. For remote clients, use ContextGate's configured public HTTPS URL; localhost refers to the client machine.
+Ask the user to execute a published query, then inspect recorded client activity. Copying a configuration or completing an administrator preview does not confirm that a client can query data.
 
 ## Template parameter forms
 

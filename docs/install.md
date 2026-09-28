@@ -1,6 +1,6 @@
 # Install ContextGate
 
-[简体中文](install.zh-CN.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)
+[简体中文](install.zh-CN.md) · [Administrator guide](admin-guide.md) · [Release](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)
 
 **ContextGate 0.8.0** uses the `contextgate` executable and retains `mcpdbhub` as an alias.
 
@@ -43,11 +43,7 @@ Keep the entire extracted directory together. The root `contextgate` launcher se
 
 Open `http://127.0.0.1:8080` and enter the one-time setup code from the server log to create the first super administrator username and password.
 
-1. In **Data sources → Add data source**, choose a product, enter its connection and database reader credentials, then configure TLS and query limits.
-2. Save and inspect connectivity and read-only evidence. `Not verified` is not proof of account privileges. InfluxDB 3 Core explicitly uses query API isolation.
-3. In **Agents → Create Agent**, select permitted data sources and an expiration. Save the token displayed once.
-4. Open **Connect** for HTTP or stdio configuration. The package includes placeholder files in `examples/`. Start with `list_data_sources`, then use the matching native query tool.
-5. Inspect calls in **Audit log** and correlate redacted failures by request ID. Revoked credentials cannot be restored; update the client when issuing a replacement.
+Continue with [first-time administrator setup](getting-started.md) to connect a source, publish a query and grant access. Give query users the [user guide](user-guide.md).
 
 ## Docker from source
 
@@ -65,15 +61,30 @@ docker compose logs hub
 
 The host port binds to loopback by default. Database files must be readable by container UID 10001; their directory is mounted read-only. PostgreSQL metadata persists in `hub-postgres`; the independent key is in `hub-data`. Generate `.env` only for a new installation; retain the existing password on restart. Do not use `docker compose down -v` when upgrading.
 
+For a corporate build proxy, pass its CA with `docker build --secret id=build_ca,src=/path/to/ca.pem -t contextgate:local .`. It is used only while downloading dependencies and is excluded from the runtime image. Database TLS certificates are configured separately in the UI.
+
+## Runtime configuration
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MCPDBHUB_LISTEN` | `127.0.0.1:8080` | Listen address; `0.0.0.0:8080` inside the image |
+| `MCPDBHUB_PUBLIC_URL` | `http://127.0.0.1:8080` | Canonical public origin; remote origins require HTTPS |
+| `MCPDBHUB_DATABASE_URL` | Required | PostgreSQL metadata connection; used by serve and reset-password |
+| `MCPDBHUB_DATA_DIR` | `./data` | Local encryption key directory |
+| `MCPDBHUB_DATABASE_DIR` | `databases` inside data directory | Allowed SQLite/DuckDB directory |
+| `MCPDBHUB_MASTER_KEY` | Separate key file | Optional externally supplied master key |
+
+The optional master key is the standard Base64 encoding of 32 bytes. Keep it stable across restarts and recovery. URL-encode special characters in database credentials. Prefer `MCPDBHUB_DATABASE_URL` over `--database-url` to avoid a secret in command arguments; use certificate verification for remote PostgreSQL connections, with `sslmode=disable` reserved for an isolated local database.
+
 ## Remote access, backups and upgrades
 
-For remote deployment, place the service behind HTTPS and set `MCPDBHUB_PUBLIC_URL=https://db.example.com`. Preserve the public Host and Authorization headers. The OAuth resource is `https://db.example.com/mcp`. Use `--listen 0.0.0.0:8080` when the binary must listen on a container or private network interface. See the [README](../README.md) for all configuration variables.
+For remote deployment, place the service behind HTTPS and set `MCPDBHUB_PUBLIC_URL=https://db.example.com`. Preserve the public Host and Authorization headers. The OAuth resource is `https://db.example.com/mcp`. Use `--listen 0.0.0.0:8080` when the binary must listen on a container or private network interface. Use the runtime variables above for persistent configuration. Health checks use `GET /healthz`.
 
 For current PostgreSQL storage, stop ContextGate and use `pg_dump` / `pg_restore` for the metadata database. Keep its matching `master.key` outside the program directory and protect it separately. If using `MCPDBHUB_MASTER_KEY`, back up that external key too. Restoring configuration requires the matching key.
 
 Before upgrading, preserve the old program and a stopped-service configuration backup. Start the new program with the same `MCPDBHUB_DATABASE_URL` and key directory. Only upgrades from 0.3.x or earlier require a fresh PostgreSQL store and reconfiguration; current PostgreSQL installations retain their metadata. Never delete the key, database or volume to upgrade. If a migration has run, rollback requires restoring the configuration backup matching the old program.
 
-For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, stop the service and supply a new password through stdin to `./contextgate reset-password --data-dir /existing/config --username admin --password-stdin`. The [recovery instructions](../README.md#recover-a-forgotten-administrator-password) show a prompt that does not echo input. Recovery preserves data sources and query Agent credentials while invalidating only the selected administrator’s sessions and Configuration MCP token.
+For password recovery, keep the same `MCPDBHUB_DATABASE_URL` and master key, stop the service and supply a new password through stdin to `./contextgate reset-password --data-dir /existing/config --username admin --password-stdin`. The [recovery instructions](administrators.md#recover-a-forgotten-password) show a prompt that does not echo input. Recovery preserves data sources and query Agent credentials while invalidating only the selected administrator’s sessions and Configuration MCP token.
 
 ## Troubleshooting
 

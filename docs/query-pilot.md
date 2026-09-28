@@ -1,6 +1,6 @@
 # Query reuse pilot worksheet
 
-[简体中文](query-pilot.zh-CN.md) · [Query publishing](query-publishing.md)
+[简体中文](query-pilot.zh-CN.md) · [Administrator guide](admin-guide.md) · [Query publishing](query-publishing.md)
 
 This is a collection template, not a performance report. Identify a configuration owner, a business reviewer, the existing Agent workflow and a fixed sample/data revision. Record changes and missing evidence rather than estimating them as measured results.
 

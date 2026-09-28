@@ -1,6 +1,6 @@
 # HTTP API 数据源
 
-[English](http-api.md) · [文档目录](README.zh-CN.md)
+[English](http-api.md) · [管理员指南](admin-guide.zh-CN.md)
 
 HTTP API 数据源让 JSON REST API 复用现有的 Agent 授权、限流、审计、语义目录、查询模板和本体映射。自 ContextGate 0.5.0 起提供。
 
