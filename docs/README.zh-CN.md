@@ -2,7 +2,7 @@
 
 [English](README.md) · [项目说明](../README.zh-CN.md) · [下载发行版](https://github.com/SamuelSupe/contextGate/releases/latest)
 
-本文档面向 **ContextGate 0.8.0**。使用其他版本时，请查看对应发行标签中的文档。
+本文档面向 **ContextGate 0.8.1**。使用其他版本时，请查看对应发行标签中的文档。
 
 ## 查询用户
 
@@ -31,6 +31,6 @@
 
 ## 参考与项目开发
 
-[支持矩阵](support-matrix.zh-CN.md) · [架构](architecture.zh-CN.md) · [安全说明](../SECURITY.md) · [0.8.0 发行说明](releases/0.8.0.zh-CN.md)
+[支持矩阵](support-matrix.zh-CN.md) · [架构](architecture.zh-CN.md) · [安全说明](../SECURITY.md) · [0.8.1 发行说明](releases/0.8.1.zh-CN.md)
 
 构建步骤、可复现验收、发行流程和产品交付记录集中在 **[贡献指南](../CONTRIBUTING.md)**，与日常用户和管理员操作分开查阅。

@@ -1,5 +1,11 @@
 # Validation and reproduction
 
+## ContextGate 0.8.1 — 2026-10-16
+
+The maintenance changes and compatibility contract are described in the [release notes](releases/0.8.1.md). Release gates are recorded in the [0.8.1 release assets](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.1): `release-verification.json`, both `dist-*.json` and both `download-*.json` reports. These records identify the source commit, native amd64/arm64 CI, original archive checks and independently downloaded archive checks. Package workflows include PostgreSQL, HTTP APIs, HTTP/stdio MCP, restart/revocation/recovery and OTLP HTTP/protobuf and gRPC. Local amd64 package execution uses OrbStack emulation.
+
+Local Chrome checks for the maintenance changes covered desktop and 390px settings layouts, direct routes, unsaved-edit protection, stopping hidden-panel polling, source-editor focus restoration and deferred-page failure recovery. Browser-background visibility switching and long-duration load testing were not verified. The full external database matrix and cloud warehouse limitations below retain their historical scope.
+
 ## ContextGate 0.8.0 — 2026-09-16
 
 The guided query workflow, concept/query links and subsequent catalog/client UX checks are recorded in the [feature validation](query-publishing-validation.md). Release preparation passed full Go tests, race, vet, 17 frontend workflow tests, two lossless request tests and the TypeScript/Vite production build in OrbStack. Local Chrome checked the English/Chinese workflows and 390px layout; current English screenshots use owned fixtures. The existing bundle-size advisory remains.

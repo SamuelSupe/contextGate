@@ -54,7 +54,7 @@ Keep these credentials distinct:
 
 | Task | Guide |
 | --- | --- |
-| Configure runtime variables, remote HTTPS or upgrades | [Installation and deployment](install.md) · [0.8.0 upgrade notes](releases/0.8.0.md) |
+| Configure runtime variables, remote HTTPS or upgrades | [Installation and deployment](install.md) · [0.8.1 upgrade notes](releases/0.8.1.md) |
 | Review changes, source health and template regressions | [Operations](operations.md) |
 | Back up metadata and verify restoration with the matching key | [Backup and recovery](operations.md#back-up-and-verify-recovery) |
 | Export audit events to an observability service | [OTLP audit export](audit-export.md) |

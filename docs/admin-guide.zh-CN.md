@@ -54,7 +54,7 @@
 
 | 任务 | 文档 |
 | --- | --- |
-| 设置运行变量、远程 HTTPS 或升级 | [安装部署](install.zh-CN.md) · [0.8.0 升级说明](releases/0.8.0.zh-CN.md) |
+| 设置运行变量、远程 HTTPS 或升级 | [安装部署](install.zh-CN.md) · [0.8.1 升级说明](releases/0.8.1.zh-CN.md) |
 | 审阅变更、检查来源健康与模板回归 | [运维指南](operations.zh-CN.md) |
 | 备份元数据，使用匹配密钥验证恢复 | [备份与恢复](operations.zh-CN.md#pg-诊断与备份恢复) |
 | 将审计发送到可观测平台 | [OTLP 审计上报](audit-export.zh-CN.md) |

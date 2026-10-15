@@ -8,7 +8,7 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Databases](https://img.shields.io/badge/Databases-18_products-438c91)](docs/support-matrix.md)
 
-[简体中文](README.zh-CN.md) · [Documentation](docs/README.md) · [Download v0.8.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)
+[简体中文](README.zh-CN.md) · [Documentation](docs/README.md) · [Download v0.8.1](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.1)
 
 **Semantic Data Gateway for AI Agents**
 
@@ -45,9 +45,9 @@ The [support matrix](docs/support-matrix.md) lists verified products, versions a
 
 ## Set up a service
 
-[ContextGate 0.8.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) provides Linux **arm64 / amd64** packages with the UI, private C++ runtime libraries, documentation, examples and checksums. They require glibc ≥ 2.36 and a PostgreSQL metadata database. macOS users can run the service through Docker / OrbStack.
+[ContextGate 0.8.1](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.1) provides Linux **arm64 / amd64** packages with the UI, private C++ runtime libraries, documentation, examples and checksums. They require glibc ≥ 2.36 and a PostgreSQL metadata database. macOS users can run the service through Docker / OrbStack.
 
-Follow [installation](docs/install.md), then [first-time administrator setup](docs/getting-started.md). The [three-query support example](examples/query-publishing/README.md) is a small starting point. Existing deployments should read the [upgrade notes](docs/releases/0.8.0.md#compatibility-and-upgrade).
+Follow [installation](docs/install.md), then [first-time administrator setup](docs/getting-started.md). The [three-query support example](examples/query-publishing/README.md) is a small starting point. Existing deployments should read the [upgrade notes](docs/releases/0.8.1.md#compatibility-and-upgrade).
 
 ## Project
 

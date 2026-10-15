@@ -42,7 +42,7 @@ Keep the English and Chinese entry points aligned. Maintain existing topic paths
 | Inspect query-publishing evidence and its limits | [Workflow validation](docs/query-publishing-validation.md) · [中文](docs/query-publishing-validation.zh-CN.md) |
 | Build and publish Linux distributions | [Release process](docs/releasing.md) |
 | Review product plans and implementation status | [Product plan](docs/product-optimization-plan.md) · [中文](docs/product-optimization-plan.zh-CN.md) · [Implementation tracking](docs/implementation-progress.md) |
-| Review shipped changes | [Changelog](CHANGELOG.md) · [0.8.0 release notes](docs/releases/0.8.0.md) · [中文](docs/releases/0.8.0.zh-CN.md) |
+| Review shipped changes | [Changelog](CHANGELOG.md) · [0.8.1 release notes](docs/releases/0.8.1.md) · [中文](docs/releases/0.8.1.zh-CN.md) |
 
 ## License
 

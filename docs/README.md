@@ -2,7 +2,7 @@
 
 [简体中文](README.zh-CN.md) · [Project](../README.md) · [Download](https://github.com/SamuelSupe/contextGate/releases/latest)
 
-These guides describe **ContextGate 0.8.0**. For another installed version, use the documentation at its release tag.
+These guides describe **ContextGate 0.8.1**. For another installed version, use the documentation at its release tag.
 
 ## For query users
 
@@ -31,6 +31,6 @@ The administrator guide also indexes connector setup, Configuration MCP, example
 
 ## Reference and project development
 
-[Support matrix](support-matrix.md) · [Architecture](architecture.md) · [Security](../SECURITY.md) · [0.8.0 release notes](releases/0.8.0.md)
+[Support matrix](support-matrix.md) · [Architecture](architecture.md) · [Security](../SECURITY.md) · [0.8.1 release notes](releases/0.8.1.md)
 
 For build instructions, reproducible validation, release procedures and product delivery records, use **[Contributing](../CONTRIBUTING.md)**. These materials are separate from everyday user and administrator instructions.

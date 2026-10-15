@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.8.1 — 2026-10-16
 
 - Load management pages and settings panels on demand, retain visited forms, and protect unsaved edits and one-time credentials when switching settings sections. Pause audit status polling outside the visible panel and browser page.
 - Separate login, settings, connector catalog and OAuth consent components, and keep shared display labels independent of page modules. Handle deferred-page failures with an explicit reload action.

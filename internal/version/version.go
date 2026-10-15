@@ -2,7 +2,7 @@ package version
 
 import "runtime/debug"
 
-const Version = "0.8.0"
+const Version = "0.8.1"
 
 // Commit is set by the release build and identifies the packaged source.
 var Commit = "development"

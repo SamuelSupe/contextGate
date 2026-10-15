@@ -8,7 +8,7 @@
 [![Go](https://img.shields.io/badge/Go-1.26-00ADD8?logo=go&logoColor=white)](go.mod)
 [![Databases](https://img.shields.io/badge/Databases-18_products-438c91)](docs/support-matrix.zh-CN.md)
 
-[English](README.md) · [文档首页](docs/README.zh-CN.md) · [下载 v0.8.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0)
+[English](README.md) · [文档首页](docs/README.zh-CN.md) · [下载 v0.8.1](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.1)
 
 **Agent 语义数据网关**
 
@@ -45,9 +45,9 @@ Web 界面是管理控制台。查询用户通过 `/mcp` 使用服务，无需�
 
 ## 部署一个服务
 
-[ContextGate 0.8.0](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.0) 提供 Linux **arm64 / amd64** 发行包，内含 UI、C++ 运行库、文档、示例和校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。macOS 可通过 Docker / OrbStack 运行服务。
+[ContextGate 0.8.1](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.1) 提供 Linux **arm64 / amd64** 发行包，内含 UI、C++ 运行库、文档、示例和校验文件，要求 glibc ≥ 2.36 及 PostgreSQL 元数据库。macOS 可通过 Docker / OrbStack 运行服务。
 
-先按[安装指南](docs/install.zh-CN.md)启动，再完成[管理员首次配置](docs/getting-started.zh-CN.md)。可用[三个查询的客服示例](examples/query-publishing/README.zh-CN.md)起步。已有部署请先阅读[升级说明](docs/releases/0.8.0.zh-CN.md#兼容与升级)。
+先按[安装指南](docs/install.zh-CN.md)启动，再完成[管理员首次配置](docs/getting-started.zh-CN.md)。可用[三个查询的客服示例](examples/query-publishing/README.zh-CN.md)起步。已有部署请先阅读[升级说明](docs/releases/0.8.1.zh-CN.md#兼容与升级)。
 
 ## 项目信息
 

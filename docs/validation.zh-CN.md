@@ -1,5 +1,11 @@
 # 验收与复现 / Validation
 
+## ContextGate 0.8.1 — 2026-10-16
+
+维护修复与兼容契约见[发行说明](releases/0.8.1.zh-CN.md)。发行门禁记录在 [0.8.1 发行附件](https://github.com/SamuelSupe/contextGate/releases/tag/v0.8.1)的 `release-verification.json`、两份 `dist-*.json` 与两份 `download-*.json` 中，标识源提交、原生 amd64/arm64 CI、原始发行包验证及独立下载回验。包工作流包含 PostgreSQL、HTTP API、HTTP/stdio MCP、重启/撤销/恢复及 OTLP HTTP/protobuf、gRPC。本机 amd64 包通过 OrbStack 仿真执行。
+
+本次维护改动已通过本机 Chrome 验证桌面与 390px 设置布局、直接访问路由、未保存修改保护、隐藏面板停止轮询、数据源编辑焦点恢复和延迟加载失败恢复。浏览器后台可见性切换及长期压力测试未验证。下文完整外部数据库矩阵与云数仓限制保留各自历史范围。
+
 ## ContextGate 0.8.0 — 2026-09-16
 
 连续查询发布、本体关联和后续目录/客户端优化见[功能验证记录](query-publishing-validation.zh-CN.md)。发行准备在 OrbStack 通过完整 Go 测试、race、vet、17 项前端流程测试、2 项无损请求测试和 TypeScript/Vite 构建；本机 Chrome 验证中英文流程及 390px 布局，新英文截图使用自有测试数据。现有包大小提示保留。
