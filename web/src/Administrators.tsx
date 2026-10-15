@@ -1,3 +1,4 @@
+import { administratorRole } from "./display";
 import { useEffect, useState } from "react";
 import { api, date, message, payload, setCSRF } from "./api";
 import {
@@ -12,10 +13,6 @@ import { Brand } from "./Brand";
 import { t } from "./i18n";
 import { useNavigationGuard } from "./useNavigationGuard";
 import type { Administrator, ConfigurationIdentity, Session } from "./types";
-
-export function administratorRole(role: string) {
-  return role === "super_admin" ? t("Super administrator") : t("Administrator");
-}
 
 export function RequiredPasswordChange({
   administrator,

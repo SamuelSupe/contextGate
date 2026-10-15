@@ -55,6 +55,10 @@ Adding or editing a regression contract requires a new successful trial. The con
 
 ## Diagnose PostgreSQL
 
+Settings panels load on first use and retain their form state while switching sections. Finish or cancel an edit, and confirm saving any one-time credential, before leaving its section. Audit export status polls only while that panel and the browser page are visible; hiding either cancels its current status request without changing delivery on the server.
+
+Local audit writes have an independent ten-second total budget covering pool acquisition, ordering-lock waits and SQL execution, even after the calling request is cancelled. Query results still require a committed audit record. The reported query `elapsed_ms` excludes this final audit write; use client end-to-end timing to measure the complete request. Hourly metadata cleanup has a one-minute budget and commits expired audit deletions in batches of at most 1,000 rows. An unfinished cleanup logs a warning and retries remaining expired records on the next hourly cycle; the 30-day retention rule and export cursor ordering are unchanged.
+
 For super administrators, **Settings → Diagnostics → Run diagnostics** checks the metadata connection, observed PostgreSQL version and TLS transport, key match, schema and pool usage. The copyable report contains no database address, credentials, source names or query data. The key check verifies the loaded key against metadata; it does not prove the key has been backed up. TLS transport evidence alone does not establish certificate verification policy. An unavailable metadata database can prevent administrator login; `/healthz`, container state and service startup logs remain the first checks in that case.
 
 ## Back up and verify recovery

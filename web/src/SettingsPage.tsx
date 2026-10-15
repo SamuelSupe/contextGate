@@ -1,122 +1,25 @@
+import { lazy, useState } from "react";
 import { t, useLocale, setLocale, validLocale } from "./i18n";
-import { Administrators } from "./Administrators";
-import { Diagnostics } from "./Diagnostics";
 import { Brand } from "./Brand";
-import { AuditExport } from "./AuditExport";
-import { ConfigurationMCP } from "./ConfigurationMCP";
-import { capabilityLabel } from "./display";
-import { useEffect, useState } from "react";
-import { ShieldCheck, CheckCircle2, Search } from "lucide-react";
 import { api, message, payload, setCSRF } from "./api";
-import {
-  Button,
-  CopyButton,
-  Empty,
-  ErrorNote,
-  Field,
-  Loading,
-} from "./components";
-import type { Administrator, Capability, Settings, Source } from "./types";
-export function CatalogPage({ catalog }: { catalog: Capability[] }) {
-  const [search, setSearch] = useState("");
-  const shown = catalog.filter((c) =>
-    (c.name + " " + c.kind).toLowerCase().includes(search.toLowerCase()),
-  );
-  return (
-    <>
-      <div className="page-header">
-        <div>
-          <h1>{t("Data source types")}</h1>
-          <p>
-            {t("Native query capabilities, protection and tested versions")}
-          </p>
-        </div>
-      </div>
-      <div className="filters">
-        <div className="search-input">
-          <Search size={16} />
-          <input
-            placeholder={t("Search data source types")}
-            aria-label={t("Search data source types")}
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-          />
-        </div>
-        <span className="help">
-          {shown.length}
-          {t(" of ")}
-          {catalog.length}
-          {t(" connectors")}
-        </span>
-      </div>
-      {!shown.length ? (
-        <Empty
-          title={t("No matching connectors")}
-          description={t("Try another name or clear the search.")}
-          action={
-            <Button onClick={() => setSearch("")}>{t("Clear search")}</Button>
-          }
-        />
-      ) : (
-        <div className="table-scroll">
-          <table className="catalog-table">
-            <thead>
-              <tr>
-                <th>{t("Database")}</th>
-                <th>{t("Agent query tool")}</th>
-                <th>{t("Pagination")}</th>
-                <th>{t("Tested versions")}</th>
-                <th>{t("Protection and limitations")}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {shown.map((c) => (
-                <tr key={c.kind}>
-                  <td className="semibold">{c.name}</td>
-                  <td>
-                    <code>{c.tool}</code>
-                    <small className="block">
-                      {c.parameters
-                        ? t("Parameter binding")
-                        : t("Native parameters")}
-                    </small>
-                  </td>
-                  <td>{capabilityLabel(c.pagination)}</td>
-                  <td>
-                    {c.verified_versions.length ? (
-                      <span className="status green">
-                        <CheckCircle2 size={14} />
-                        {c.verified_versions.join(", ")}
-                      </span>
-                    ) : (
-                      <span className="muted">{t("Not verified")}</span>
-                    )}
-                  </td>
-                  <td>
-                    <span>{capabilityLabel(c.protection)}</span>
-                    {c.limitations.map((l) => (
-                      <small className="block" key={l}>
-                        {capabilityLabel(l)}
-                      </small>
-                    ))}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      <div className="notice neutral">
-        <ShieldCheck size={19} />
-        <p>
-          {t(
-            "Compatible products are tested individually. Engine protection and account permissions are separate checks. InfluxDB 3 Core uses query API isolation.",
-          )}
-        </p>
-      </div>
-    </>
-  );
-}
+import { Button, CopyButton, ErrorNote, Field, Loading } from "./components";
+import { canNavigate, useNavigationGuard } from "./useNavigationGuard";
+import { PageBoundary } from "./PageBoundary";
+import type { Administrator, Settings } from "./types";
+
+const Administrators = lazy(() =>
+  import("./Administrators").then((module) => ({ default: module.Administrators })),
+);
+const Diagnostics = lazy(() =>
+  import("./Diagnostics").then((module) => ({ default: module.Diagnostics })),
+);
+const AuditExport = lazy(() =>
+  import("./AuditExport").then((module) => ({ default: module.AuditExport })),
+);
+const ConfigurationMCP = lazy(() =>
+  import("./ConfigurationMCP").then((module) => ({ default: module.ConfigurationMCP })),
+);
+
 export function SettingsPage({
   administrator,
   settings,
@@ -132,7 +35,23 @@ export function SettingsPage({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const superAdmin = administrator.role === "super_admin";
-  const [section, setSection] = useState("language");
+  const [section, setSection] = useState(() =>
+    location.hash === "#configuration-mcp" ? "configuration" : "language",
+  );
+  const [visited, setVisited] = useState([section]);
+  useNavigationGuard(!!current || !!password, busy);
+
+  function selectSection(id: string) {
+    if (id === section) return;
+    if (!canNavigate()) {
+      notify(t("Changes kept. Finish or cancel the current edit before leaving."));
+      return;
+    }
+    setVisited((current) =>
+      current.includes(id) ? current : [...current, id],
+    );
+    setSection(id);
+  }
   if (!settings) return <Loading />;
   return (
     <>
@@ -163,7 +82,7 @@ export function SettingsPage({
                 key={id}
                 aria-pressed={section === id}
                 aria-controls={"settings-" + id}
-                onClick={() => setSection(id)}
+                onClick={() => selectSection(id)}
               >
                 {t(label)}
               </Button>
@@ -262,24 +181,40 @@ export function SettingsPage({
             </p>
           </section>
           <div id="settings-configuration" hidden={section !== "configuration"}>
-            <ConfigurationMCP notify={notify} />
+            {visited.includes("configuration") && (
+              <PageBoundary>
+                <ConfigurationMCP notify={notify} />
+              </PageBoundary>
+            )}
           </div>
           {superAdmin && (
             <div
               id="settings-administrators"
               hidden={section !== "administrators"}
             >
-              <Administrators current={administrator} notify={notify} />
+              {visited.includes("administrators") && (
+                <PageBoundary>
+                  <Administrators current={administrator} notify={notify} />
+                </PageBoundary>
+              )}
             </div>
           )}
           {superAdmin && (
             <div id="settings-diagnostics" hidden={section !== "diagnostics"}>
-              <Diagnostics />
+              {visited.includes("diagnostics") && (
+                <PageBoundary>
+                  <Diagnostics />
+                </PageBoundary>
+              )}
             </div>
           )}
           {superAdmin && (
             <div id="settings-audit" hidden={section !== "audit"}>
-              <AuditExport notify={notify} />
+              {visited.includes("audit") && (
+                <PageBoundary>
+                  <AuditExport active={section === "audit"} notify={notify} />
+                </PageBoundary>
+              )}
             </div>
           )}
           <section id="settings-security" hidden={section !== "security"}>
@@ -373,118 +308,5 @@ export function SettingsPage({
         </div>
       </div>
     </>
-  );
-}
-interface Consent {
-  client_name: string;
-  client_id: string;
-  redirect_uri: string;
-  scope: string;
-  sources: Pick<Source, "id" | "name" | "kind">[];
-}
-export function ConsentPage({ notify }: { notify: (s: string) => void }) {
-  const [info, setInfo] = useState<Consent | null>(null);
-  const [selected, setSelected] = useState<string[]>([]);
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const request = new URLSearchParams(location.search).get("request") || "";
-  useEffect(() => {
-    api<Consent>(`/api/oauth/consent?request=${encodeURIComponent(request)}`)
-      .then(setInfo)
-      .catch((e) => setError(message(e)));
-  }, [request]);
-  async function consent(allow: boolean) {
-    setBusy(true);
-    setError("");
-    try {
-      const out = await api<{ redirect: string }>("/api/oauth/consent", {
-        method: "POST",
-        body: payload({ request, allow, sources: selected }),
-      });
-      notify(allow ? t("Access granted") : t("Access denied"));
-      location.assign(out.redirect);
-    } catch (e) {
-      setError(message(e));
-      setBusy(false);
-    }
-  }
-  return (
-    <div className="auth">
-      <div className="auth-brand">
-        <Brand tagline />
-      </div>
-      <section className="auth-panel consent-panel">
-        <h1>{t("Authorize read-only database access")}</h1>
-        <ErrorNote error={error} />
-        {!info && error ? (
-          <a href="/sources">{t("Return to administration")}</a>
-        ) : null}
-        {!info && !error ? (
-          <Loading />
-        ) : info ? (
-          <>
-            <p>
-              <strong>{info.client_name}</strong>
-              {t(" requests database access through MCP.")}
-            </p>
-            <dl className="consent-details">
-              <dt>Client ID</dt>
-              <dd>{info.client_id}</dd>
-              <dt>{t("Return URL")}</dt>
-              <dd>{info.redirect_uri}</dd>
-            </dl>
-            <h3>{t("Allowed data sources")}</h3>
-            <div className="source-checklist">
-              {info.sources.length ? (
-                info.sources.map((s) => (
-                  <label key={s.id} className="check-row">
-                    <input
-                      type="checkbox"
-                      disabled={busy}
-                      checked={selected.includes(s.id)}
-                      onChange={(e) =>
-                        setSelected(
-                          e.target.checked
-                            ? [...selected, s.id]
-                            : selected.filter((id) => id !== s.id),
-                        )
-                      }
-                    />
-                    <span>
-                      {s.name}
-                      <small>{s.kind}</small>
-                    </span>
-                  </label>
-                ))
-              ) : (
-                <p className="help">
-                  {t(
-                    "No data sources are enabled. Add and enable a connection in administration first.",
-                  )}
-                </p>
-              )}
-            </div>
-            <p className="help">
-              {t(
-                "Only the selected data sources are shared. Revoke access at any time in Agents.",
-              )}
-            </p>
-            <div className="consent-actions">
-              <Button disabled={busy} onClick={() => consent(false)}>
-                {t("Deny")}
-              </Button>
-              <Button
-                primary
-                busy={busy}
-                disabled={!selected.length}
-                onClick={() => consent(true)}
-              >
-                {t("Allow read-only access")}
-              </Button>
-            </div>
-          </>
-        ) : null}
-      </section>
-    </div>
   );
 }

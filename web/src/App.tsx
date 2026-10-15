@@ -1,5 +1,5 @@
-import { t, useLocale, setLocale, validLocale } from "./i18n";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { t, useLocale } from "./i18n";
+import { lazy, useCallback, useEffect, useRef, useState } from "react";
 import {
   Database,
   Network,
@@ -12,25 +12,61 @@ import {
   X,
   CheckCircle2,
 } from "lucide-react";
-import { api, message, payload, setCSRF } from "./api";
-import { Button, ErrorNote, Field, Loading } from "./components";
-import { Ontologies } from "./Ontologies";
+import { api, message, setCSRF } from "./api";
+import { Button, ErrorNote, Loading } from "./components";
 import { canNavigate } from "./useNavigationGuard";
-import { Semantics } from "./Semantics";
-import { QueryPublishing } from "./QueryPublishing";
 import { queryToolURL } from "./query-publishing";
-import { SourceSetup } from "./SourceSetup";
-import { QueryEvaluation } from "./QueryEvaluation";
-import { Home } from "./Home";
-import { BusinessCatalog } from "./BusinessCatalog";
-import { HealthPage } from "./Health";
-import { Sources } from "./Sources";
-import { RequiredPasswordChange, administratorRole } from "./Administrators";
+import { administratorRole } from "./display";
+import { Login } from "./Login";
+import { PageBoundary } from "./PageBoundary";
 import { Brand } from "./Brand";
-import { Agents } from "./Agents";
-import { AuditPage } from "./Audit";
-import { CatalogPage, SettingsPage, ConsentPage } from "./Pages";
 import type { Agent, Capability, Session, Settings, Source } from "./types";
+
+const Ontologies = lazy(() =>
+  import("./Ontologies").then((module) => ({ default: module.Ontologies })),
+);
+const Semantics = lazy(() =>
+  import("./Semantics").then((module) => ({ default: module.Semantics })),
+);
+const QueryPublishing = lazy(() =>
+  import("./QueryPublishing").then((module) => ({ default: module.QueryPublishing })),
+);
+const SourceSetup = lazy(() =>
+  import("./SourceSetup").then((module) => ({ default: module.SourceSetup })),
+);
+const QueryEvaluation = lazy(() =>
+  import("./QueryEvaluation").then((module) => ({ default: module.QueryEvaluation })),
+);
+const Home = lazy(() =>
+  import("./Home").then((module) => ({ default: module.Home })),
+);
+const BusinessCatalog = lazy(() =>
+  import("./BusinessCatalog").then((module) => ({ default: module.BusinessCatalog })),
+);
+const HealthPage = lazy(() =>
+  import("./Health").then((module) => ({ default: module.HealthPage })),
+);
+const Sources = lazy(() =>
+  import("./Sources").then((module) => ({ default: module.Sources })),
+);
+const Agents = lazy(() =>
+  import("./Agents").then((module) => ({ default: module.Agents })),
+);
+const AuditPage = lazy(() =>
+  import("./Audit").then((module) => ({ default: module.AuditPage })),
+);
+const CatalogPage = lazy(() =>
+  import("./CatalogPage").then((module) => ({ default: module.CatalogPage })),
+);
+const SettingsPage = lazy(() =>
+  import("./SettingsPage").then((module) => ({ default: module.SettingsPage })),
+);
+const ConsentPage = lazy(() =>
+  import("./ConsentPage").then((module) => ({ default: module.ConsentPage })),
+);
+const RequiredPasswordChange = lazy(() =>
+  import("./Administrators").then((module) => ({ default: module.RequiredPasswordChange })),
+);
 
 const nav = [
   ["/", "Home", HomeIcon],
@@ -266,12 +302,19 @@ export function App() {
     return <Login initialized={session.initialized} onLogin={loggedIn} />;
   if (session.administrator?.must_change_password)
     return (
-      <RequiredPasswordChange
-        administrator={session.administrator}
-        onComplete={loggedIn}
-      />
+      <PageBoundary>
+        <RequiredPasswordChange
+          administrator={session.administrator}
+          onComplete={loggedIn}
+        />
+      </PageBoundary>
     );
-  if (path === "/oauth/consent") return <ConsentPage notify={notify} />;
+  if (path === "/oauth/consent")
+    return (
+      <PageBoundary>
+        <ConsentPage notify={notify} />
+      </PageBoundary>
+    );
   const workflowRoute = path.match(/^\/sources\/([^/]+)\/(setup|evaluation)$/);
   const workflowSource = sources.find((s) => s.id === workflowRoute?.[1]);
   const semanticID = path.match(/^\/sources\/([^/]+)\/semantics$/)?.[1];
@@ -430,160 +473,162 @@ export function App() {
             {t("Retry loading data")}
           </Button>
         )}
-        {loading ? (
-          <Loading />
-        ) : error && !settings ? null : !active ? (
-          <div className="empty">
-            <h1>{t("Page not found")}</h1>
-            <p>
-              {t(
-                "Choose a section from the navigation or return to your data sources.",
-              )}
-            </p>
-            <Button onClick={() => navigate("/sources")}>
-              {t("Data sources")}
-            </Button>
-          </div>
-        ) : publishing ? (
-          <QueryPublishing
-            key={`${new URLSearchParams(routeQuery).get("source_id")}:${new URLSearchParams(routeQuery).get("template_id")}`}
-            sources={sources}
-            agents={agents}
-            catalog={catalog}
-            settings={settings}
-            administratorID={session.administrator!.id}
-            initialQuery={routeQuery}
-            seed={querySeed}
-            clearSeed={() => setQuerySeed(undefined)}
-            navigate={navigate}
-            reload={reload}
-            notify={notify}
-          />
-        ) : workflowRoute ? (
-          workflowSource ? (
-            workflowRoute[2] === "setup" ? (
-              <SourceSetup
-                onCreateQuery={startQuery}
-                key={workflowSource.id}
-                source={workflowSource}
+        <PageBoundary key={path}>
+          {loading ? (
+            <Loading />
+          ) : error && !settings ? null : !active ? (
+            <div className="empty">
+              <h1>{t("Page not found")}</h1>
+              <p>
+                {t(
+                  "Choose a section from the navigation or return to your data sources.",
+                )}
+              </p>
+              <Button onClick={() => navigate("/sources")}>
+                {t("Data sources")}
+              </Button>
+            </div>
+          ) : publishing ? (
+            <QueryPublishing
+              key={`${new URLSearchParams(routeQuery).get("source_id")}:${new URLSearchParams(routeQuery).get("template_id")}`}
+              sources={sources}
+              agents={agents}
+              catalog={catalog}
+              settings={settings}
+              administratorID={session.administrator!.id}
+              initialQuery={routeQuery}
+              seed={querySeed}
+              clearSeed={() => setQuerySeed(undefined)}
+              navigate={navigate}
+              reload={reload}
+              notify={notify}
+            />
+          ) : workflowRoute ? (
+            workflowSource ? (
+              workflowRoute[2] === "setup" ? (
+                <SourceSetup
+                  onCreateQuery={startQuery}
+                  key={workflowSource.id}
+                  source={workflowSource}
+                  agents={agents}
+                  catalog={catalog}
+                  navigate={navigate}
+                  reload={reload}
+                  notify={notify}
+                />
+              ) : (
+                <QueryEvaluation
+                  key={workflowSource.id}
+                  source={workflowSource}
+                  agents={agents}
+                  navigate={navigate}
+                  notify={notify}
+                />
+              )
+            ) : (
+              <div>
+                <ErrorNote error={t("Data source not found.")} />
+                <Button onClick={() => navigate("/sources")}>
+                  {t("Data sources")}
+                </Button>
+              </div>
+            )
+          ) : semanticID ? (
+            semanticSource ? (
+              <Semantics
+                key={semanticID + routeQuery}
+                initialQuery={routeQuery}
+                source={semanticSource}
                 agents={agents}
-                catalog={catalog}
-                navigate={navigate}
-                reload={reload}
                 notify={notify}
+                onBack={() => navigate("/sources")}
+                onWorkspace={() => navigate(`/sources/${semanticID}/setup`)}
+                onQuery={(id = "") =>
+                  navigate(
+                    queryToolURL(semanticID, id, "", undefined, true) +
+                      "&from=semantics",
+                  )
+                }
               />
             ) : (
-              <QueryEvaluation
-                key={workflowSource.id}
-                source={workflowSource}
-                agents={agents}
-                navigate={navigate}
-                notify={notify}
-              />
+              <div>
+                <ErrorNote error={t("Data source not found.")} />
+                <Button onClick={() => navigate("/sources")}>
+                  {t("Data sources")}
+                </Button>
+              </div>
             )
-          ) : (
-            <div>
-              <ErrorNote error={t("Data source not found.")} />
-              <Button onClick={() => navigate("/sources")}>
-                {t("Data sources")}
-              </Button>
-            </div>
-          )
-        ) : semanticID ? (
-          semanticSource ? (
-            <Semantics
-              key={semanticID + routeQuery}
-              initialQuery={routeQuery}
-              source={semanticSource}
-              agents={agents}
+          ) : active === "/" ? (
+            <Home
+              administratorID={session.administrator!.id}
+              sources={sources}
+              catalog={catalog}
+              navigate={navigate}
+              reload={reload}
               notify={notify}
-              onBack={() => navigate("/sources")}
-              onWorkspace={() => navigate(`/sources/${semanticID}/setup`)}
-              onQuery={(id = "") =>
-                navigate(
-                  queryToolURL(semanticID, id, "", undefined, true) +
-                    "&from=semantics",
-                )
-              }
             />
+          ) : active === "/business" ? (
+            <BusinessCatalog
+              key={routeQuery}
+              initialQuery={routeQuery}
+              sources={sources}
+              agents={agents}
+              navigate={navigate}
+            />
+          ) : active === "/sources" ? (
+            <Sources
+              onCreateQuery={startQuery}
+              navigate={navigate}
+              agents={agents}
+              sources={sources}
+              catalog={catalog}
+              reload={reload}
+              notify={notify}
+            />
+          ) : active === "/ontologies" ? (
+            <Ontologies
+              key={`${ontologyID || "ontology-list"}:${routeQuery}`}
+              id={ontologyID}
+              initialQuery={routeQuery}
+              sources={sources}
+              agents={agents}
+              navigate={navigate}
+              notify={notify}
+            />
+          ) : active === "/agents" ? (
+            <Agents
+              key={routeQuery}
+              initialQuery={routeQuery}
+              navigate={navigate}
+              agents={agents}
+              sources={sources}
+              settings={settings}
+              reload={reload}
+              notify={notify}
+            />
+          ) : active === "/health" ? (
+            <HealthPage
+              superAdmin={session.administrator?.role === "super_admin"}
+              navigate={navigate}
+              reloadSources={reload}
+            />
+          ) : active === "/audit" ? (
+            <AuditPage
+              superAdmin={session.administrator?.role === "super_admin"}
+              sources={sources}
+              agents={agents}
+              navigate={navigate}
+            />
+          ) : active === "/catalog" ? (
+            <CatalogPage catalog={catalog} />
           ) : (
-            <div>
-              <ErrorNote error={t("Data source not found.")} />
-              <Button onClick={() => navigate("/sources")}>
-                {t("Data sources")}
-              </Button>
-            </div>
-          )
-        ) : active === "/" ? (
-          <Home
-            administratorID={session.administrator!.id}
-            sources={sources}
-            catalog={catalog}
-            navigate={navigate}
-            reload={reload}
-            notify={notify}
-          />
-        ) : active === "/business" ? (
-          <BusinessCatalog
-            key={routeQuery}
-            initialQuery={routeQuery}
-            sources={sources}
-            agents={agents}
-            navigate={navigate}
-          />
-        ) : active === "/sources" ? (
-          <Sources
-            onCreateQuery={startQuery}
-            navigate={navigate}
-            agents={agents}
-            sources={sources}
-            catalog={catalog}
-            reload={reload}
-            notify={notify}
-          />
-        ) : active === "/ontologies" ? (
-          <Ontologies
-            key={`${ontologyID || "ontology-list"}:${routeQuery}`}
-            id={ontologyID}
-            initialQuery={routeQuery}
-            sources={sources}
-            agents={agents}
-            navigate={navigate}
-            notify={notify}
-          />
-        ) : active === "/agents" ? (
-          <Agents
-            key={routeQuery}
-            initialQuery={routeQuery}
-            navigate={navigate}
-            agents={agents}
-            sources={sources}
-            settings={settings}
-            reload={reload}
-            notify={notify}
-          />
-        ) : active === "/health" ? (
-          <HealthPage
-            superAdmin={session.administrator?.role === "super_admin"}
-            navigate={navigate}
-            reloadSources={reload}
-          />
-        ) : active === "/audit" ? (
-          <AuditPage
-            superAdmin={session.administrator?.role === "super_admin"}
-            sources={sources}
-            agents={agents}
-            navigate={navigate}
-          />
-        ) : active === "/catalog" ? (
-          <CatalogPage catalog={catalog} />
-        ) : (
-          <SettingsPage
-            administrator={session.administrator!}
-            settings={settings}
-            notify={notify}
-          />
-        )}
+            <SettingsPage
+              administrator={session.administrator!}
+              settings={settings}
+              notify={notify}
+            />
+          )}
+        </PageBoundary>
       </main>
       {toast ? (
         <div className="toast" role="status">
@@ -591,172 +636,6 @@ export function App() {
           {toast}
         </div>
       ) : null}
-    </div>
-  );
-}
-function Login({
-  initialized,
-  onLogin,
-}: {
-  initialized: boolean;
-  onLogin: (s: Session) => void;
-}) {
-  const locale = useLocale();
-  const [password, setPassword] = useState("");
-  const [token, setToken] = useState("");
-  const [username, setUsername] = useState("");
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  return (
-    <div className="auth">
-      <div className="auth-language">
-        <label>
-          {t("Display language")}
-          <select
-            value={locale}
-            onChange={(e) => setLocale(validLocale(e.target.value))}
-          >
-            <option value="en" lang="en">
-              English
-            </option>
-            <option value="zh-CN" lang="zh-CN">
-              简体中文
-            </option>
-          </select>
-        </label>
-      </div>
-      <div className="auth-brand">
-        <Brand tagline />
-      </div>
-      <p className="auth-tagline">
-        {t("Understand your business. Query data safely.")}
-      </p>
-      <section className="auth-panel">
-        <h1>
-          {initialized ? t("Administrator sign in") : t("Set up administrator")}
-        </h1>
-        <p>
-          {initialized
-            ? t("Manage business context, verified queries and Agent access.")
-            : t(
-                "Enter the one-time setup code from the server log to create your administrator password.",
-              )}
-        </p>
-        {!initialized && (
-          <details className="recovery-help">
-            <summary>{t("Where do I find the setup code?")}</summary>
-            <p>
-              {t(
-                "Docker Compose: run this command in the deployment directory, then copy the value after First-time setup token:",
-              )}
-            </p>
-            <pre>docker compose logs hub</pre>
-            <p>
-              {t(
-                "Local binary: look in the terminal where you started contextgate serve. The latest startup code is valid until administrator setup completes. Restart the service to generate a new code if needed.",
-              )}
-            </p>
-          </details>
-        )}
-        <ErrorNote error={error} />
-        <form
-          onSubmit={async (e) => {
-            e.preventDefault();
-            setBusy(true);
-            setError("");
-            try {
-              const s = await api<Session>(
-                initialized ? "/api/login" : "/api/setup",
-                {
-                  method: "POST",
-                  body: payload(
-                    initialized
-                      ? { username, password }
-                      : { username, password, token },
-                  ),
-                },
-              );
-              onLogin(s);
-            } catch (e) {
-              setError(message(e));
-            } finally {
-              setBusy(false);
-            }
-          }}
-        >
-          <Field label={t("Username")} required>
-            <input
-              name="username"
-              autoComplete="username"
-              required
-              maxLength={64}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-            />
-          </Field>
-          {!initialized ? (
-            <Field label={t("One-time setup code")} required>
-              <input
-                autoComplete="off"
-                value={token}
-                onChange={(e) => setToken(e.target.value)}
-                required
-              />
-            </Field>
-          ) : null}
-          <Field
-            label={
-              initialized
-                ? t("Administrator password")
-                : t("Create administrator password")
-            }
-            required
-            hint={
-              !initialized
-                ? t(
-                    "At least 12 characters. Passwords are never stored in plain text.",
-                  )
-                : undefined
-            }
-          >
-            <input
-              type="password"
-              autoComplete={initialized ? "current-password" : "new-password"}
-              minLength={initialized ? 1 : 12}
-              maxLength={256}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-            />
-          </Field>
-          <Button primary busy={busy} type="submit">
-            {initialized ? t("Sign in") : t("Create administrator")}
-          </Button>
-        </form>
-        {initialized ? (
-          <details className="recovery-help">
-            <summary>{t("Forgot your password?")}</summary>
-            <p>
-              {t("On the server, stop the service and run")}{" "}
-              <code>
-                contextgate reset-password --username USERNAME --data-dir DIR
-                --password-stdin
-              </code>{" "}
-              {t(
-                "with the same MCPDBHUB_DATABASE_URL, key directory and master key as the service. Supply the new password through standard input, then restart the service.",
-              )}
-            </p>
-            <p>
-              {t(
-                "The selected account is signed out and its configuration token is revoked. Other accounts and query Agent grants are retained.",
-              )}
-            </p>
-          </details>
-        ) : null}
-      </section>
-      <p className="auth-foot">
-        {t("Read-only queries · Individual grants · Auditable access")}
-      </p>
     </div>
   );
 }

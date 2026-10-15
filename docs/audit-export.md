@@ -68,6 +68,8 @@ Export includes persisted query/discovery records, administrator previews, conne
 
 ## Delivery and retention
 
+The settings panel loads on first use. Its five-second status polling pauses when another settings section is selected or the browser page is hidden, retaining unsaved form values. This affects UI status requests only; the server worker continues delivery.
+
 - The worker reads committed PostgreSQL audit records in ID order, up to 64 events and 512 KiB per batch. It polls every two seconds when idle and drains a backlog in smaller intervals. Receiver requests time out after ten seconds and responses are limited to 64 KiB. Remote delivery never runs in the query request path.
 - First enable and every re-enable start at the current audit tail: historical and disabled-period events are not exported. Disabling cancels the active send and clears the export backlog without deleting local audit records. Updating an enabled destination preserves the queue, so pending events go to the new destination.
 - Configuration and the acknowledged position are encrypted and persisted together. Pending events and retry state survive restarts. Events already accepted remotely can be repeated if an acknowledgement is lost, a checkpoint cannot be saved, or configuration changes while sending. Deduplicate by `service.instance.id` plus `mcpdbhub.audit.id`; this is not exactly-once delivery.

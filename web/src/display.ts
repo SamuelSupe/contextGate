@@ -28,3 +28,24 @@ const labels: Record<string, string> = {
 export function capabilityLabel(value: string) {
   return t(labels[value] || value);
 }
+
+export function administratorRole(role: string) {
+  return role === "super_admin" ? t("Super administrator") : t("Administrator");
+}
+
+export const healthStatusLabels: Record<string, string> = {
+  overdue: "Health check overdue",
+  structure_incomplete: "Structure needs attention",
+  object_missing: "Object not found",
+  not_checked: "Health check not run",
+  checked: "Health check completed",
+  connection_failed: "Health check connection failed",
+  structure_changed: "Structure changed",
+  stale: "Health check needs refreshing",
+  disabled: "Disabled",
+  unchanged: "Unchanged",
+  baseline: "Baseline recorded",
+  changed: "Changed",
+  unverified: "Not verified",
+  incomplete: "Incomplete",
+};

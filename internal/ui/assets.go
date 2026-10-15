@@ -21,6 +21,7 @@ func Handler() http.Handler {
 		}
 		if _, e := fs.Stat(root, p); e != nil {
 			if strings.HasPrefix(p, "assets/") {
+				w.Header().Set("Cache-Control", "no-store")
 				http.NotFound(w, r)
 				return
 			}
@@ -28,8 +29,14 @@ func Handler() http.Handler {
 			u := *r.URL
 			u.Path = "/"
 			clone.URL = &u
+			w.Header().Set("Cache-Control", "no-cache")
 			files.ServeHTTP(w, clone)
 			return
+		}
+		if strings.HasPrefix(p, "assets/") {
+			w.Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		} else {
+			w.Header().Set("Cache-Control", "no-cache")
 		}
 		files.ServeHTTP(w, r)
 	})

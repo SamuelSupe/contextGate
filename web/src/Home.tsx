@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
+import { lazy, useEffect, useState } from "react";
 import { ArrowRight, Search } from "lucide-react";
 import { api, date, message } from "./api";
 import { Button, Empty, ErrorNote, Field, Loading } from "./components";
 import { t } from "./i18n";
 import { HelpTip } from "./HelpTip";
-import { healthStatusLabels } from "./Health";
+import { healthStatusLabels } from "./display";
 import { useNavigationGuard } from "./useNavigationGuard";
 import {
   queryToolURL,
@@ -13,12 +13,16 @@ import {
   queryStepLabels,
   type QueryJourney,
 } from "./query-publishing";
-import { SourceEditor } from "./SourceEditor";
+import { PageBoundary } from "./PageBoundary";
 import { RecentQueries } from "./RecentQueries";
 import { useReadiness } from "./readiness";
 import type { Agent, Capability, Source } from "./types";
 import type { SemanticState } from "./semantic-types";
 import "./business-workflows.css";
+
+const SourceEditor = lazy(() =>
+  import("./SourceEditor").then((module) => ({ default: module.SourceEditor })),
+);
 
 type HealthSummary = {
   sources: {
@@ -296,17 +300,19 @@ export function Home({
         </section>
       </div>
       {adding && (
-        <SourceEditor
-          source={null}
-          catalog={catalog}
-          onClose={() => setAdding(false)}
-          onSaved={async (notice, close, id) => {
-            await reload();
-            if (id) setSourceID(id);
-            if (notice) notify(notice);
-            if (close !== false) setAdding(false);
-          }}
-        />
+        <PageBoundary>
+          <SourceEditor
+            source={null}
+            catalog={catalog}
+            onClose={() => setAdding(false)}
+            onSaved={async (notice, close, id) => {
+              await reload();
+              if (id) setSourceID(id);
+              if (notice) notify(notice);
+              if (close !== false) setAdding(false);
+            }}
+          />
+        </PageBoundary>
       )}
     </>
   );

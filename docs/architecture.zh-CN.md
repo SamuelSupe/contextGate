@@ -36,6 +36,8 @@ flowchart LR
 | `internal/store`、`internal/secure` | 配置事务、加密、散列 |
 | `web`、`internal/ui` | React/TS 源码、Go 内嵌构建产物 |
 
+管理 UI 按需加载页面和设置子页。`App.tsx` 负责导航与会话，登录、设置、连接器目录和 OAuth 同意页分别组织；共享标签放在 `display.ts`，避免因导入标签而加载其他页面。现有样式包含跨页共享选择器，继续集中加载，使直接打开链接不依赖此前访问过哪些页面。加载失败限制在页面边界内，保存修改后可显式重新加载。HTML 每次重新验证，带内容哈希的 `/assets/` 文件长期缓存，缺失资源返回不缓存的 404。
+
 ## MCP 契约
 
 `list_data_sources` 无参数，只返回当前身份被授权且启用的数据源。每个数据源提供 capability、示例、上限和已验收版本。其余工具均要求 `source_id`。

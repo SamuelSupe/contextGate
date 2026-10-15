@@ -3,6 +3,7 @@ package store
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"github.com/SamuelSupe/contextGate/internal/secure"
 	"os"
 	"path/filepath"
@@ -133,6 +134,106 @@ func TestPostgresAuditExportDoesNotSkipConcurrentCommit(t *testing.T) {
 	page, err := s.Audits(AuditFilter{Agent: "second", Source: "source", Status: "success", From: time.Now().Add(-time.Hour)}, 1)
 	if err != nil || len(page) != 1 || page[0].ID != batch[1].ID {
 		t.Fatal("combined audit filters did not bind their own parameter positions", page, err)
+	}
+}
+
+func TestAuditDeadlineBoundsPoolAndLockWaits(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir, testpg.DSN(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	s.DB.SetMaxOpenConns(1)
+	conn, err := s.DB.Conn(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 50*time.Millisecond)
+	err = s.audit(ctx, model.Audit{RequestID: "pool-wait"})
+	cancel()
+	conn.Close()
+	if !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("audit pool wait ignored its deadline", err)
+	}
+	s.DB.SetMaxOpenConns(16)
+	tx, err := s.DB.Begin()
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer tx.Rollback()
+	if _, err = tx.Exec("LOCK TABLE audit IN ACCESS EXCLUSIVE MODE"); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel = context.WithTimeout(context.Background(), 50*time.Millisecond)
+	err = s.audit(ctx, model.Audit{RequestID: "lock-wait"})
+	cancel()
+	tx.Rollback()
+	if err == nil || ctx.Err() != context.DeadlineExceeded {
+		t.Fatal("audit lock wait ignored its deadline", err)
+	}
+	if err = s.Audit(model.Audit{RequestID: "recovered", At: time.Now()}); err != nil {
+		t.Fatal("audit did not recover after blocked writes", err)
+	}
+	rows, err := s.AuditBatch(context.Background(), 0)
+	if err != nil || len(rows) != 1 || rows[0].RequestID != "recovered" {
+		t.Fatal("timed out audit left a committed record", rows, err)
+	}
+}
+
+func TestMetadataCleanupPreservesRetentionBoundaryAndCancellation(t *testing.T) {
+	dir := t.TempDir()
+	s, err := Open(dir, testpg.DSN(t, dir))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer s.Close()
+	now := time.Now().Truncate(time.Second)
+	cutoff := now.Add(-30 * 24 * time.Hour).UnixMilli()
+	if _, err = s.DB.Exec(`INSERT INTO audit(at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code)
+		SELECT $1,'','','query_sql','',0,0,'' FROM generate_series(1,2501)`, cutoff-1); err != nil {
+		t.Fatal(err)
+	}
+	for _, at := range []int64{cutoff, now.UnixMilli()} {
+		if err = s.Audit(model.Audit{At: time.UnixMilli(at)}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	if _, err = s.DB.Exec("INSERT INTO sessions(hash,csrf,expires) VALUES('expired','', $1),('current','',$2)", now.Unix()-1, now.Unix()); err != nil {
+		t.Fatal(err)
+	}
+	if _, err = s.DB.Exec("INSERT INTO oauth(kind,id,value,expires) VALUES('test','expired','',$1),('test','current','',$2),('test','permanent','',0)", now.Unix()-1, now.Unix()); err != nil {
+		t.Fatal(err)
+	}
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+	if err = s.cleanup(ctx, now); !errors.Is(err, context.Canceled) {
+		t.Fatal("cancelled cleanup continued", err)
+	}
+	var count int
+	if err = s.DB.QueryRow("SELECT count(*) FROM audit").Scan(&count); err != nil || count != 2503 {
+		t.Fatal("cancelled cleanup removed audit records", count, err)
+	}
+	if err = s.cleanup(context.Background(), now); err != nil {
+		t.Fatal(err)
+	}
+	if err = s.DB.QueryRow("SELECT count(*) FROM audit WHERE at>=$1", cutoff).Scan(&count); err != nil || count != 2 {
+		t.Fatal("cleanup removed retained audit records", count, err)
+	}
+	if err = s.DB.QueryRow("SELECT count(*) FROM audit WHERE at<$1", cutoff).Scan(&count); err != nil || count != 0 {
+		t.Fatal("cleanup left expired audit records", count, err)
+	}
+	if err = s.DB.QueryRow("SELECT count(*) FROM sessions WHERE hash='current'").Scan(&count); err != nil || count != 1 {
+		t.Fatal("cleanup removed a current session", count, err)
+	}
+	if err = s.DB.QueryRow("SELECT count(*) FROM sessions").Scan(&count); err != nil || count != 1 {
+		t.Fatal("cleanup left an expired session", count, err)
+	}
+	if err = s.DB.QueryRow("SELECT count(*) FROM oauth WHERE id IN ('current','permanent')").Scan(&count); err != nil || count != 2 {
+		t.Fatal("cleanup removed current or permanent OAuth state", count, err)
+	}
+	if err = s.DB.QueryRow("SELECT count(*) FROM oauth").Scan(&count); err != nil || count != 2 {
+		t.Fatal("cleanup left expired OAuth state", count, err)
 	}
 }
 

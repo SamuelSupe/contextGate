@@ -18,6 +18,13 @@ type AuditFilter struct {
 }
 
 func (s *Store) Audit(a model.Audit) error {
+	// Audit must also survive a cancelled caller, while pool and lock waits remain bounded.
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	return s.audit(ctx, a)
+}
+
+func (s *Store) audit(ctx context.Context, a model.Audit) error {
 	if a.ActorType == "" {
 		if a.EventKind == "system" {
 			a.ActorType = "system"
@@ -30,17 +37,17 @@ func (s *Store) Audit(a model.Audit) error {
 	if a.EventKind == "" {
 		a.EventKind = "query"
 	}
-	tx, err := s.DB.Begin()
+	tx, err := s.DB.BeginTx(ctx, nil)
 	if err != nil {
 		return err
 	}
 	defer tx.Rollback()
 	// An OTLP cursor advances by ID. Assign IDs in commit order so a slower
 	// concurrent insert cannot become visible behind an already exported cursor.
-	if _, err = tx.Exec("LOCK TABLE audit IN SHARE ROW EXCLUSIVE MODE"); err != nil {
+	if _, err = tx.ExecContext(ctx, "LOCK TABLE audit IN SHARE ROW EXCLUSIVE MODE"); err != nil {
 		return err
 	}
-	if _, err = tx.Exec("INSERT INTO audit(at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code,request_id,native_code,preview,template_id,template_version,ontology_id,ontology_version,event_kind,resource_id,revision,changed_fields,administrator_id,administrator_username,actor_type,configuration_agent_id,channel) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", a.At.UnixMilli(), a.AgentID, a.SourceID, a.Operation, a.Fingerprint, a.ElapsedMS, a.Rows, a.ErrorCode, a.RequestID, a.NativeCode, a.Preview, a.TemplateID, a.TemplateVersion, a.OntologyID, a.OntologyVersion, a.EventKind, a.ResourceID, a.Revision, a.ChangedFields, a.AdministratorID, a.AdministratorUsername, a.ActorType, a.ConfigurationAgentID, a.Channel); err != nil {
+	if _, err = tx.ExecContext(ctx, "INSERT INTO audit(at,agent_id,source_id,operation,fingerprint,elapsed_ms,rows,error_code,request_id,native_code,preview,template_id,template_version,ontology_id,ontology_version,event_kind,resource_id,revision,changed_fields,administrator_id,administrator_username,actor_type,configuration_agent_id,channel) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21,$22,$23,$24)", a.At.UnixMilli(), a.AgentID, a.SourceID, a.Operation, a.Fingerprint, a.ElapsedMS, a.Rows, a.ErrorCode, a.RequestID, a.NativeCode, a.Preview, a.TemplateID, a.TemplateVersion, a.OntologyID, a.OntologyVersion, a.EventKind, a.ResourceID, a.Revision, a.ChangedFields, a.AdministratorID, a.AdministratorUsername, a.ActorType, a.ConfigurationAgentID, a.Channel); err != nil {
 		return err
 	}
 	return tx.Commit()

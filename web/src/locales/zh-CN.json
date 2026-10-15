@@ -1,4 +1,6 @@
 {
+  "This page could not be loaded. Check your connection and reload when your changes are saved.": "页面加载失败。请检查网络，并在保存修改后重新加载。",
+  "Reload page": "重新加载页面",
   "This token cannot be viewed again. Close without confirming it was saved?": "此令牌无法再次查看。尚未确认保存，仍要关闭吗？",
   "Save your Agent token": "保存 Agent 令牌",
   "Connect {name}": "连接 {name}",

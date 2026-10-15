@@ -1,3 +1,4 @@
+import { healthStatusLabels } from "./display";
 import { useCallback, useEffect, useState } from "react";
 import { api, date, message, payload } from "./api";
 import { Button, Empty, ErrorNote, Field, Loading } from "./components";
@@ -37,23 +38,6 @@ type Overview = {
   pending_changes: number;
   audit_export: { state: string; pending: number; last_error?: string };
 };
-export const healthStatusLabels: Record<string, string> = {
-  overdue: "Health check overdue",
-  structure_incomplete: "Structure needs attention",
-  object_missing: "Object not found",
-  not_checked: "Health check not run",
-  checked: "Health check completed",
-  connection_failed: "Health check connection failed",
-  structure_changed: "Structure changed",
-  stale: "Health check needs refreshing",
-  disabled: "Disabled",
-  unchanged: "Unchanged",
-  baseline: "Baseline recorded",
-  changed: "Changed",
-  unverified: "Not verified",
-  incomplete: "Incomplete",
-};
-
 export function HealthPage({
   superAdmin,
   navigate,

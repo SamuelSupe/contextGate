@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased
+
+- Load management pages and settings panels on demand, retain visited forms, and protect unsaved edits and one-time credentials when switching settings sections. Pause audit status polling outside the visible panel and browser page.
+- Separate login, settings, connector catalog and OAuth consent components, and keep shared display labels independent of page modules. Handle deferred-page failures with an explicit reload action.
+- Revalidate embedded HTML, cache content-hashed assets, and return uncached 404 responses for unavailable assets.
+- Bound local audit writes, including connection-pool waits, with an independent ten-second budget. Commit expired-audit cleanup in batches of at most 1,000 within a one-minute hourly budget, preserving audit ordering and retention semantics.
+
 ## 0.8.0 — 2026-09-16
 
 - Publish existing native queries and fixed HTTP read operations through a guided source, query, contract, trial and full-source review workflow. Preserve saved drafts, concurrent edits and explicit publication boundaries.

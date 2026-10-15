@@ -29,7 +29,16 @@ type ExportView = {
 type TestResult = { accepted: boolean; message: string; checked_at: string };
 const endpoint = "/api/settings/audit-export";
 
-export function AuditExport({ notify }: { notify: (text: string) => void }) {
+export function AuditExport({
+  active,
+  notify,
+}: {
+  active: boolean;
+  notify: (text: string) => void;
+}) {
+  const [visible, setVisible] = useState(
+    () => document.visibilityState !== "hidden",
+  );
   const [view, setView] = useState<ExportView | null>(null);
   const [config, setConfig] = useState<ExportConfig | null>(null);
   const [savedConfig, setSavedConfig] = useState<ExportConfig | null>(null);
@@ -56,17 +65,28 @@ export function AuditExport({ notify }: { notify: (text: string) => void }) {
     setStatusError("");
   }
   useEffect(() => {
+    const update = () => setVisible(document.visibilityState !== "hidden");
+    document.addEventListener("visibilitychange", update);
+    return () => document.removeEventListener("visibilitychange", update);
+  }, []);
+
+  const loaded = view !== null;
+  useEffect(() => {
+    if (!active || !visible || loaded) return;
+    setError("");
     const abort = new AbortController();
     api<ExportView>(endpoint, { signal: abort.signal })
-      .then(adopt)
+      .then((value) => {
+        if (!abort.signal.aborted) adopt(value);
+      })
       .catch((e) => {
         if (!abort.signal.aborted) setError(message(e));
       });
     return () => abort.abort();
-  }, []);
+  }, [active, visible, loaded]);
 
   useEffect(() => {
-    if (!view?.config.enabled) return;
+    if (!active || !visible || !view?.config.enabled) return;
     const abort = new AbortController();
     let polling = false;
     const timer = setInterval(async () => {
@@ -74,6 +94,7 @@ export function AuditExport({ notify }: { notify: (text: string) => void }) {
       polling = true;
       try {
         const value = await api<ExportView>(endpoint, { signal: abort.signal });
+        if (abort.signal.aborted) return;
         setView((current) =>
           !current || value.config.revision >= current.config.revision
             ? value
@@ -90,7 +111,7 @@ export function AuditExport({ notify }: { notify: (text: string) => void }) {
       clearInterval(timer);
       abort.abort();
     };
-  }, [view?.config.enabled]);
+  }, [active, visible, view?.config.enabled]);
 
   function edit(patch: Partial<ExportConfig>) {
     setConfig((current) => (current ? { ...current, ...patch } : current));

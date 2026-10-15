@@ -36,6 +36,8 @@ flowchart LR
 | `internal/store`, `internal/secure` | Configuration transactions, encryption and hashing |
 | `web`, `internal/ui` | React/TypeScript source and Go-embedded build output |
 
+The management UI loads pages and settings panels on demand. `App.tsx` owns navigation and sessions; login, settings, connector catalog and OAuth consent have separate components. Shared labels live in `display.ts` so importing a label does not load another page. Existing styles load together because shared selectors span pages; direct links must render consistently without prior navigation. Loading failures remain inside the page boundary and offer an explicit reload after edits have been saved. HTML is revalidated; content-hashed `/assets/` files use immutable caching, while missing assets return an uncached 404.
+
 ## MCP contract
 
 `list_data_sources` takes no arguments and returns only enabled sources authorized for the caller. Each source includes capabilities, examples, limits and verified versions. Every other tool requires `source_id`.

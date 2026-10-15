@@ -1,7 +1,6 @@
 package store
 
 import (
-	"context"
 	"database/sql"
 	"encoding/json"
 	"github.com/SamuelSupe/contextGate/internal/model"
@@ -183,18 +182,4 @@ func (s *Store) CheckSession(token string) (string, error) {
 func (s *Store) DeleteSession(token string) error {
 	_, e := s.DB.Exec("DELETE FROM sessions WHERE hash=$1", secure.Hash(token))
 	return e
-}
-func (s *Store) Cleanup(ctx context.Context) {
-	ticker := time.NewTicker(time.Hour)
-	defer ticker.Stop()
-	for {
-		select {
-		case <-ctx.Done():
-			return
-		case <-ticker.C:
-			s.DB.Exec("DELETE FROM sessions WHERE expires<$1", time.Now().Unix())
-			s.DB.Exec("DELETE FROM audit WHERE at<$1", time.Now().Add(-30*24*time.Hour).UnixMilli())
-			s.DB.Exec("DELETE FROM oauth WHERE expires>0 AND expires<$1", time.Now().Unix())
-		}
-	}
 }
